@@ -45,8 +45,12 @@ export function validateOutfit(
 
   const results: ValidationResult[] = [];
 
-  // Hàm helper để check mảng an toàn
-  const isIn = (arr: string[], val: string | null | undefined) => (val ? arr.includes(val) : false);
+  // Hàm helper để check mảng an toàn (hỗ trợ cả mã gốc và mã hậu tố giới tính _1, _2)
+  const isIn = (arr: string[], val: string | null | undefined) => {
+    if (!val) return false;
+    const baseVal = val.replace(/_[12]$/, '');
+    return arr.includes(val) || arr.includes(baseVal);
+  };
 
   // RULE 1: GUARD_SACRED_LENGTH
   if (ctxId === 'C05' && isIn(['cs_05', 'cs_06', 'cs_21'], botId)) {
@@ -60,7 +64,7 @@ export function validateOutfit(
 
   // RULE 2: GUARD_YEM_STANDALONE
   const publicContexts = ['C01', 'C02', 'C03', 'C04', 'C05', 'C06'];
-  if (cId === 'V03' && (outLayer === null || outLayer === undefined || outLayer === false || outLayer === '') && isIn(publicContexts, ctxId)) {
+  if ((cId === 'V03' || isIn(['V03'], cId)) && (outLayer === null || outLayer === undefined || outLayer === false || outLayer === '') && isIn(publicContexts, ctxId)) {
     results.push({
       isValid: false,
       severity: 'BLOCK',

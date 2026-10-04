@@ -1,6 +1,8 @@
 {
-  "name": "Việt Phục Remix - Thời Trang Cổ Phục Giao Thoa Đương Đại",
-  "description": "Nền tảng khám phá và mix & match cổ phục Việt Nam cùng phong cách thời trang đường phố đương đại.",
+  "name": "Remix Việt Phục Remix - Thời Trang Cổ Phục Giao Thoa Đương Đại",
+  "description": "Nền tảng khám phá và mix \u0026 match cổ phục Việt Nam cùng phong cách thời trang đường phố đương đại.",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }

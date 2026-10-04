@@ -1,0 +1,1036 @@
+import React, { useState, useEffect } from 'react';
+import {
+  Sparkles,
+  ShieldCheck,
+  Check,
+  X,
+  Compass,
+  Shirt,
+  Layers,
+  Crown,
+  ChevronRight,
+  ChevronLeft,
+  ChevronUp,
+  ChevronDown,
+  Footprints,
+  RotateCcw,
+  AlertTriangle
+} from 'lucide-react';
+import { GARMENTS, CASUAL_ITEMS, ACCESSORIES, CONTEXTS } from '../data';
+import { resolveItemByGender, getSafeImageUrl } from '../utils/helpers';
+import { validateOutfit } from '../utils/validationEngine';
+import { getQuickMatchSuggestion } from '../utils/recommendationEngine';
+import { ValidationResult, Garment, CasualItem, AccessoryItem } from '../types';
+import { ItemSelectCard } from '../components/ItemSelectCard';
+import { SafeImage } from '../components/SafeImage';
+import { OutfitResultView } from '../components/OutfitResultView';
+import { GarmentDetailModal } from '../components/GarmentDetailModal';
+import { CasualDetailModal } from '../components/CasualDetailModal';
+import { AccessoryDetailModal } from '../components/AccessoryDetailModal';
+
+export const Studio: React.FC = () => {
+  // ==========================================
+  // STATE MANAGEMENT CHO STUDIO
+  // ==========================================
+  const [selectedGender, setSelectedGender] = useState<'male' | 'female'>('female');
+  const [activeTab, setActiveTab] = useState<number>(1); // 1: Bối cảnh | 2: Cổ phục | 3: Mặc kèm | 4: Phụ kiện
+
+  // Các state lưu ID item đã chọn
+  const [selectedContext, setSelectedContext] = useState<string | null>(null);
+  const [selectedGarment, setSelectedGarment] = useState<string | null>(null);
+  const [selectedInner, setSelectedInner] = useState<string | null>(null);
+  const [selectedBottom, setSelectedBottom] = useState<string | null>(null);
+  const [selectedShoes, setSelectedShoes] = useState<string | null>(null);
+  const [selectedHeadwear, setSelectedHeadwear] = useState<string | null>(null);
+  const [selectedJewelries, setSelectedJewelries] = useState<string[]>([]);
+
+  // State mở Modal chi tiết xem trước từng món đồ
+  const [previewGarment, setPreviewGarment] = useState<Garment | null>(null);
+  const [previewCasual, setPreviewCasual] = useState<CasualItem | null>(null);
+  const [previewAccessory, setPreviewAccessory] = useState<AccessoryItem | null>(null);
+
+  // State kết quả kiểm tra & chuyển màn hình hiển thị thành quả
+  const [validationResults, setValidationResults] = useState<ValidationResult[]>([]);
+  const [realtimeErrors, setRealtimeErrors] = useState<ValidationResult[]>([]);
+  const [isShowingResult, setIsShowingResult] = useState<boolean>(false);
+
+  // State ẩn/hiện thanh validation dưới cùng (mặc định ẩn gọn, chỉ mở khi bấm, tự ẩn khi chọn món khác)
+  const [isBottomBarExpanded, setIsBottomBarExpanded] = useState<boolean>(false);
+
+  // Chuyển Tab mượt mà lên đầu danh sách
+  const goToTab = (tabNumber: number) => {
+    setIsBottomBarExpanded(false);
+    setActiveTab(tabNumber);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // 1. Chọn Bối cảnh (Tab 1)
+  const handleSelectContext = (ctxId: string) => {
+    setIsBottomBarExpanded(false);
+    setSelectedContext(ctxId);
+    setTimeout(() => {
+      goToTab(2); // Auto-advance sang Cổ phục
+    }, 250);
+  };
+
+  // 2. Chọn Cổ phục (Tab 2)
+  const handleSelectGarment = (garmentId: string) => {
+    setIsBottomBarExpanded(false);
+    if (selectedGarment === garmentId) {
+      setSelectedGarment(null);
+    } else {
+      setSelectedGarment(garmentId);
+      setTimeout(() => {
+        goToTab(3); // Auto-advance sang Mặc kèm
+      }, 250);
+    }
+  };
+
+  // 3. SMART ASSIGNMENT cho đồ Mặc kèm (Tab 3)
+  const handleSmartSelectCasual = (item: any) => {
+    setIsBottomBarExpanded(false);
+    const rawCat = (item.category || item.type || '').toLowerCase();
+
+    if (rawCat.includes('inner') || rawCat.includes('top')) {
+      setSelectedInner((prev) => (prev === item.id ? null : item.id));
+    } else if (rawCat.includes('bottom') || rawCat.includes('pants') || rawCat.includes('skirt')) {
+      setSelectedBottom((prev) => (prev === item.id ? null : item.id));
+    } else if (rawCat.includes('shoe') || rawCat.includes('footwear')) {
+      setSelectedShoes((prev) => (prev === item.id ? null : item.id));
+    } else {
+      if (item.type === 'inner') setSelectedInner((prev) => (prev === item.id ? null : item.id));
+      else if (item.type === 'bottom') setSelectedBottom((prev) => (prev === item.id ? null : item.id));
+      else if (item.type === 'shoes') setSelectedShoes((prev) => (prev === item.id ? null : item.id));
+    }
+  };
+
+  // 4. SMART ASSIGNMENT cho Phụ kiện (Tab 4)
+  const handleSmartSelectAccessory = (item: any) => {
+    setIsBottomBarExpanded(false);
+    if (item.type === 'headwear' || item.category === 'headwear') {
+      setSelectedHeadwear((prev) => (prev === item.id ? null : item.id));
+    } else {
+      setSelectedJewelries((prev) =>
+        prev.includes(item.id) ? prev.filter((id) => id !== item.id) : [...prev, item.id]
+      );
+    }
+  };
+
+  // Chuyển đổi giới tính qua Pill Toggle
+  const handleGenderChange = (gender: 'male' | 'female') => {
+    if (gender === selectedGender) return;
+    setIsBottomBarExpanded(false);
+    setSelectedGender(gender);
+    setSelectedGarment(null);
+    setSelectedInner(null);
+    setSelectedBottom(null);
+    setSelectedShoes(null);
+    setSelectedHeadwear(null);
+    setSelectedJewelries([]);
+  };
+
+  // Reset toàn bộ phối đồ
+  const handleResetOutfit = () => {
+    setIsBottomBarExpanded(false);
+    setSelectedContext(null);
+    setSelectedGarment(null);
+    setSelectedInner(null);
+    setSelectedBottom(null);
+    setSelectedShoes(null);
+    setSelectedHeadwear(null);
+    setSelectedJewelries([]);
+    setIsShowingResult(false);
+    setValidationResults([]);
+    setRealtimeErrors([]);
+    setActiveTab(1);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Helper tìm item theo ID
+  const currentContextItem = CONTEXTS.find((c) => c.id === selectedContext);
+  const currentGarmentItem = GARMENTS.find((g) => g.id === selectedGarment);
+  const currentInnerItem = CASUAL_ITEMS.find((c) => c.id === selectedInner);
+  const currentBottomItem = CASUAL_ITEMS.find((c) => c.id === selectedBottom);
+  const currentShoesItem = CASUAL_ITEMS.find((c) => c.id === selectedShoes);
+  const currentHeadwearItem = ACCESSORIES.find((a) => a.id === selectedHeadwear);
+  const currentJewelryItems = ACCESSORIES.filter((a) => selectedJewelries.includes(a.id));
+
+  const totalSelectedCount =
+    (selectedContext ? 1 : 0) +
+    (selectedGarment ? 1 : 0) +
+    (selectedInner ? 1 : 0) +
+    (selectedBottom ? 1 : 0) +
+    (selectedShoes ? 1 : 0) +
+    (selectedHeadwear ? 1 : 0) +
+    selectedJewelries.length;
+
+  // Điều kiện kích hoạt kiểm tra
+  const isReadyToValidate = Boolean(selectedContext && selectedGarment);
+  const hasBlockError = realtimeErrors.some((r) => r.severity === 'BLOCK');
+
+  // ==========================================
+  // REAL-TIME VALIDATION EFFECT
+  // ==========================================
+  useEffect(() => {
+    if (!selectedGarment && !selectedContext && !selectedBottom && !selectedHeadwear && !selectedInner) {
+      setRealtimeErrors([]);
+      setValidationResults([]);
+      return;
+    }
+
+    const currentGarment = GARMENTS.find((g) => g.id === selectedGarment);
+    const currentInner = CASUAL_ITEMS.find((c) => c.id === selectedInner);
+    const currentBottom = CASUAL_ITEMS.find((c) => c.id === selectedBottom);
+    const currentHeadwear = ACCESSORIES.find((a) => a.id === selectedHeadwear);
+
+    const resolvedGarment = currentGarment
+      ? resolveItemByGender(currentGarment, selectedGender)
+      : null;
+    const resolvedInner = currentInner
+      ? resolveItemByGender(currentInner, selectedGender)
+      : null;
+    const resolvedBottom = currentBottom
+      ? resolveItemByGender(currentBottom, selectedGender)
+      : null;
+    const resolvedHeadwear = currentHeadwear
+      ? resolveItemByGender(currentHeadwear, selectedGender)
+      : null;
+
+    const results = validateOutfit({
+      costumeId: resolvedGarment?.id,
+      innerId: resolvedInner?.id,
+      bottomId: resolvedBottom?.id,
+      contextId: selectedContext,
+      headwearId: resolvedHeadwear?.id,
+      outerLayer: null
+    });
+
+    setRealtimeErrors(results);
+    setValidationResults(results);
+  }, [selectedGarment, selectedInner, selectedBottom, selectedHeadwear, selectedContext, selectedGender]);
+
+  // ==========================================
+  // HÀM KIỂM TRA OUTFIT & XỬ LÝ ĐIỀU HƯỚNG
+  // ==========================================
+  const handleValidateOutfit = () => {
+    if (!currentGarmentItem || !selectedContext) return;
+
+    const resolvedGarment = currentGarmentItem
+      ? resolveItemByGender(currentGarmentItem, selectedGender)
+      : null;
+    const resolvedInner = currentInnerItem
+      ? resolveItemByGender(currentInnerItem, selectedGender)
+      : null;
+    const resolvedBottom = currentBottomItem
+      ? resolveItemByGender(currentBottomItem, selectedGender)
+      : null;
+    const resolvedHeadwear = currentHeadwearItem
+      ? resolveItemByGender(currentHeadwearItem, selectedGender)
+      : null;
+
+    const results = validateOutfit({
+      costumeId: resolvedGarment?.id,
+      innerId: resolvedInner?.id,
+      bottomId: resolvedBottom?.id,
+      contextId: selectedContext,
+      headwearId: resolvedHeadwear?.id,
+      outerLayer: null
+    });
+
+    setValidationResults(results);
+    setRealtimeErrors(results);
+
+    const hasBlock = results.some((r) => r.severity === 'BLOCK');
+    if (hasBlock) {
+      setIsBottomBarExpanded(true); // Mở rộng thanh cảnh báo trực tiếp ở dưới, không dùng popup
+      setIsShowingResult(false);
+    } else {
+      setIsShowingResult(true);
+      setIsBottomBarExpanded(false);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  // ==========================================
+  // HÀM GỢI Ý PHỐI NHANH 1-CLICK (EPIC 04 — QUICK MATCH)
+  // ==========================================
+  const handleQuickMatch = (targetGarmentId?: string) => {
+    const garmentToUse = targetGarmentId || selectedGarment;
+    if (!garmentToUse) return;
+
+    // Lấy set gợi ý chuẩn văn hóa
+    const suggestion = getQuickMatchSuggestion(garmentToUse, selectedGender);
+
+    // Tự động chọn Cổ phục nếu chưa chọn
+    if (!selectedGarment || selectedGarment !== garmentToUse) {
+      setSelectedGarment(garmentToUse);
+    }
+
+    // Tự động gán hàng loạt state các món phối
+    setSelectedInner(suggestion.innerId);
+    setSelectedBottom(suggestion.bottomId);
+    setSelectedShoes(suggestion.shoesId);
+    setSelectedHeadwear(suggestion.headwearId);
+    setSelectedJewelries(suggestion.jewelryIds);
+
+    // Tự động chuyển về tab Phụ kiện (Tab 4) để người dùng chiêm ngưỡng và hoàn tất
+    goToTab(4);
+    setIsBottomBarExpanded(false);
+  };
+
+  // Lắng nghe sự kiện kích hoạt kiểm tra từ Navbar
+  useEffect(() => {
+    const handleTrigger = () => {
+      if (isReadyToValidate) {
+        handleValidateOutfit();
+      }
+    };
+    window.addEventListener('trigger-validate-outfit', handleTrigger);
+    return () => {
+      window.removeEventListener('trigger-validate-outfit', handleTrigger);
+    };
+  });
+
+  // DỮ LIỆU ĐÃ LỌC THEO GIỚI TÍNH
+  const filteredGarments = GARMENTS.filter((item) => {
+    const itemGender = item.gender?.toLowerCase() || 'unisex';
+    return itemGender === selectedGender || itemGender === 'unisex';
+  });
+
+  const filteredCasual = CASUAL_ITEMS.filter((item) => {
+    const itemGender = item.gender?.toLowerCase() || 'unisex';
+    return itemGender === selectedGender || itemGender === 'unisex';
+  });
+  const inners = filteredCasual.filter((item) => item.type === 'inner' || item.category === 'inner');
+  const bottoms = filteredCasual.filter(
+    (item) => item.type === 'bottom' || (item.category && item.category.toLowerCase().includes('bottom'))
+  );
+  const shoes = filteredCasual.filter(
+    (item) => item.type === 'shoes' || (item.category && item.category.toLowerCase().includes('shoes'))
+  );
+
+  const filteredAccessories = ACCESSORIES.filter((item) => {
+    const itemGender = item.gender?.toLowerCase() || 'unisex';
+    return itemGender === selectedGender || itemGender === 'unisex';
+  });
+  const headwears = filteredAccessories.filter((item) => item.type === 'headwear');
+  const jewelries = filteredAccessories.filter((item) => item.type === 'jewelry');
+
+  // Helper render hình ảnh preview an toàn
+  const renderPreviewImage = (item: any, fallbackText: string) => {
+    if (!item) return null;
+    const resolved = resolveItemByGender(item, selectedGender);
+    const imageUrl = getSafeImageUrl(resolved.resolvedImageUrl || resolved);
+
+    return (
+      <SafeImage
+        src={imageUrl}
+        alt={item.name}
+        fallbackText={fallbackText}
+        expectedPath={imageUrl}
+        className="w-full h-full object-cover"
+      />
+    );
+  };
+
+  return (
+    <div className="min-h-screen bg-[#FBF9F5] text-stone-900 pb-36">
+      <div className="max-w-5xl mx-auto px-3 sm:px-6 pt-2 pb-6 space-y-2.5 sm:space-y-3">
+        {/* ==========================================
+            HIỂN THỊ KẾT QUẢ OUTFIT HOẶC GIAO DIỆN EDITORIAL
+           ========================================== */}
+        {isShowingResult && currentGarmentItem ? (
+          <OutfitResultView
+            selectedGender={selectedGender}
+            contextItem={currentContextItem}
+            garmentItem={currentGarmentItem}
+            innerItem={currentInnerItem}
+            bottomItem={currentBottomItem}
+            shoesItem={currentShoesItem}
+            headwearItem={currentHeadwearItem}
+            jewelryItems={currentJewelryItems}
+            validationResults={validationResults}
+            onBackToStudio={() => setIsShowingResult(false)}
+            onResetOutfit={handleResetOutfit}
+          />
+        ) : (
+          <>
+            {/* ==========================================
+                1. THU GỌN HEADER + GENDER TOGGLE PILL TINH TẾ
+               ========================================== */}
+            <div className="flex items-center justify-between gap-3 py-0.5">
+              <div>
+                <span className="text-[9px] tracking-[0.2em] uppercase font-mono text-stone-400 font-semibold block">
+                  VIETPHUC STUDIO
+                </span>
+                <h1 className="text-lg sm:text-xl font-serif font-bold text-stone-900 tracking-tight leading-none">
+                  Phòng Phối Đồ
+                </h1>
+              </div>
+
+              <div className="flex items-center gap-2 sm:gap-3">
+                {/* Toggle Pill Nam / Nữ */}
+                <div className="flex items-center bg-stone-100 p-0.5 rounded-full border border-stone-200/60 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => handleGenderChange('female')}
+                    className={`px-3 py-0.5 rounded-full text-xs transition-all cursor-pointer ${
+                      selectedGender === 'female'
+                        ? 'bg-white text-stone-900 shadow-xs font-semibold'
+                        : 'text-stone-500 hover:text-stone-800 font-normal'
+                    }`}
+                  >
+                    Nữ
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleGenderChange('male')}
+                    className={`px-3 py-0.5 rounded-full text-xs transition-all cursor-pointer ${
+                      selectedGender === 'male'
+                        ? 'bg-white text-stone-900 shadow-xs font-semibold'
+                        : 'text-stone-500 hover:text-stone-800 font-normal'
+                    }`}
+                  >
+                    Nam
+                  </button>
+                </div>
+
+                {/* Nút Gợi ý phối nhanh trên Header */}
+                {selectedGarment && (
+                  <button
+                    type="button"
+                    onClick={() => handleQuickMatch()}
+                    className="px-3 py-1 rounded-full bg-gradient-to-r from-red-700 to-red-800 hover:from-red-800 hover:to-red-900 text-white font-semibold text-xs flex items-center gap-1 shadow-xs transition-all active:scale-95 cursor-pointer whitespace-nowrap"
+                    title="Gợi ý phối nhanh 1-click toàn bộ set đồ"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                    <span className="hidden sm:inline">Gợi ý phối nhanh</span>
+                    <span className="sm:hidden">Gợi ý</span>
+                  </button>
+                )}
+
+                {/* Nút Làm Mới Phối Đồ */}
+                {totalSelectedCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleResetOutfit}
+                    className="p-1.5 rounded-full text-stone-400 hover:text-stone-800 hover:bg-stone-100 transition-colors"
+                    title="Làm mới phối đồ"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* ==========================================
+                THANH NAVIGATION TỐI GIẢN (STICKY TOP KHI CUỘN)
+               ========================================== */}
+            <div className="sticky top-0 z-30 bg-[#FBF9F5]/95 backdrop-blur-md pt-1.5 pb-0.5 border-b border-stone-200/80">
+              <div className="flex items-center justify-start sm:justify-center gap-6 sm:gap-10 overflow-x-auto scrollbar-hide">
+                {[
+                  { id: 1, label: 'Bối cảnh', completed: Boolean(selectedContext) },
+                  { id: 2, label: 'Cổ phục', completed: Boolean(selectedGarment) },
+                  { id: 3, label: 'Mặc kèm', completed: Boolean(selectedInner || selectedBottom || selectedShoes) },
+                  { id: 4, label: 'Phụ kiện', completed: Boolean(selectedHeadwear || selectedJewelries.length > 0) }
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => goToTab(tab.id)}
+                    className={`relative py-1.5 text-xs sm:text-sm tracking-wide transition-colors whitespace-nowrap cursor-pointer flex items-center gap-1.5 select-none ${
+                      activeTab === tab.id
+                        ? 'text-stone-900 font-semibold'
+                        : 'text-stone-400 hover:text-stone-700 font-normal'
+                    }`}
+                  >
+                    <span>{tab.label}</span>
+                    {tab.completed && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-stone-900 shrink-0" />
+                    )}
+                    {activeTab === tab.id && (
+                      <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-stone-900 rounded-full" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* ==========================================
+                NỘI DUNG TỪNG TAB LỰA CHỌN (MINIMALIST EDITORIAL)
+               ========================================== */}
+            <div className="space-y-4 pt-1.5">
+              {/* ------------------------------------------
+                  TAB 1: BỐI CẢNH KHÔNG GIAN
+                 ------------------------------------------ */}
+              {activeTab === 1 && (
+                <div className="space-y-4 animate-in fade-in-50 duration-200">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {CONTEXTS.map((ctx) => {
+                      const isSelected = selectedContext === ctx.id;
+                      return (
+                        <div
+                          key={ctx.id}
+                          onClick={() => handleSelectContext(ctx.id)}
+                          className={`p-4 sm:p-5 rounded-2xl border transition-all cursor-pointer text-left space-y-1.5 relative select-none ${
+                            isSelected
+                              ? 'bg-white border-stone-900 ring-1 ring-stone-900 shadow-xs'
+                              : 'bg-stone-50/60 border-stone-200/70 hover:border-stone-400 hover:bg-white'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <h3 className="text-sm font-serif font-bold text-stone-900 leading-snug">
+                              {ctx.name}
+                            </h3>
+                            {isSelected && (
+                              <div className="w-5 h-5 rounded-full bg-stone-900 text-white flex items-center justify-center shrink-0">
+                                <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                              </div>
+                            )}
+                          </div>
+                          <p className="text-xs text-stone-500 leading-relaxed font-sans font-normal">
+                            {ctx.description}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Nút Chuyển Tab */}
+                  <div className="pt-3 flex justify-end">
+                    <button
+                      type="button"
+                      disabled={!selectedContext}
+                      onClick={() => goToTab(2)}
+                      className={`px-5 py-2.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                        selectedContext
+                          ? 'bg-stone-900 hover:bg-stone-800 text-white cursor-pointer active:scale-95 shadow-xs'
+                          : 'bg-stone-100 text-stone-400 cursor-not-allowed border border-stone-200/60'
+                      }`}
+                    >
+                      <span>Tiếp tục: Cổ phục</span>
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* ------------------------------------------
+                  TAB 2: CỔ PHỤC DI SẢN
+                 ------------------------------------------ */}
+              {activeTab === 2 && (
+                <div className="space-y-4 animate-in fade-in-50 duration-200">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {filteredGarments.map((garment) => {
+                      const resolved = resolveItemByGender(garment, selectedGender);
+                      const isSelected = selectedGarment === garment.id;
+
+                      return (
+                        <ItemSelectCard
+                          key={resolved.id}
+                          item={resolved}
+                          isSelected={isSelected}
+                          onSelect={() => handleSelectGarment(garment.id)}
+                          onViewDetail={() => setPreviewGarment(garment)}
+                          subtitle={resolved.origin}
+                          badgeText={garment.has_gender_variants ? (selectedGender === 'female' ? 'Nữ' : 'Nam') : undefined}
+                        />
+                      );
+                    })}
+                  </div>
+
+                  {/* Banner Gợi ý phối nhanh 1-Click (EPIC 04 — QUICK MATCH) */}
+                  {selectedGarment && (
+                    <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-red-50/90 via-[#FAF7F2] to-stone-50 border border-red-200/80 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs animate-in slide-in-from-top-2 duration-300">
+                      <div className="flex items-center gap-3 text-left w-full sm:w-auto">
+                        <div className="w-9 h-9 rounded-xl bg-red-700 text-white flex items-center justify-center shrink-0 shadow-xs">
+                          <Sparkles className="w-4 h-4 text-amber-300 animate-pulse" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-bold text-stone-900">
+                              Đã chọn: {currentGarmentItem?.name}
+                            </span>
+                            <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 bg-red-100 text-red-800 rounded-md font-semibold">
+                              Chuẩn văn hóa
+                            </span>
+                          </div>
+                          <span className="text-[11px] text-stone-500 leading-tight block mt-0.5">
+                            Tự động hoàn thiện toàn bộ set đồ (Áo trong, Quần/Váy, Giày, Phụ kiện) chỉ với 1 chạm.
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleQuickMatch()}
+                        className="w-full sm:w-auto px-5 py-2.5 rounded-full bg-gradient-to-r from-red-700 to-red-800 hover:from-red-800 hover:to-red-900 text-white font-semibold text-xs flex items-center justify-center gap-1.5 shadow-sm hover:shadow-md hover:scale-[1.02] active:scale-95 transition-all cursor-pointer whitespace-nowrap"
+                      >
+                        <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                        <span>Gợi ý phối nhanh</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Nút Chuyển Tab */}
+                  <div className="pt-2 flex flex-wrap items-center justify-between gap-2.5">
+                    <button
+                      type="button"
+                      onClick={() => goToTab(1)}
+                      className="px-4 py-2 rounded-full text-xs font-medium text-stone-500 hover:text-stone-900 hover:bg-stone-100 flex items-center gap-1 transition-colors"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                      <span>Bối cảnh</span>
+                    </button>
+
+                    <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                      {selectedGarment && (
+                        <button
+                          type="button"
+                          onClick={() => handleQuickMatch()}
+                          className="px-4 sm:px-5 py-2.5 rounded-full bg-gradient-to-r from-red-700 to-red-800 hover:from-red-800 hover:to-red-900 text-white font-semibold text-xs flex items-center gap-1.5 shadow-xs hover:shadow-md hover:scale-[1.02] active:scale-95 transition-all cursor-pointer whitespace-nowrap"
+                        >
+                          <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                          <span>Gợi ý phối nhanh</span>
+                        </button>
+                      )}
+
+                      <button
+                        type="button"
+                        disabled={!selectedGarment}
+                        onClick={() => goToTab(3)}
+                        className={`px-5 py-2.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                          selectedGarment
+                            ? 'bg-stone-900 hover:bg-stone-800 text-white cursor-pointer active:scale-95 shadow-xs'
+                            : 'bg-stone-100 text-stone-400 cursor-not-allowed border border-stone-200/60'
+                        }`}
+                      >
+                        <span>Tự phối: Mặc kèm</span>
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ------------------------------------------
+                  TAB 3: TRANG PHỤC MẶC KÈM (INNER, BOTTOM, SHOES)
+                 ------------------------------------------ */}
+              {activeTab === 3 && (
+                <div className="space-y-6 animate-in fade-in-50 duration-200">
+                  {/* Nhóm 1: Áo trong */}
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-xs font-semibold text-stone-800 uppercase tracking-wider flex items-center gap-1.5">
+                        <Layers className="w-3.5 h-3.5 text-stone-400" />
+                        Áo Mặc Trong
+                      </h3>
+                      {selectedInner && (
+                        <button
+                          onClick={() => setSelectedInner(null)}
+                          className="text-[11px] text-stone-400 hover:text-stone-800 hover:underline"
+                        >
+                          Bỏ chọn
+                        </button>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {inners.map((item) => {
+                        const resolved = resolveItemByGender(item, selectedGender);
+                        const isSelected = selectedInner === item.id;
+                        return (
+                          <ItemSelectCard
+                            key={resolved.id}
+                            item={resolved}
+                            isSelected={isSelected}
+                            onSelect={() => handleSmartSelectCasual(item)}
+                            onViewDetail={() => setPreviewCasual(item)}
+                            subtitle={item.silhouette ? `Dáng ${item.silhouette}` : undefined}
+                          />
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Nhóm 2: Quần / Váy */}
+                  <div className="space-y-2.5 pt-4 border-t border-stone-100">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-xs font-semibold text-stone-800 uppercase tracking-wider flex items-center gap-1.5">
+                        <Layers className="w-3.5 h-3.5 text-stone-400" />
+                        Quần / Váy
+                      </h3>
+                      {selectedBottom && (
+                        <button
+                          onClick={() => setSelectedBottom(null)}
+                          className="text-[11px] text-stone-400 hover:text-stone-800 hover:underline"
+                        >
+                          Bỏ chọn
+                        </button>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {bottoms.map((item) => {
+                        const resolved = resolveItemByGender(item, selectedGender);
+                        const isSelected = selectedBottom === item.id;
+                        return (
+                          <ItemSelectCard
+                            key={resolved.id}
+                            item={resolved}
+                            isSelected={isSelected}
+                            onSelect={() => handleSmartSelectCasual(item)}
+                            onViewDetail={() => setPreviewCasual(item)}
+                            subtitle={item.silhouette ? `Dáng ${item.silhouette}` : undefined}
+                          />
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Nhóm 3: Giày dép */}
+                  <div className="space-y-2.5 pt-4 border-t border-stone-100">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-xs font-semibold text-stone-800 uppercase tracking-wider flex items-center gap-1.5">
+                        <Footprints className="w-3.5 h-3.5 text-stone-400" />
+                        Giày Dép
+                      </h3>
+                      {selectedShoes && (
+                        <button
+                          onClick={() => setSelectedShoes(null)}
+                          className="text-[11px] text-stone-400 hover:text-stone-800 hover:underline"
+                        >
+                          Bỏ chọn
+                        </button>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {shoes.map((item) => {
+                        const resolved = resolveItemByGender(item, selectedGender);
+                        const isSelected = selectedShoes === item.id;
+                        return (
+                          <ItemSelectCard
+                            key={resolved.id}
+                            item={resolved}
+                            isSelected={isSelected}
+                            onSelect={() => handleSmartSelectCasual(item)}
+                            onViewDetail={() => setPreviewCasual(item)}
+                          />
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Nút Chuyển Tab */}
+                  <div className="pt-3 flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={() => goToTab(2)}
+                      className="px-4 py-2 rounded-full text-xs font-medium text-stone-500 hover:text-stone-900 hover:bg-stone-100 flex items-center gap-1 transition-colors"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                      <span>Cổ phục</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => goToTab(4)}
+                      className="px-5 py-2.5 rounded-full bg-stone-900 hover:bg-stone-800 text-white text-xs font-semibold flex items-center gap-1.5 transition-all shadow-xs active:scale-95"
+                    >
+                      <span>Tiếp tục: Phụ kiện</span>
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* ------------------------------------------
+                  TAB 4: PHỤ KIỆN & TRANG SỨC
+                 ------------------------------------------ */}
+              {activeTab === 4 && (
+                <div className="space-y-6 animate-in fade-in-50 duration-200">
+                  {/* Nhóm 1: Mũ nón */}
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-xs font-semibold text-stone-800 uppercase tracking-wider flex items-center gap-1.5">
+                        <Crown className="w-3.5 h-3.5 text-stone-400" />
+                        Mũ Nón
+                      </h3>
+                      {selectedHeadwear && (
+                        <button
+                          onClick={() => setSelectedHeadwear(null)}
+                          className="text-[11px] text-stone-400 hover:text-stone-800 hover:underline"
+                        >
+                          Bỏ chọn
+                        </button>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {headwears.map((item) => {
+                        const resolved = resolveItemByGender(item, selectedGender);
+                        const isSelected = selectedHeadwear === item.id;
+                        return (
+                          <ItemSelectCard
+                            key={resolved.id}
+                            item={resolved}
+                            isSelected={isSelected}
+                            onSelect={() => handleSmartSelectAccessory(item)}
+                            onViewDetail={() => setPreviewAccessory(item)}
+                            subtitle={item.origin}
+                          />
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Nhóm 2: Trang sức */}
+                  <div className="space-y-2.5 pt-4 border-t border-stone-100">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-xs font-semibold text-stone-800 uppercase tracking-wider flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-stone-400" />
+                        Trang Sức
+                      </h3>
+                      {selectedJewelries.length > 0 && (
+                        <button
+                          onClick={() => setSelectedJewelries([])}
+                          className="text-[11px] text-stone-400 hover:text-stone-800 hover:underline"
+                        >
+                          Bỏ chọn tất cả
+                        </button>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {jewelries.map((item) => {
+                        const resolved = resolveItemByGender(item, selectedGender);
+                        const isSelected = selectedJewelries.includes(item.id);
+                        return (
+                          <ItemSelectCard
+                            key={resolved.id}
+                            item={resolved}
+                            isSelected={isSelected}
+                            onSelect={() => handleSmartSelectAccessory(item)}
+                            onViewDetail={() => setPreviewAccessory(item)}
+                            subtitle={item.origin}
+                          />
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Nút Hoàn Tất */}
+                  <div className="pt-3 flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={() => goToTab(3)}
+                      className="px-4 py-2 rounded-full text-xs font-medium text-stone-500 hover:text-stone-900 hover:bg-stone-100 flex items-center gap-1 transition-colors"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                      <span>Mặc kèm</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={!isReadyToValidate}
+                      onClick={handleValidateOutfit}
+                      className={`px-6 py-2.5 rounded-full text-xs font-semibold flex items-center gap-2 transition-all shadow-xs ${
+                        !isReadyToValidate
+                          ? 'bg-stone-100 text-stone-400 cursor-not-allowed border border-stone-200/60 shadow-none'
+                          : hasBlockError
+                          ? 'bg-red-600 hover:bg-red-700 text-white cursor-pointer'
+                          : 'bg-stone-900 hover:bg-stone-800 text-white cursor-pointer active:scale-95'
+                      }`}
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                      <span>{hasBlockError ? 'Xem cảnh báo vi phạm' : 'Chiêm ngưỡng bản phối ✨'}</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* ==========================================
+          5. THANH CÔNG CỤ BOTTOM BAR (ẨN GỌN XUỐNG DƯỚI, CHỈ MỞ KHI BẤM, TỰ ẨN KHI CHỌN MÓN KHÁC)
+         ========================================== */}
+      {!isShowingResult && (
+        <div className="fixed bottom-20 inset-x-4 max-w-4xl mx-auto z-40 flex flex-col items-center pointer-events-none">
+          {/* TRẠNG THÁI 1: BUNG RA ĐẦY ĐỦ KHI NGƯỜI DÙNG BẤM MỞ */}
+          {isBottomBarExpanded ? (
+            <div
+              className={`w-full pointer-events-auto backdrop-blur-md rounded-2xl border shadow-2xl py-3.5 px-4 sm:px-6 transition-all duration-300 animate-in slide-in-from-bottom-3 ${
+                hasBlockError
+                  ? 'bg-red-50/95 border-red-200/90 text-red-950'
+                  : 'bg-white/95 border-stone-200/80 text-stone-900'
+              }`}
+            >
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 relative">
+                {/* Nút thu nhỏ lại */}
+                <button
+                  type="button"
+                  onClick={() => setIsBottomBarExpanded(false)}
+                  className="absolute -top-1.5 right-0 sm:static p-1 rounded-full text-stone-400 hover:text-stone-700 hover:bg-stone-100/80 transition-colors"
+                  title="Thu nhỏ thanh trạng thái"
+                >
+                  <ChevronDown className="w-4 h-4" />
+                </button>
+
+                <div className="flex items-center gap-3 w-full sm:w-auto">
+                  <div className="flex -space-x-1.5 overflow-hidden shrink-0">
+                    <span
+                      className={`w-2.5 h-2.5 rounded-full border-2 border-white ${
+                        selectedContext ? 'bg-stone-900' : 'bg-stone-300'
+                      }`}
+                      title="Bối cảnh"
+                    />
+                    <span
+                      className={`w-2.5 h-2.5 rounded-full border-2 border-white ${
+                        selectedGarment ? 'bg-stone-900' : 'bg-stone-300'
+                      }`}
+                      title="Cổ phục"
+                    />
+                    <span
+                      className={`w-2.5 h-2.5 rounded-full border-2 border-white ${
+                        selectedInner || selectedBottom || selectedShoes ? 'bg-stone-900' : 'bg-stone-300'
+                      }`}
+                      title="Mặc kèm"
+                    />
+                    <span
+                      className={`w-2.5 h-2.5 rounded-full border-2 border-white ${
+                        selectedHeadwear || selectedJewelries.length > 0 ? 'bg-stone-900' : 'bg-stone-300'
+                      }`}
+                      title="Phụ kiện"
+                    />
+                  </div>
+                  <div className="text-xs font-sans">
+                    {hasBlockError ? (
+                      <span className="text-red-700 font-medium flex items-center gap-1.5 animate-in fade-in duration-200">
+                        Phát hiện xung đột quy chuẩn văn hóa
+                      </span>
+                    ) : isReadyToValidate ? (
+                      <span className="text-stone-700 font-medium flex items-center gap-1.5 animate-in fade-in duration-200">
+                        Đã chọn đủ Cổ phục & Bối cảnh. Sẵn sàng phối đồ!
+                      </span>
+                    ) : !selectedContext ? (
+                      <span className="text-stone-400">
+                        Vui lòng chọn <strong>Bối cảnh</strong> ở Tab 1.
+                      </span>
+                    ) : (
+                      <span className="text-stone-500">
+                        Vui lòng chọn <strong>Cổ phục</strong> ở Tab 2.
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 w-full sm:w-auto">
+                  <button
+                    type="button"
+                    disabled={!isReadyToValidate}
+                    onClick={handleValidateOutfit}
+                    className={`w-full sm:w-auto px-7 py-2.5 rounded-full font-semibold text-xs transition-all duration-200 flex items-center justify-center gap-2 select-none ${
+                      !isReadyToValidate
+                        ? 'bg-stone-100 text-stone-400 border border-stone-200/60 cursor-not-allowed shadow-none'
+                        : hasBlockError
+                        ? 'bg-red-600 hover:bg-red-700 text-white shadow-xs cursor-pointer'
+                        : 'bg-stone-900 hover:bg-stone-800 text-white shadow-xs cursor-pointer active:scale-95'
+                    }`}
+                  >
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    <span>{hasBlockError ? 'Xem vi phạm quy chuẩn' : 'Kiểm Tra Outfit'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* DANH SÁCH VI PHẠM QUY CHUẨN HIỂN THỊ TRỰC TIẾP Ở DƯỚI (KHÔNG POPUP) */}
+              {hasBlockError && (
+                <div className="w-full space-y-2 pt-3 mt-1 border-t border-red-200/80 max-h-48 overflow-y-auto">
+                  {realtimeErrors
+                    .filter((r) => r.severity === 'BLOCK')
+                    .map((err, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-start gap-2.5 text-xs text-red-950 bg-red-100/90 p-2.5 rounded-xl border border-red-200 shadow-xs"
+                      >
+                        <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                        <div className="space-y-0.5">
+                          <span className="font-bold block text-red-900">Xung đột quy chuẩn văn hóa:</span>
+                          <p className="leading-relaxed font-sans">{err.message}</p>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            /* TRẠNG THÁI 2: THU GỌN THÀNH NÚT PILL ĐƠN GIẢN, TINH TẾ */
+            <button
+              type="button"
+              onClick={() => setIsBottomBarExpanded(true)}
+              className={`pointer-events-auto px-4 py-2 rounded-full backdrop-blur-md border shadow-md text-xs font-medium flex items-center gap-2 transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer select-none ${
+                hasBlockError
+                  ? 'bg-red-600 border-red-700 text-white shadow-red-600/20'
+                  : isReadyToValidate
+                  ? 'bg-stone-900 border-stone-800 text-white shadow-stone-900/20'
+                  : 'bg-white/95 border-stone-200 text-stone-700 hover:bg-white shadow-stone-200/50'
+              }`}
+            >
+              {hasBlockError ? (
+                <>
+                  <AlertTriangle className="w-3.5 h-3.5 text-amber-300" />
+                  <span>Xung đột quy chuẩn</span>
+                </>
+              ) : isReadyToValidate ? (
+                <>
+                  <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                  <span>Kiểm tra bản phối</span>
+                </>
+              ) : (
+                <>
+                  <ShieldCheck className="w-3.5 h-3.5 text-stone-400" />
+                  <span>Tiến trình phối đồ</span>
+                </>
+              )}
+
+              <ChevronUp className="w-3.5 h-3.5 opacity-60" />
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* MODAL XEM CHI TIẾT TRƯỚC KHI CHỌN */}
+      {previewGarment && (
+        <GarmentDetailModal
+          garment={previewGarment}
+          onClose={() => setPreviewGarment(null)}
+          onSelectForStudio={(id) => handleSelectGarment(id)}
+          selectedGender={selectedGender === 'female' ? 'Female' : 'Male'}
+        />
+      )}
+
+      {previewCasual && (
+        <CasualDetailModal
+          item={previewCasual}
+          onClose={() => setPreviewCasual(null)}
+          onSelectForStudio={(id) => {
+            const it = CASUAL_ITEMS.find((c) => c.id === id);
+            if (it) handleSmartSelectCasual(it);
+          }}
+          selectedGender={selectedGender === 'female' ? 'Female' : 'Male'}
+        />
+      )}
+
+      {previewAccessory && (
+        <AccessoryDetailModal
+          accessory={previewAccessory}
+          onClose={() => setPreviewAccessory(null)}
+          onSelectHeadwear={(it) => handleSmartSelectAccessory(it)}
+          onToggleJewelry={(it) => handleSmartSelectAccessory(it)}
+          isSelectedHeadwear={previewAccessory.id === selectedHeadwear}
+          isSelectedJewelry={selectedJewelries.includes(previewAccessory.id)}
+          selectedGender={selectedGender === 'female' ? 'Female' : 'Male'}
+        />
+      )}
+    </div>
+  );
+};
+
+export default Studio;
