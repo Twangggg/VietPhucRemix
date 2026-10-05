@@ -357,15 +357,10 @@ export const Studio: React.FC = () => {
 
     if (blockError) {
       // Ứng viên lỗi dữ liệu hoặc bị BLOCK: GIỮ NGUYÊN 100% OUTFIT HIỆN TẠI CỦA NGƯỜI DÙNG
-      if (blockError.ruleId?.startsWith('INVALID_')) {
+      if (blockError.ruleId?.startsWith('INVALID_') || blockError.ruleId === 'GENDER_INCOMPATIBLE') {
         setQuickMatchNotice({
           type: 'warn',
-          message: 'Dữ liệu gợi ý cho trang phục này chưa sẵn sàng (món đồ tham chiếu không tồn tại trong danh mục hệ thống).'
-        });
-      } else if (blockError.ruleId === 'GENDER_INCOMPATIBLE') {
-        setQuickMatchNotice({
-          type: 'warn',
-          message: 'Dữ liệu gợi ý cho trang phục này chưa sẵn sàng (phát hiện cấu hình gợi ý không tương thích giới tính).'
+          message: `Dữ liệu gợi ý chưa hợp lệ: ${blockError.message}`
         });
       } else {
         const ctxItem = CONTEXTS.find((c) => c.id === selectedContext);

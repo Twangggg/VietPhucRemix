@@ -79,6 +79,24 @@ function isItemGenderCompatible(itemGender: string | undefined | null, targetGen
   return ig === tg;
 }
 
+/**
+ * Lấy giới tính hiệu lực của món đồ:
+ * - Nếu là variant của catalog item có cờ has_gender_variants = true:
+ *   - Hậu tố _1 quy ước là 'male' (theo helpers.ts)
+ *   - Hậu tố _2 quy ước là 'female' (theo helpers.ts)
+ * - Nếu không phải variant có cờ này, giữ nguyên item.gender từ catalog.
+ */
+function resolveItemEffectiveGender(item: any, rawId: string | null | undefined): string | null | undefined {
+  if (!item || !rawId) return item?.gender;
+  if (item.has_gender_variants) {
+    const match = rawId.match(/^([a-zA-Z0-9]+)_([12])$/);
+    if (match) {
+      return match[2] === '1' ? 'male' : 'female';
+    }
+  }
+  return item.gender;
+}
+
 function isInnerSlotItem(item: any): boolean {
   if (!item) return false;
   const type = (item?.type || '').toLowerCase();
@@ -206,11 +224,12 @@ export function validateOutfit(
           ruleId: 'INVALID_KEY_PIECE_SLOT'
         });
       }
-      if (!isItemGenderCompatible(foundGarment.gender, userGender)) {
+      const effectiveGender = resolveItemEffectiveGender(foundGarment, cId);
+      if (!isItemGenderCompatible(effectiveGender, userGender)) {
         results.push({
           isValid: false,
           severity: 'BLOCK',
-          message: `Món cổ phục '${foundGarment.name}' được thiết kế dành riêng cho ${foundGarment.gender === 'female' ? 'Nữ' : 'Nam'}, không tương thích với giới tính ${userGender === 'female' ? 'Nữ' : 'Nam'} đang chọn.`,
+          message: `Món cổ phục '${foundGarment.name}' được thiết kế dành riêng cho ${effectiveGender === 'female' ? 'Nữ' : 'Nam'}, không tương thích với giới tính ${userGender === 'female' ? 'Nữ' : 'Nam'} đang chọn.`,
           ruleId: 'GENDER_INCOMPATIBLE'
         });
       }
@@ -236,7 +255,8 @@ export function validateOutfit(
           ruleId: 'INVALID_INNER_SLOT'
         });
       }
-      if (!isItemGenderCompatible(foundInnerItem.item.gender, userGender)) {
+      const effectiveGender = resolveItemEffectiveGender(foundInnerItem.item, inId);
+      if (!isItemGenderCompatible(effectiveGender, userGender)) {
         results.push({
           isValid: false,
           severity: 'BLOCK',
@@ -265,7 +285,8 @@ export function validateOutfit(
           ruleId: 'INVALID_BOTTOM_SLOT'
         });
       }
-      if (!isItemGenderCompatible(foundBottomItem.item.gender, userGender)) {
+      const effectiveGender = resolveItemEffectiveGender(foundBottomItem.item, botId);
+      if (!isItemGenderCompatible(effectiveGender, userGender)) {
         results.push({
           isValid: false,
           severity: 'BLOCK',
@@ -294,7 +315,8 @@ export function validateOutfit(
           ruleId: 'INVALID_SHOES_SLOT'
         });
       }
-      if (!isItemGenderCompatible(foundShoesItem.item.gender, userGender)) {
+      const effectiveGender = resolveItemEffectiveGender(foundShoesItem.item, shId);
+      if (!isItemGenderCompatible(effectiveGender, userGender)) {
         results.push({
           isValid: false,
           severity: 'BLOCK',
@@ -323,7 +345,8 @@ export function validateOutfit(
           ruleId: 'INVALID_HEADWEAR_SLOT'
         });
       }
-      if (!isItemGenderCompatible(foundHeadwearItem.item.gender, userGender)) {
+      const effectiveGender = resolveItemEffectiveGender(foundHeadwearItem.item, hId);
+      if (!isItemGenderCompatible(effectiveGender, userGender)) {
         results.push({
           isValid: false,
           severity: 'BLOCK',
@@ -353,7 +376,8 @@ export function validateOutfit(
             ruleId: 'INVALID_JEWELRY_SLOT'
           });
         }
-        if (!isItemGenderCompatible(foundJItem.item.gender, userGender)) {
+        const effectiveGender = resolveItemEffectiveGender(foundJItem.item, jId);
+        if (!isItemGenderCompatible(effectiveGender, userGender)) {
           results.push({
             isValid: false,
             severity: 'BLOCK',
@@ -378,12 +402,19 @@ export function validateOutfit(
     }
   }
 
-  // Nếu đã có lỗi thiếu context, thiếu key piece hoặc ID không hợp lệ, dừng kiểm tra guardrail để tránh báo sai
-  if (
-    !ctxId ||
-    !cId ||
-    results.some((r) => r.ruleId === 'INVALID_CONTEXT_ID' || r.ruleId === 'INVALID_KEY_PIECE_ID')
-  ) {
+  // Nếu có lỗi dữ liệu hoặc thiếu điều kiện tiên quyết, dừng kiểm tra guardrail văn hóa/phom dáng
+  const hasDataOrInputError = results.some(
+    (r) =>
+      r.severity === 'BLOCK' &&
+      Boolean(
+        r.ruleId &&
+          (r.ruleId.startsWith('INVALID_') ||
+            r.ruleId.startsWith('MISSING_') ||
+            r.ruleId === 'GENDER_INCOMPATIBLE')
+      )
+  );
+
+  if (hasDataOrInputError || !ctxId || !cId) {
     return results;
   }
 
