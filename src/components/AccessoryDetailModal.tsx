@@ -45,7 +45,7 @@ export const AccessoryDetailModal: React.FC<AccessoryDetailModalProps> = ({
         </button>
 
         {/* 1. HERO IMAGE (EDITORIAL MUSEUM) - Khung ảnh lớn, thoáng đãng */}
-        <div className="relative w-full h-[360px] sm:h-[440px] bg-[#FAF8F5] flex items-center justify-center pt-10 sm:pt-12 pb-4 px-4 sm:px-6 border-b border-stone-100 shrink-0">
+        <div className="relative w-full h-[260px] sm:h-[320px] bg-[#FAF8F5] flex items-center justify-center pt-10 sm:pt-12 pb-4 px-4 sm:px-6 border-b border-stone-100 shrink-0">
           {resolved.resolvedImageUrl ? (
             <SafeImage
               src={resolved.resolvedImageUrl}
@@ -175,7 +175,7 @@ export const AccessoryDetailModal: React.FC<AccessoryDetailModalProps> = ({
                   onSelectHeadwear(accessory);
                   onClose();
                 }}
-                className={`px-6 py-2.5 rounded-full text-xs font-semibold shadow-xs transition-all cursor-pointer active:scale-95 ${
+                className={`px-8 py-2.5 rounded-full text-xs font-bold shadow-xs transition-all cursor-pointer active:scale-95 ${
                   isSelected
                     ? 'bg-stone-900 text-white hover:bg-stone-800'
                     : 'bg-red-700 hover:bg-red-800 text-white'
@@ -191,7 +191,7 @@ export const AccessoryDetailModal: React.FC<AccessoryDetailModalProps> = ({
                 onClick={() => {
                   onToggleJewelry(accessory);
                 }}
-                className={`px-6 py-2.5 rounded-full text-xs font-semibold shadow-xs transition-all cursor-pointer active:scale-95 ${
+                className={`px-8 py-2.5 rounded-full text-xs font-bold shadow-xs transition-all cursor-pointer active:scale-95 ${
                   isSelected
                     ? 'bg-stone-900 text-white hover:bg-stone-800'
                     : 'bg-red-700 hover:bg-red-800 text-white'
@@ -200,14 +200,6 @@ export const AccessoryDetailModal: React.FC<AccessoryDetailModalProps> = ({
                 {isSelected ? 'Bỏ chọn' : 'Chọn phối'}
               </button>
             )}
-
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2.5 rounded-full bg-white hover:bg-stone-100 text-stone-600 text-xs font-medium transition-all border border-stone-200 cursor-pointer"
-            >
-              Đóng
-            </button>
           </div>
         </div>
       </div>

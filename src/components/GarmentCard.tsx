@@ -1,7 +1,7 @@
 import React from 'react';
 import { Garment, Gender } from '../types';
 import { SafeImage } from './SafeImage';
-import { getSafeImageUrl, resolveItemByGender } from '../utils/helpers';
+import { getSafeImageUrl, resolveItemByGender, getCategoryVietnamese } from '../utils/helpers';
 
 export interface GarmentCardProps {
   item?: Garment;
@@ -43,16 +43,7 @@ export const GarmentCard: React.FC<GarmentCardProps> = ({
 
   const displayImageUrl = resolved.resolvedImageUrl || safeBaseUrl;
 
-  // Định dạng nhãn thể loại thân thiện
-  const formatCategory = (cat?: string) => {
-    if (!cat) return 'Cổ phục truyền thống';
-    const lower = cat.toLowerCase();
-    if (lower.includes('outer_traditional')) return 'Cổ phục truyền thống';
-    if (lower.includes('outer_formal')) return 'Lễ phục trang trọng';
-    if (lower.includes('top')) return 'Áo dài di sản';
-    if (lower.includes('traditional')) return 'Trang phục di sản';
-    return cat;
-  };
+
 
   return (
     <article
@@ -84,7 +75,7 @@ export const GarmentCard: React.FC<GarmentCardProps> = ({
         <div>
           {/* Thể loại (Category) */}
           <span className="text-[10px] uppercase tracking-widest text-stone-400 font-semibold block mb-1">
-            {formatCategory(currentGarment.category)}
+            {getCategoryVietnamese(currentGarment.category, currentGarment.type)}
           </span>
 
           {/* Tên trang phục (in đậm, rõ ràng) */}

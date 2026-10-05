@@ -24,10 +24,13 @@ export const Explore: React.FC<ExploreProps> = ({ onSelectForStudio }) => {
   const [selectedGender, setSelectedGender] = useState<Gender>('Female');
   const [exploreFilter, setExploreFilter] = useState<CategoryFilterKey>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [repositoryType, setRepositoryType] = useState<'traditional' | 'modern'>('traditional');
 
-  const filteredGarments = filterByGender(GARMENTS, selectedGender);
-  const filteredCasual = filterByGender(CASUAL_ITEMS, selectedGender);
-  const filteredAccessories = filterByGender(ACCESSORIES, selectedGender);
+  const isModernItem = (item: any) => item.id && item.id.toLowerCase().startsWith('cs');
+
+  const filteredGarments = filterByGender(GARMENTS, selectedGender).filter(item => repositoryType === 'modern' ? isModernItem(item) : !isModernItem(item));
+  const filteredCasual = filterByGender(CASUAL_ITEMS, selectedGender).filter(item => repositoryType === 'modern' ? isModernItem(item) : !isModernItem(item));
+  const filteredAccessories = filterByGender(ACCESSORIES, selectedGender).filter(item => repositoryType === 'modern' ? isModernItem(item) : !isModernItem(item));
 
   const getItemCategoryId = (item: any): CategoryFilterKey => {
     const rawCat = item.category || item.type;
@@ -66,8 +69,19 @@ export const Explore: React.FC<ExploreProps> = ({ onSelectForStudio }) => {
     );
   };
 
+  const availableCategoryIds = new Set([
+    ...filteredGarments.map(getItemCategoryId),
+    ...filteredCasual.map(getItemCategoryId),
+    ...filteredAccessories.map(getItemCategoryId)
+  ]);
+
+  const visibleCategoriesForTabs = CATEGORY_DEFINITIONS.filter(cat =>
+    cat.id === 'all' || availableCategoryIds.has(cat.id)
+  );
+
   const visibleCategories = CATEGORY_DEFINITIONS.filter(cat => {
     if (cat.id === 'all') return false;
+    if (!availableCategoryIds.has(cat.id)) return false;
     if (exploreFilter !== 'all' && exploreFilter !== cat.id) return false;
     return true;
   });
@@ -76,7 +90,7 @@ export const Explore: React.FC<ExploreProps> = ({ onSelectForStudio }) => {
     <div className="min-h-screen bg-stone-50 text-stone-900 py-8 sm:py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
         {/* Tiêu đề & Giới tính */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-stone-200/80 pb-6">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-stone-200/80 pb-4">
           <div>
             <div className="inline-flex items-center gap-1.5 text-xs font-mono uppercase tracking-widest text-red-700 font-bold mb-1.5">
               <FolderTree className="w-3.5 h-3.5 text-red-700" />
@@ -90,7 +104,7 @@ export const Explore: React.FC<ExploreProps> = ({ onSelectForStudio }) => {
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 pb-2">
             <GenderToggle
               selectedGender={selectedGender}
               onChangeGender={setSelectedGender}
@@ -99,8 +113,31 @@ export const Explore: React.FC<ExploreProps> = ({ onSelectForStudio }) => {
           </div>
         </div>
 
+        {/* TAB CHỌN KHO */}
+        <div className="sticky top-0 sm:top-0 z-40 bg-stone-50 flex items-center overflow-x-auto whitespace-nowrap scrollbar-hide snap-x gap-5 sm:gap-8 pt-4 pb-2 border-b border-stone-200 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8">
+          <button
+            onClick={() => {
+              setRepositoryType('traditional');
+              setExploreFilter('all');
+            }}
+            className={`shrink-0 pb-3 text-sm sm:text-base font-bold transition-colors border-b-2 ${repositoryType === 'traditional' ? 'border-red-700 text-red-700' : 'border-transparent text-stone-400 hover:text-stone-800'}`}
+          >
+            Kho Cổ Phục Truyền Thống
+          </button>
+          <br></br>
+          <button
+            onClick={() => {
+              setRepositoryType('modern');
+              setExploreFilter('all');
+            }}
+            className={`shrink-0 pb-3 text-sm sm:text-base font-bold transition-colors border-b-2 ${repositoryType === 'modern' ? 'border-red-700 text-red-700' : 'border-transparent text-stone-400 hover:text-stone-800'}`}
+          >
+            Kho Đương Đại Hiện Đại
+          </button>
+        </div>
+
         {/* STICKY HEADER: GỘP SEARCH + GENDER TOGGLE VÀ TAB CUỘN NGANG (MINIMALIST E-COMMERCE) */}
-        <div className="sticky top-12 sm:top-14 z-30 bg-[#F9F8F6] pt-3 pb-0 border-b border-stone-200 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 space-y-3 shadow-2xs">
+        <div className="sticky top-[53px] sm:top-[57px] z-30 bg-[#F9F8F6] pt-3 pb-0 border-b border-stone-200 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 space-y-3 shadow-2xs">
           {/* Hàng 1: Search Bar Tàng Hình & Gender Toggle Tinh Gọn */}
           <div className="flex items-center justify-between gap-4">
             {/* Search Bar tối giản chỉ có border-b */}
@@ -129,11 +166,10 @@ export const Explore: React.FC<ExploreProps> = ({ onSelectForStudio }) => {
               <button
                 type="button"
                 onClick={() => setSelectedGender('Female')}
-                className={`transition-all pb-0.5 ${
-                  selectedGender === 'Female'
-                    ? 'font-bold text-stone-900 border-b-2 border-stone-900'
-                    : 'text-stone-400 hover:text-stone-700'
-                }`}
+                className={`transition-all pb-0.5 ${selectedGender === 'Female'
+                  ? 'font-bold text-stone-900 border-b-2 border-stone-900'
+                  : 'text-stone-400 hover:text-stone-700'
+                  }`}
               >
                 Nữ
               </button>
@@ -141,11 +177,10 @@ export const Explore: React.FC<ExploreProps> = ({ onSelectForStudio }) => {
               <button
                 type="button"
                 onClick={() => setSelectedGender('Male')}
-                className={`transition-all pb-0.5 ${
-                  selectedGender === 'Male'
-                    ? 'font-bold text-stone-900 border-b-2 border-stone-900'
-                    : 'text-stone-400 hover:text-stone-700'
-                }`}
+                className={`transition-all pb-0.5 ${selectedGender === 'Male'
+                  ? 'font-bold text-stone-900 border-b-2 border-stone-900'
+                  : 'text-stone-400 hover:text-stone-700'
+                  }`}
               >
                 Nam
               </button>
@@ -154,7 +189,7 @@ export const Explore: React.FC<ExploreProps> = ({ onSelectForStudio }) => {
 
           {/* Hàng 2: Horizontal Scrollable Tabs */}
           <div className="flex flex-row overflow-x-auto whitespace-nowrap scrollbar-hide snap-x gap-6 sm:gap-8 pt-1">
-            {CATEGORY_DEFINITIONS.map((cat) => {
+            {visibleCategoriesForTabs.map((cat) => {
               const isSelected = exploreFilter === cat.id;
 
               return (
@@ -162,11 +197,10 @@ export const Explore: React.FC<ExploreProps> = ({ onSelectForStudio }) => {
                   key={cat.id}
                   type="button"
                   onClick={() => setExploreFilter(cat.id)}
-                  className={`shrink-0 text-xs sm:text-sm font-sans transition-all pb-2.5 relative select-none ${
-                    isSelected
-                      ? 'text-stone-900 font-bold border-b-2 border-stone-900 -mb-[1px]'
-                      : 'text-stone-400 hover:text-stone-700 font-medium'
-                  }`}
+                  className={`shrink-0 text-xs sm:text-sm font-sans transition-all pb-2.5 relative select-none ${isSelected
+                    ? 'text-stone-900 font-bold border-b-2 border-stone-900 -mb-[1px]'
+                    : 'text-stone-400 hover:text-stone-700 font-medium'
+                    }`}
                 >
                   {cat.label}
                 </button>

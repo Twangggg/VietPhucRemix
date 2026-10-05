@@ -17,12 +17,13 @@ import {
   Tag,
   Crown,
   X,
+  ArrowLeft,
   Search,
   Footprints,
   FolderTree
 } from 'lucide-react';
 import { GARMENTS, CASUAL_ITEMS, CONTEXTS, OUTFIT_COMBINATIONS, ACCESSORIES } from './data';
-import { Garment, CasualItem, LapelFold, Gender, AccessoryItem } from './types';
+import { Garment, CasualItem, LapelFold, Gender, AccessoryItem, OutfitCombination } from './types';
 import { validateOutfit } from './utils/validationEngine';
 import { getSafeImageUrl, resolveImageUrl, resolveItemByGender, filterByGender } from './utils/helpers';
 import { BottomNavbar, NavTab } from './components/BottomNavbar';
@@ -103,6 +104,7 @@ export default function App() {
   const [selectedGarment, setSelectedGarment] = useState<Garment | null>(null);
   const [selectedCasual, setSelectedCasual] = useState<CasualItem | null>(null);
   const [inspectingAccessory, setInspectingAccessory] = useState<AccessoryItem | null>(null);
+  const [repositoryType, setRepositoryType] = useState<'traditional' | 'modern'>('traditional');
 
   // Studio Remix State
   const [labGarmentId, setLabGarmentId] = useState<string>(GARMENTS[0].id);
@@ -385,10 +387,12 @@ export default function App() {
 
         {/* 2. TAB KHÁM PHÁ (EXPLORE) */}
         {activeTab === 'explore' && (() => {
-          // Lọc danh sách món đồ theo giới tính đang chọn
-          const filteredGarments = filterByGender(GARMENTS, selectedGender);
-          const filteredCasual = filterByGender(CASUAL_ITEMS, selectedGender);
-          const filteredAccessories = filterByGender(ACCESSORIES, selectedGender);
+          const isModernItem = (item: any) => item.id && item.id.toLowerCase().startsWith('cs');
+
+          // Lọc danh sách món đồ theo giới tính đang chọn và loại kho
+          const filteredGarments = filterByGender(GARMENTS, selectedGender).filter(item => repositoryType === 'modern' ? isModernItem(item) : !isModernItem(item));
+          const filteredCasual = filterByGender(CASUAL_ITEMS, selectedGender).filter(item => repositoryType === 'modern' ? isModernItem(item) : !isModernItem(item));
+          const filteredAccessories = filterByGender(ACCESSORIES, selectedGender).filter(item => repositoryType === 'modern' ? isModernItem(item) : !isModernItem(item));
 
           // Hàm lấy category ID chuẩn từ item
           const getItemCategoryId = (item: any): CategoryFilterKey => {
@@ -419,17 +423,50 @@ export default function App() {
             );
           };
 
+          const availableCategoryIds = new Set([
+            ...filteredGarments.map(getItemCategoryId),
+            ...filteredCasual.map(getItemCategoryId),
+            ...filteredAccessories.map(getItemCategoryId)
+          ]);
+        
+          const visibleCategoriesForTabs = CATEGORY_DEFINITIONS.filter(cat => 
+            cat.id === 'all' || availableCategoryIds.has(cat.id)
+          );
+
           // Lọc danh sách theo Category đang chọn & Search
           const visibleCategories = CATEGORY_DEFINITIONS.filter(cat => {
             if (cat.id === 'all') return false;
+            if (!availableCategoryIds.has(cat.id)) return false;
             if (exploreFilter !== 'all' && exploreFilter !== cat.id) return false;
             return true;
           });
 
           return (
             <div className="space-y-6 sm:space-y-8">
+              {/* TAB CHỌN KHO */}
+              <div className="sticky top-0 sm:top-0 z-40 bg-stone-50 flex items-center overflow-x-auto whitespace-nowrap scrollbar-hide snap-x gap-5 sm:gap-8 pt-4 pb-2 border-b border-stone-200 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8">
+                 <button 
+                   onClick={() => {
+                     setRepositoryType('traditional');
+                     setExploreFilter('all');
+                   }}
+                   className={`shrink-0 pb-3 text-sm sm:text-base font-bold transition-colors border-b-2 ${repositoryType === 'traditional' ? 'border-red-700 text-red-700' : 'border-transparent text-stone-400 hover:text-stone-800'}`}
+                 >
+                   Kho Cổ Phục Truyền Thống
+                 </button>
+                 <button 
+                   onClick={() => {
+                     setRepositoryType('modern');
+                     setExploreFilter('all');
+                   }}
+                   className={`shrink-0 pb-3 text-sm sm:text-base font-bold transition-colors border-b-2 ${repositoryType === 'modern' ? 'border-red-700 text-red-700' : 'border-transparent text-stone-400 hover:text-stone-800'}`}
+                 >
+                   Kho Đương Đại Hiện Đại
+                 </button>
+              </div>
+
               {/* STICKY HEADER: GỘP SEARCH + GENDER TOGGLE VÀ TAB CUỘN NGANG (MINIMALIST E-COMMERCE) */}
-              <div className="sticky top-12 sm:top-14 z-30 bg-[#F9F8F6] pt-3 pb-0 border-b border-stone-200 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 space-y-3 shadow-2xs">
+              <div className="sticky top-[53px] sm:top-[57px] z-30 bg-[#F9F8F6] pt-3 pb-0 border-b border-stone-200 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 space-y-3 shadow-2xs">
                 {/* Hàng 1: Search Bar Tàng Hình & Gender Toggle Tinh Gọn */}
                 <div className="flex items-center justify-between gap-4">
                   {/* Search Bar tối giản chỉ có border-b */}
@@ -458,11 +495,10 @@ export default function App() {
                     <button
                       type="button"
                       onClick={() => handleGenderChange('Female')}
-                      className={`transition-all pb-0.5 ${
-                        selectedGender === 'Female'
-                          ? 'font-bold text-stone-900 border-b-2 border-stone-900'
-                          : 'text-stone-400 hover:text-stone-700'
-                      }`}
+                      className={`transition-all pb-0.5 ${selectedGender === 'Female'
+                        ? 'font-bold text-stone-900 border-b-2 border-stone-900'
+                        : 'text-stone-400 hover:text-stone-700'
+                        }`}
                     >
                       Nữ
                     </button>
@@ -470,11 +506,10 @@ export default function App() {
                     <button
                       type="button"
                       onClick={() => handleGenderChange('Male')}
-                      className={`transition-all pb-0.5 ${
-                        selectedGender === 'Male'
-                          ? 'font-bold text-stone-900 border-b-2 border-stone-900'
-                          : 'text-stone-400 hover:text-stone-700'
-                      }`}
+                      className={`transition-all pb-0.5 ${selectedGender === 'Male'
+                        ? 'font-bold text-stone-900 border-b-2 border-stone-900'
+                        : 'text-stone-400 hover:text-stone-700'
+                        }`}
                     >
                       Nam
                     </button>
@@ -483,7 +518,7 @@ export default function App() {
 
                 {/* Hàng 2: Horizontal Scrollable Tabs */}
                 <div className="flex flex-row overflow-x-auto whitespace-nowrap scrollbar-hide snap-x gap-6 sm:gap-8 pt-1">
-                  {CATEGORY_DEFINITIONS.map((cat) => {
+                  {visibleCategoriesForTabs.map((cat) => {
                     const isSelected = exploreFilter === cat.id;
 
                     return (
@@ -491,11 +526,10 @@ export default function App() {
                         key={cat.id}
                         type="button"
                         onClick={() => setExploreFilter(cat.id)}
-                        className={`shrink-0 text-xs sm:text-sm font-sans transition-all pb-2.5 relative select-none ${
-                          isSelected
-                            ? 'text-stone-900 font-bold border-b-2 border-stone-900 -mb-[1px]'
-                            : 'text-stone-400 hover:text-stone-700 font-medium'
-                        }`}
+                        className={`shrink-0 text-xs sm:text-sm font-sans transition-all pb-2.5 relative select-none ${isSelected
+                          ? 'text-stone-900 font-bold border-b-2 border-stone-900 -mb-[1px]'
+                          : 'text-stone-400 hover:text-stone-700 font-medium'
+                          }`}
                       >
                         {cat.label}
                       </button>
@@ -646,89 +680,6 @@ export default function App() {
 
         {/* 3. TAB PHỐI ĐỒ (STUDIO REMIX) - SPRINT 2 */}
         {activeTab === 'studio' && <Studio />}
-
-        {/* 4. TAB BỘ SƯU TẬP (LOOKBOOK) */}
-        {activeTab === 'lookbook' && (
-          <div className="space-y-6">
-            <div className="border-b border-stone-200/80 pb-4">
-              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
-                Bản Phối Mẫu
-              </h2>
-              <p className="text-xs sm:text-sm text-stone-500 mt-1 max-w-xl">
-                Những công thức phối đồ mẫu đã được kiểm định thỏa mãn tiêu chuẩn văn hóa và phom dáng đương đại.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {OUTFIT_COMBINATIONS.map((outfit) => {
-                return (
-                  <div
-                    key={outfit.id}
-                    className="bg-white rounded-3xl overflow-hidden border border-stone-200/80 shadow-sm flex flex-col group hover:shadow-md transition-all duration-300"
-                  >
-                    <div className="aspect-[4/3] sm:aspect-[16/10] w-full overflow-hidden bg-stone-100 relative">
-                      <SafeImage
-                        src={outfit.image_mockup}
-                        alt={outfit.name}
-                        fallbackText={outfit.name}
-                        expectedPath={outfit.image_mockup}
-                        className="w-full h-full"
-                      />
-                      <div className="absolute top-4 left-4 bg-white/95 backdrop-blur-sm text-stone-900 text-xs font-mono font-bold px-3 py-1 rounded-full shadow-xs">
-                        {outfit.id}
-                      </div>
-                    </div>
-
-                    <div className="p-6 sm:p-8 flex-1 flex flex-col justify-between space-y-5">
-                      <div className="space-y-3">
-                        <span className="text-xs font-sans text-red-700 font-semibold tracking-wider uppercase block">
-                          Bản phối tiêu biểu
-                        </span>
-                        <h3 className="text-2xl font-bold text-gray-900 tracking-tight leading-tight">
-                          {outfit.name}
-                        </h3>
-                        <p className="text-xs sm:text-sm text-gray-600 italic">
-                          "{outfit.concept_tagline}"
-                        </p>
-                        <p className="text-xs sm:text-sm text-gray-600 leading-relaxed bg-stone-50 p-4 rounded-xl border border-stone-200/60">
-                          {outfit.style_notes}
-                        </p>
-
-                        <div className="pt-2 flex flex-wrap gap-2">
-                          {outfit.tags.map((tag, idx) => (
-                            <span
-                              key={idx}
-                              className="text-[11px] font-sans text-stone-600 bg-stone-100 px-2.5 py-1 rounded-md"
-                            >
-                              #{tag}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="pt-4 border-t border-stone-100 flex items-center justify-between">
-                        <span className="text-xs text-gray-400 font-sans">
-                          {outfit.occasion}
-                        </span>
-                        <button
-                          onClick={() => {
-                            setLabGarmentId(outfit.garment_id);
-                            if (outfit.casual_item_ids[0]) setLabBottomId(outfit.casual_item_ids[0]);
-                            setActiveTab('studio');
-                          }}
-                          className="px-4 py-2 rounded-xl bg-red-700 hover:bg-red-800 text-white text-xs font-semibold shadow-sm transition-all flex items-center gap-1.5"
-                        >
-                          <SlidersHorizontal className="w-3.5 h-3.5" />
-                          <span>Mở trong phòng phối đồ</span>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
       </main>
 
       {/* 5. CÁC HỘP THOẠI CHI TIẾT */}
