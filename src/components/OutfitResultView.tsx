@@ -124,7 +124,7 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
       <div className="text-center space-y-2 pt-1">
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-stone-100/90 text-stone-700 text-xs font-sans font-medium">
           <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-          <span>Đạt chuẩn văn hóa</span>
+          <span>Phù hợp quy chuẩn kiểm tra</span>
           {contextItem && (
             <>
               <span className="text-stone-300">•</span>

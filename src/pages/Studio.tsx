@@ -14,7 +14,8 @@ import {
   ChevronDown,
   Footprints,
   RotateCcw,
-  AlertTriangle
+  AlertTriangle,
+  Info
 } from 'lucide-react';
 import { GARMENTS, CASUAL_ITEMS, ACCESSORIES, CONTEXTS } from '../data';
 import { resolveItemByGender, getSafeImageUrl } from '../utils/helpers';
@@ -54,6 +55,12 @@ export const Studio: React.FC = () => {
   const [realtimeErrors, setRealtimeErrors] = useState<ValidationResult[]>([]);
   const [isShowingResult, setIsShowingResult] = useState<boolean>(false);
 
+  // State thông báo trạng thái Quick Match
+  const [quickMatchNotice, setQuickMatchNotice] = useState<{
+    type: 'warn' | 'info';
+    message: string;
+  } | null>(null);
+
   // State ẩn/hiện thanh validation dưới cùng (mặc định ẩn gọn, chỉ mở khi bấm, tự ẩn khi chọn món khác)
   const [isBottomBarExpanded, setIsBottomBarExpanded] = useState<boolean>(false);
 
@@ -67,6 +74,7 @@ export const Studio: React.FC = () => {
   // 1. Chọn Bối cảnh (Tab 1)
   const handleSelectContext = (ctxId: string) => {
     setIsBottomBarExpanded(false);
+    setQuickMatchNotice(null);
     setSelectedContext(ctxId);
     setTimeout(() => {
       goToTab(2); // Auto-advance sang Cổ phục
@@ -76,6 +84,7 @@ export const Studio: React.FC = () => {
   // 2. Chọn Cổ phục (Tab 2)
   const handleSelectGarment = (garmentId: string) => {
     setIsBottomBarExpanded(false);
+    setQuickMatchNotice(null);
     if (selectedGarment === garmentId) {
       setSelectedGarment(null);
     } else {
@@ -89,6 +98,7 @@ export const Studio: React.FC = () => {
   // 3. SMART ASSIGNMENT cho đồ Mặc kèm (Tab 3)
   const handleSmartSelectCasual = (item: any) => {
     setIsBottomBarExpanded(false);
+    setQuickMatchNotice(null);
     const rawCat = (item.category || item.type || '').toLowerCase();
 
     if (rawCat.includes('inner') || rawCat.includes('top')) {
@@ -107,6 +117,7 @@ export const Studio: React.FC = () => {
   // 4. SMART ASSIGNMENT cho Phụ kiện (Tab 4)
   const handleSmartSelectAccessory = (item: any) => {
     setIsBottomBarExpanded(false);
+    setQuickMatchNotice(null);
     if (item.type === 'headwear' || item.category === 'headwear') {
       setSelectedHeadwear((prev) => (prev === item.id ? null : item.id));
     } else {
@@ -120,6 +131,7 @@ export const Studio: React.FC = () => {
   const handleGenderChange = (gender: 'male' | 'female') => {
     if (gender === selectedGender) return;
     setIsBottomBarExpanded(false);
+    setQuickMatchNotice(null);
     setSelectedGender(gender);
     setSelectedGarment(null);
     setSelectedInner(null);
@@ -132,6 +144,7 @@ export const Studio: React.FC = () => {
   // Reset toàn bộ phối đồ
   const handleResetOutfit = () => {
     setIsBottomBarExpanded(false);
+    setQuickMatchNotice(null);
     setSelectedContext(null);
     setSelectedGarment(null);
     setSelectedInner(null);
@@ -167,6 +180,7 @@ export const Studio: React.FC = () => {
   // Điều kiện kích hoạt kiểm tra
   const isReadyToValidate = Boolean(selectedContext && selectedGarment);
   const hasBlockError = realtimeErrors.some((r) => r.severity === 'BLOCK');
+  const hasWarnNotice = realtimeErrors.some((r) => r.severity === 'WARN');
 
   // ==========================================
   // REAL-TIME VALIDATION EFFECT
@@ -197,11 +211,11 @@ export const Studio: React.FC = () => {
       : null;
 
     const results = validateOutfit({
-      costumeId: resolvedGarment?.id,
-      innerId: resolvedInner?.id,
-      bottomId: resolvedBottom?.id,
+      costumeId: resolvedGarment?.id || selectedGarment,
+      innerId: resolvedInner?.id || selectedInner,
+      bottomId: resolvedBottom?.id || selectedBottom,
       contextId: selectedContext,
-      headwearId: resolvedHeadwear?.id,
+      headwearId: resolvedHeadwear?.id || selectedHeadwear,
       outerLayer: null
     });
 
@@ -213,27 +227,35 @@ export const Studio: React.FC = () => {
   // HÀM KIỂM TRA OUTFIT & XỬ LÝ ĐIỀU HƯỚNG
   // ==========================================
   const handleValidateOutfit = () => {
-    if (!currentGarmentItem || !selectedContext) return;
+    if (!selectedContext || !selectedGarment) {
+      setIsBottomBarExpanded(true);
+      return;
+    }
 
-    const resolvedGarment = currentGarmentItem
-      ? resolveItemByGender(currentGarmentItem, selectedGender)
+    const currentGarment = GARMENTS.find((g) => g.id === selectedGarment);
+    const currentInner = CASUAL_ITEMS.find((c) => c.id === selectedInner);
+    const currentBottom = CASUAL_ITEMS.find((c) => c.id === selectedBottom);
+    const currentHeadwear = ACCESSORIES.find((a) => a.id === selectedHeadwear);
+
+    const resolvedGarment = currentGarment
+      ? resolveItemByGender(currentGarment, selectedGender)
       : null;
-    const resolvedInner = currentInnerItem
-      ? resolveItemByGender(currentInnerItem, selectedGender)
+    const resolvedInner = currentInner
+      ? resolveItemByGender(currentInner, selectedGender)
       : null;
-    const resolvedBottom = currentBottomItem
-      ? resolveItemByGender(currentBottomItem, selectedGender)
+    const resolvedBottom = currentBottom
+      ? resolveItemByGender(currentBottom, selectedGender)
       : null;
-    const resolvedHeadwear = currentHeadwearItem
-      ? resolveItemByGender(currentHeadwearItem, selectedGender)
+    const resolvedHeadwear = currentHeadwear
+      ? resolveItemByGender(currentHeadwear, selectedGender)
       : null;
 
     const results = validateOutfit({
-      costumeId: resolvedGarment?.id,
-      innerId: resolvedInner?.id,
-      bottomId: resolvedBottom?.id,
+      costumeId: resolvedGarment?.id || selectedGarment,
+      innerId: resolvedInner?.id || selectedInner,
+      bottomId: resolvedBottom?.id || selectedBottom,
       contextId: selectedContext,
-      headwearId: resolvedHeadwear?.id,
+      headwearId: resolvedHeadwear?.id || selectedHeadwear,
       outerLayer: null
     });
 
@@ -252,28 +274,126 @@ export const Studio: React.FC = () => {
   };
 
   // ==========================================
-  // HÀM GỢI Ý PHỐI NHANH 1-CLICK (EPIC 04 — QUICK MATCH)
+  // HÀM GỢI Ý PHỐI NHANH 1-CLICK (EPIC 04 — QUICK MATCH: KIỂM TRA TRƯỚC, ÁP DỤNG SAU)
   // ==========================================
   const handleQuickMatch = (targetGarmentId?: string) => {
     const garmentToUse = targetGarmentId || selectedGarment;
-    if (!garmentToUse) return;
+    setQuickMatchNotice(null);
 
-    // Lấy set gợi ý chuẩn văn hóa
+    // 1. Kiểm tra điều kiện đầu vào tiên quyết
+    if (!selectedContext) {
+      setQuickMatchNotice({
+        type: 'warn',
+        message: 'Vui lòng chọn Bối cảnh ở Bước 1 trước khi sử dụng Gợi ý phối nhanh.'
+      });
+      setIsBottomBarExpanded(true);
+      return;
+    }
+
+    if (!garmentToUse) {
+      setQuickMatchNotice({
+        type: 'warn',
+        message: 'Vui lòng chọn Cổ phục ở Bước 2 trước khi sử dụng Gợi ý phối nhanh.'
+      });
+      setIsBottomBarExpanded(true);
+      return;
+    }
+
+    // 2. Ngăn áp dụng preset V09/V10 do mâu thuẫn nội dung chưa được chuyên gia xác nhận
+    const baseGarmentId = garmentToUse.toUpperCase().split('_')[0];
+    if (baseGarmentId === 'V09' || baseGarmentId === 'V10') {
+      setQuickMatchNotice({
+        type: 'warn',
+        message: 'Dữ liệu gợi ý cho trang phục này chưa sẵn sàng do mâu thuẫn định danh cần chuyên gia văn hóa xác nhận.'
+      });
+      setIsBottomBarExpanded(true);
+      return;
+    }
+
+    // 3. Lấy ứng viên từ engine gợi ý hiện có (giữ nguyên QUICK_MATCH_PRESETS theo quy định)
     const suggestion = getQuickMatchSuggestion(garmentToUse, selectedGender);
 
-    // Tự động chọn Cổ phục nếu chưa chọn
+    // 4. Kiểm tra tính toàn vẹn dữ liệu: ID tham chiếu có tồn tại trong catalog hay không
+    const invalidAccessories: string[] = [];
+    if (suggestion.headwearId) {
+      const exists = ACCESSORIES.some((a) => a.id === suggestion.headwearId);
+      if (!exists) invalidAccessories.push(suggestion.headwearId);
+    }
+    if (suggestion.jewelryIds && suggestion.jewelryIds.length > 0) {
+      for (const jId of suggestion.jewelryIds) {
+        const exists = ACCESSORIES.some((a) => a.id === jId);
+        if (!exists) invalidAccessories.push(jId);
+      }
+    }
+
+    if (invalidAccessories.length > 0) {
+      // Preset tham chiếu ID không tồn tại được coi là ứng viên chưa dùng được
+      // Không bỏ âm thầm, không gán mã rác, giữ nguyên outfit hiện tại của người dùng
+      setQuickMatchNotice({
+        type: 'warn',
+        message: 'Dữ liệu gợi ý cho trang phục này chưa sẵn sàng (tham chiếu phụ kiện chưa có trong danh mục hệ thống).'
+      });
+      setIsBottomBarExpanded(true);
+      return;
+    }
+
+    if (suggestion.bottomId && suggestion.bottomId !== 'traditional_pant') {
+      const exists = CASUAL_ITEMS.some((c) => c.id === suggestion.bottomId);
+      if (!exists) {
+        setQuickMatchNotice({
+          type: 'warn',
+          message: 'Dữ liệu gợi ý cho trang phục này chưa sẵn sàng (món nửa dưới không tồn tại trong danh mục).'
+        });
+        setIsBottomBarExpanded(true);
+        return;
+      }
+    }
+
+    if (suggestion.innerId) {
+      const exists = CASUAL_ITEMS.some((c) => c.id === suggestion.innerId);
+      if (!exists) {
+        setQuickMatchNotice({
+          type: 'warn',
+          message: 'Dữ liệu gợi ý cho trang phục này chưa sẵn sàng (áo mặc trong không tồn tại trong danh mục).'
+        });
+        setIsBottomBarExpanded(true);
+        return;
+      }
+    }
+
+    // 5. DRY-RUN VALIDATION: Kiểm tra ứng viên với context hiện tại trước khi áp dụng
+    const dryRunResults = validateOutfit({
+      costumeId: garmentToUse,
+      innerId: suggestion.innerId,
+      bottomId: suggestion.bottomId,
+      contextId: selectedContext,
+      headwearId: suggestion.headwearId,
+      outerLayer: null
+    });
+
+    const blockError = dryRunResults.find((r) => r.severity === 'BLOCK');
+    if (blockError) {
+      // Ứng viên bị BLOCK: GIỮ NGUYÊN OUTFIT HIỆN TẠI CỦA NGƯỜI DÙNG, KHÔNG THAY ĐỔI ITEM
+      const ctxItem = CONTEXTS.find((c) => c.id === selectedContext);
+      setQuickMatchNotice({
+        type: 'warn',
+        message: `Gợi ý hiện có không phù hợp với bối cảnh đã chọn (${ctxItem?.name || selectedContext}): ${blockError.message}`
+      });
+      setIsBottomBarExpanded(true);
+      return;
+    }
+
+    // 6. ỨNG VIÊN HỢP LỆ VÀ AN TOÀN: Áp dụng vào state Studio
     if (!selectedGarment || selectedGarment !== garmentToUse) {
       setSelectedGarment(garmentToUse);
     }
-
-    // Tự động gán hàng loạt state các món phối
     setSelectedInner(suggestion.innerId);
     setSelectedBottom(suggestion.bottomId);
     setSelectedShoes(suggestion.shoesId);
     setSelectedHeadwear(suggestion.headwearId);
     setSelectedJewelries(suggestion.jewelryIds);
 
-    // Tự động chuyển về tab Phụ kiện (Tab 4) để người dùng chiêm ngưỡng và hoàn tất
+    setQuickMatchNotice(null);
     goToTab(4);
     setIsBottomBarExpanded(false);
   };
@@ -294,7 +414,9 @@ export const Studio: React.FC = () => {
   // DỮ LIỆU ĐÃ LỌC THEO GIỚI TÍNH
   const filteredGarments = GARMENTS.filter((item) => {
     const itemGender = item.gender?.toLowerCase() || 'unisex';
-    return itemGender === selectedGender || itemGender === 'unisex';
+    // Loại bỏ các món có metadata là giày dép truyền thống (v11, v12, v13) khỏi slot Cổ phục trung tâm
+    const isFootwear = item.type === 'shoes' || item.category === 'traditional_footwear';
+    return !isFootwear && (itemGender === selectedGender || itemGender === 'unisex');
   });
 
   const filteredCasual = CASUAL_ITEMS.filter((item) => {
@@ -903,7 +1025,11 @@ export const Studio: React.FC = () => {
                   <div className="text-xs font-sans">
                     {hasBlockError ? (
                       <span className="text-red-700 font-medium flex items-center gap-1.5 animate-in fade-in duration-200">
-                        Phát hiện xung đột quy chuẩn văn hóa
+                        Phát hiện xung đột quy chuẩn (Không thể hoàn tất)
+                      </span>
+                    ) : hasWarnNotice ? (
+                      <span className="text-amber-700 font-medium flex items-center gap-1.5 animate-in fade-in duration-200">
+                        Có lưu ý phom dáng / văn hóa (Vẫn cho phép tiếp tục)
                       </span>
                     ) : isReadyToValidate ? (
                       <span className="text-stone-700 font-medium flex items-center gap-1.5 animate-in fade-in duration-200">
@@ -935,25 +1061,53 @@ export const Studio: React.FC = () => {
                     }`}
                   >
                     <ShieldCheck className="w-3.5 h-3.5" />
-                    <span>{hasBlockError ? 'Xem vi phạm quy chuẩn' : 'Kiểm Tra Outfit'}</span>
+                    <span>{hasBlockError ? 'Xem xung đột quy chuẩn' : 'Kiểm Tra Outfit'}</span>
                   </button>
                 </div>
               </div>
 
-              {/* DANH SÁCH VI PHẠM QUY CHUẨN HIỂN THỊ TRỰC TIẾP Ở DƯỚI (KHÔNG POPUP) */}
-              {hasBlockError && (
-                <div className="w-full space-y-2 pt-3 mt-1 border-t border-red-200/80 max-h-48 overflow-y-auto">
+              {/* DANH SÁCH VI PHẠM QUY CHUẨN HOẶC LƯU Ý TRỰC TIẾP */}
+              {(hasBlockError || hasWarnNotice || quickMatchNotice) && (
+                <div className="w-full space-y-2 pt-3 mt-1 border-t border-stone-200/80 max-h-56 overflow-y-auto">
+                  {/* Thông báo Quick Match nếu có */}
+                  {quickMatchNotice && (
+                    <div className="flex items-start gap-2.5 text-xs text-amber-950 bg-amber-100/90 p-2.5 rounded-xl border border-amber-300 shadow-xs">
+                      <AlertTriangle className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+                      <div className="space-y-0.5">
+                        <span className="font-bold block text-amber-900">Thông báo gợi ý phối nhanh:</span>
+                        <p className="leading-relaxed font-sans">{quickMatchNotice.message}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Lỗi BLOCK */}
                   {realtimeErrors
                     .filter((r) => r.severity === 'BLOCK')
                     .map((err, idx) => (
                       <div
-                        key={idx}
+                        key={`block-${idx}`}
                         className="flex items-start gap-2.5 text-xs text-red-950 bg-red-100/90 p-2.5 rounded-xl border border-red-200 shadow-xs"
                       >
                         <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
                         <div className="space-y-0.5">
-                          <span className="font-bold block text-red-900">Xung đột quy chuẩn văn hóa:</span>
+                          <span className="font-bold block text-red-900">Xung đột quy chuẩn (Không thể hoàn tất):</span>
                           <p className="leading-relaxed font-sans">{err.message}</p>
+                        </div>
+                      </div>
+                    ))}
+
+                  {/* Lưu ý WARN */}
+                  {realtimeErrors
+                    .filter((r) => r.severity === 'WARN')
+                    .map((warn, idx) => (
+                      <div
+                        key={`warn-${idx}`}
+                        className="flex items-start gap-2.5 text-xs text-amber-950 bg-amber-50/90 p-2.5 rounded-xl border border-amber-200 shadow-xs"
+                      >
+                        <Info className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                        <div className="space-y-0.5">
+                          <span className="font-bold block text-amber-900">Lưu ý phối đồ (Vẫn cho phép tiếp tục):</span>
+                          <p className="leading-relaxed font-sans">{warn.message}</p>
                         </div>
                       </div>
                     ))}
@@ -968,6 +1122,8 @@ export const Studio: React.FC = () => {
               className={`pointer-events-auto px-4 py-2 rounded-full backdrop-blur-md border shadow-md text-xs font-medium flex items-center gap-2 transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer select-none ${
                 hasBlockError
                   ? 'bg-red-600 border-red-700 text-white shadow-red-600/20'
+                  : hasWarnNotice || quickMatchNotice
+                  ? 'bg-amber-600 border-amber-700 text-white shadow-amber-600/20'
                   : isReadyToValidate
                   ? 'bg-stone-900 border-stone-800 text-white shadow-stone-900/20'
                   : 'bg-white/95 border-stone-200 text-stone-700 hover:bg-white shadow-stone-200/50'
@@ -977,6 +1133,11 @@ export const Studio: React.FC = () => {
                 <>
                   <AlertTriangle className="w-3.5 h-3.5 text-amber-300" />
                   <span>Xung đột quy chuẩn</span>
+                </>
+              ) : hasWarnNotice || quickMatchNotice ? (
+                <>
+                  <AlertTriangle className="w-3.5 h-3.5 text-amber-100" />
+                  <span>Có lưu ý phối đồ</span>
                 </>
               ) : isReadyToValidate ? (
                 <>
