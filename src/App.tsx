@@ -428,8 +428,8 @@ export default function App() {
             ...filteredCasual.map(getItemCategoryId),
             ...filteredAccessories.map(getItemCategoryId)
           ]);
-        
-          const visibleCategoriesForTabs = CATEGORY_DEFINITIONS.filter(cat => 
+
+          const visibleCategoriesForTabs = CATEGORY_DEFINITIONS.filter(cat =>
             cat.id === 'all' || availableCategoryIds.has(cat.id)
           );
 
@@ -445,24 +445,24 @@ export default function App() {
             <div className="space-y-6 sm:space-y-8">
               {/* TAB CHỌN KHO */}
               <div className="sticky top-0 sm:top-0 z-40 bg-stone-50 flex items-center overflow-x-auto whitespace-nowrap scrollbar-hide snap-x gap-5 sm:gap-8 pt-4 pb-2 border-b border-stone-200 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8">
-                 <button 
-                   onClick={() => {
-                     setRepositoryType('traditional');
-                     setExploreFilter('all');
-                   }}
-                   className={`shrink-0 pb-3 text-sm sm:text-base font-bold transition-colors border-b-2 ${repositoryType === 'traditional' ? 'border-red-700 text-red-700' : 'border-transparent text-stone-400 hover:text-stone-800'}`}
-                 >
-                   Kho Cổ Phục Truyền Thống
-                 </button>
-                 <button 
-                   onClick={() => {
-                     setRepositoryType('modern');
-                     setExploreFilter('all');
-                   }}
-                   className={`shrink-0 pb-3 text-sm sm:text-base font-bold transition-colors border-b-2 ${repositoryType === 'modern' ? 'border-red-700 text-red-700' : 'border-transparent text-stone-400 hover:text-stone-800'}`}
-                 >
-                   Kho Đương Đại Hiện Đại
-                 </button>
+                <button
+                  onClick={() => {
+                    setRepositoryType('traditional');
+                    setExploreFilter('all');
+                  }}
+                  className={`shrink-0 pb-3 text-sm sm:text-base font-bold transition-colors border-b-2 ${repositoryType === 'traditional' ? 'border-red-700 text-red-700' : 'border-transparent text-stone-400 hover:text-stone-800'}`}
+                >
+                  Kho Cổ Phục Truyền Thống
+                </button>
+                <button
+                  onClick={() => {
+                    setRepositoryType('modern');
+                    setExploreFilter('all');
+                  }}
+                  className={`shrink-0 pb-3 text-sm sm:text-base font-bold transition-colors border-b-2 ${repositoryType === 'modern' ? 'border-red-700 text-red-700' : 'border-transparent text-stone-400 hover:text-stone-800'}`}
+                >
+                  Kho Đương Đại Hiện Đại
+                </button>
               </div>
 
               {/* STICKY HEADER: GỘP SEARCH + GENDER TOGGLE VÀ TAB CUỘN NGANG (MINIMALIST E-COMMERCE) */}
@@ -638,7 +638,7 @@ export default function App() {
                                     )}
                                   </div>
                                   <span className="text-[11px] text-red-700 font-medium group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5">
-                                    Xem chi tiết di sản →
+                                    Chi tiết →
                                   </span>
                                 </div>
                               </div>

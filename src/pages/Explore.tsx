@@ -124,7 +124,6 @@ export const Explore: React.FC<ExploreProps> = ({ onSelectForStudio }) => {
           >
             Kho Cổ Phục Truyền Thống
           </button>
-          <br></br>
           <button
             onClick={() => {
               setRepositoryType('modern');
@@ -303,7 +302,7 @@ export const Explore: React.FC<ExploreProps> = ({ onSelectForStudio }) => {
                               )}
                             </div>
                             <span className="text-[11px] text-red-700 font-medium group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5">
-                              Xem chi tiết di sản →
+                              Chi tiết →
                             </span>
                           </div>
                         </div>
