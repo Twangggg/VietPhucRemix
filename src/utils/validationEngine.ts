@@ -51,7 +51,7 @@ function isMatchingGarment(targetIds: string[], id: string | null | undefined): 
  * Helper tìm item trong toàn bộ catalog (CASUAL_ITEMS, GARMENTS, ACCESSORIES).
  * Tôn trọng phân giải variant dựa trên has_gender_variants = true.
  */
-function findCatalogItem(id: string | null | undefined): { item: any; source: 'casual' | 'garment' | 'accessory' } | null {
+export function findCatalogItem(id: string | null | undefined): { item: any; source: 'casual' | 'garment' | 'accessory' } | null {
   if (!id) return null;
   const casual = CASUAL_ITEMS.find((c) => c.id === id);
   if (casual) return { item: casual, source: 'casual' };
@@ -71,7 +71,7 @@ function findCatalogItem(id: string | null | undefined): { item: any; source: 'c
  * - 'unisex' hoặc thiếu trường: tương thích với mọi giới tính.
  * - 'male' / 'female': bắt buộc phải khớp với targetGender.
  */
-function isItemGenderCompatible(itemGender: string | undefined | null, targetGender: string | undefined | null): boolean {
+export function isItemGenderCompatible(itemGender: string | undefined | null, targetGender: string | undefined | null): boolean {
   if (!itemGender || !targetGender) return true;
   const ig = itemGender.toLowerCase().trim();
   const tg = targetGender.toLowerCase().trim();
@@ -86,7 +86,7 @@ function isItemGenderCompatible(itemGender: string | undefined | null, targetGen
  *   - Hậu tố _2 quy ước là 'female' (theo helpers.ts)
  * - Nếu không phải variant có cờ này, giữ nguyên item.gender từ catalog.
  */
-function resolveItemEffectiveGender(item: any, rawId: string | null | undefined): string | null | undefined {
+export function resolveItemEffectiveGender(item: any, rawId: string | null | undefined): string | null | undefined {
   if (!item || !rawId) return item?.gender;
   if (item.has_gender_variants) {
     const match = rawId.match(/^([a-zA-Z0-9]+)_([12])$/);
@@ -97,21 +97,21 @@ function resolveItemEffectiveGender(item: any, rawId: string | null | undefined)
   return item.gender;
 }
 
-function isInnerSlotItem(item: any): boolean {
+export function isInnerSlotItem(item: any): boolean {
   if (!item) return false;
   const type = (item?.type || '').toLowerCase();
   const category = (item?.category || '').toLowerCase();
   return (type === 'inner' || category === 'inner') && type !== 'shoes' && category !== 'traditional_footwear';
 }
 
-function isBottomSlotItem(item: any): boolean {
+export function isBottomSlotItem(item: any): boolean {
   if (!item) return false;
   const type = (item?.type || '').toLowerCase();
   const category = (item?.category || '').toLowerCase();
   return type === 'bottom' || category.includes('bottom') || category.includes('pants') || category.includes('skirt');
 }
 
-function isShoesSlotItem(item: any): boolean {
+export function isShoesSlotItem(item: any): boolean {
   if (!item) return false;
   const type = (item?.type || '').toLowerCase();
   const category = (item?.category || '').toLowerCase();

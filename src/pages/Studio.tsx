@@ -20,7 +20,7 @@ import {
 import { GARMENTS, CASUAL_ITEMS, ACCESSORIES, CONTEXTS } from '../data';
 import { resolveItemByGender, getSafeImageUrl } from '../utils/helpers';
 import { validateOutfit } from '../utils/validationEngine';
-import { getQuickMatchSuggestion } from '../utils/recommendationEngine';
+import { findQuickMatchOutfit, getQuickMatchSuggestion } from '../utils/recommendationEngine';
 import { ValidationResult, Garment, CasualItem, AccessoryItem } from '../types';
 import { ItemSelectCard } from '../components/ItemSelectCard';
 import { SafeImage } from '../components/SafeImage';
@@ -307,85 +307,72 @@ export const Studio: React.FC = () => {
     const garmentToUse = targetGarmentId || selectedGarment;
     setQuickMatchNotice(null);
 
-    // 1. Kiểm tra điều kiện đầu vào tiên quyết
-    if (!selectedContext) {
-      setQuickMatchNotice({
-        type: 'warn',
-        message: 'Vui lòng chọn Bối cảnh ở Bước 1 trước khi sử dụng Gợi ý phối nhanh.'
-      });
-      setIsBottomBarExpanded(true);
-      return;
-    }
+    const result = findQuickMatchOutfit({
+      costumeId: garmentToUse,
+      contextId: selectedContext,
+      gender: selectedGender
+    });
 
-    if (!garmentToUse) {
-      setQuickMatchNotice({
-        type: 'warn',
-        message: 'Vui lòng chọn Cổ phục ở Bước 2 trước khi sử dụng Gợi ý phối nhanh.'
-      });
-      setIsBottomBarExpanded(true);
-      return;
-    }
-
-    // 2. Ngăn áp dụng preset V09/V10 do mâu thuẫn nội dung chưa được chuyên gia xác nhận
-    const baseGarmentId = garmentToUse.toUpperCase().split('_')[0];
-    if (baseGarmentId === 'V09' || baseGarmentId === 'V10') {
-      setQuickMatchNotice({
-        type: 'warn',
-        message: 'Dữ liệu gợi ý cho trang phục này chưa sẵn sàng do mâu thuẫn định danh cần chuyên gia văn hóa xác nhận.'
-      });
-      setIsBottomBarExpanded(true);
-      return;
-    }
-
-    // 3. Lấy ứng viên từ engine gợi ý hiện có (giữ nguyên QUICK_MATCH_PRESETS theo quy định)
-    const suggestion = getQuickMatchSuggestion(garmentToUse, selectedGender);
-
-    // 4. DRY-RUN VALIDATION: Sử dụng cùng bộ kiểm tra chung cho toàn bộ ứng viên
-    const dryRunPayload = buildValidationPayload(
-      garmentToUse,
-      selectedContext,
-      suggestion.innerId,
-      suggestion.bottomId,
-      suggestion.shoesId,
-      suggestion.headwearId,
-      suggestion.jewelryIds,
-      selectedGender
-    );
-
-    const dryRunResults = validateOutfit(dryRunPayload);
-    const blockError = dryRunResults.find((r) => r.severity === 'BLOCK');
-
-    if (blockError) {
-      // Ứng viên lỗi dữ liệu hoặc bị BLOCK: GIỮ NGUYÊN 100% OUTFIT HIỆN TẠI CỦA NGƯỜI DÙNG
-      if (blockError.ruleId?.startsWith('INVALID_') || blockError.ruleId === 'GENDER_INCOMPATIBLE') {
-        setQuickMatchNotice({
-          type: 'warn',
-          message: `Dữ liệu gợi ý chưa hợp lệ: ${blockError.message}`
-        });
-      } else {
-        const ctxItem = CONTEXTS.find((c) => c.id === selectedContext);
-        setQuickMatchNotice({
-          type: 'warn',
-          message: `Gợi ý hiện có không phù hợp với bối cảnh đã chọn (${ctxItem?.name || selectedContext}): ${blockError.message}`
-        });
+    if (result.status === 'PRESET_APPLIED') {
+      if (!selectedGarment || selectedGarment !== garmentToUse) {
+        setSelectedGarment(garmentToUse);
       }
-      setIsBottomBarExpanded(true);
+      setSelectedInner(result.suggestion.innerId);
+      setSelectedBottom(result.suggestion.bottomId);
+      setSelectedShoes(result.suggestion.shoesId);
+      setSelectedHeadwear(result.suggestion.headwearId);
+      setSelectedJewelries(result.suggestion.jewelryIds);
+
+      // Chuyển tab trước, sau đó đặt thông báo và mở thanh cảnh báo nếu có warnings
+      goToTab(4);
+
+      if (result.warnings && result.warnings.length > 0) {
+        const warnMsgs = result.warnings.map((w) => w.message).join(' ');
+        setQuickMatchNotice({
+          type: 'warn',
+          message: warnMsgs
+        });
+        setIsBottomBarExpanded(true);
+      } else {
+        setQuickMatchNotice(null);
+        setIsBottomBarExpanded(false);
+      }
+
       return;
     }
 
-    // 5. ỨNG VIÊN HỢP LỆ VÀ AN TOÀN: Áp dụng vào state Studio
-    if (!selectedGarment || selectedGarment !== garmentToUse) {
-      setSelectedGarment(garmentToUse);
-    }
-    setSelectedInner(suggestion.innerId);
-    setSelectedBottom(suggestion.bottomId);
-    setSelectedShoes(suggestion.shoesId);
-    setSelectedHeadwear(suggestion.headwearId);
-    setSelectedJewelries(suggestion.jewelryIds);
+    if (result.status === 'FALLBACK_APPLIED') {
+      if (!selectedGarment || selectedGarment !== garmentToUse) {
+        setSelectedGarment(garmentToUse);
+      }
+      setSelectedInner(result.suggestion.innerId);
+      setSelectedBottom(result.suggestion.bottomId);
+      setSelectedShoes(result.suggestion.shoesId);
+      setSelectedHeadwear(result.suggestion.headwearId);
+      setSelectedJewelries(result.suggestion.jewelryIds);
 
-    setQuickMatchNotice(null);
-    goToTab(4);
-    setIsBottomBarExpanded(false);
+      const warnMsgs = result.warnings && result.warnings.length > 0
+        ? ' ' + result.warnings.map((w) => w.message).join(' ')
+        : '';
+
+      // Chuyển tab trước, sau đó đặt thông báo và mở thanh cảnh báo nếu có warnings
+      goToTab(4);
+
+      setQuickMatchNotice({
+        type: 'warn',
+        message: `Đã áp dụng gợi ý phối cơ bản.${warnMsgs}`
+      });
+      setIsBottomBarExpanded(result.warnings.length > 0);
+      return;
+    }
+
+    // Các trường hợp thất bại (INSUFFICIENT_INPUT, INVALID_INPUT, UNSUPPORTED_GARMENT_TYPE, SEARCH_BUDGET_EXCEEDED, CANDIDATES_EXHAUSTED):
+    // GIỮ NGUYÊN 100% OUTFIT HIỆN TẠI CỦA NGƯỜI DÙNG
+    setQuickMatchNotice({
+      type: 'warn',
+      message: result.message
+    });
+    setIsBottomBarExpanded(true);
   };
 
   // Lắng nghe sự kiện kích hoạt kiểm tra từ Navbar

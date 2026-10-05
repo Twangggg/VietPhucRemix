@@ -1,3 +1,16 @@
+import { ValidationResult } from '../types';
+import { GARMENTS, CONTEXTS, CASUAL_ITEMS } from '../data';
+import {
+  validateOutfit,
+  resolveGarmentBaseId,
+  findCatalogItem,
+  isItemGenderCompatible,
+  resolveItemEffectiveGender,
+  isInnerSlotItem,
+  isBottomSlotItem,
+  isShoesSlotItem
+} from './validationEngine';
+
 /**
  * ENGINE GỢI Ý PHỐI ĐỒ TỰ ĐỘNG (QUICK MATCH / RECOMMENDATION ENGINE)
  * Phục vụ EPIC 04 — Quick Match 1-Click
@@ -13,6 +26,51 @@ export interface QuickMatchSuggestion {
   vibeTitle: string;
   description: string;
 }
+
+export const MAX_SEARCH_COMBINATIONS = 250;
+
+export interface QuickMatchRequest {
+  costumeId: string | null | undefined;
+  contextId: string | null | undefined;
+  gender: string | null | undefined;
+  maxSearchCombinations?: number;
+  _testEmptyPool?: 'bottom' | 'shoes' | 'inner';
+}
+
+export type QuickMatchResult =
+  | {
+      status: 'PRESET_APPLIED';
+      suggestion: QuickMatchSuggestion;
+      warnings: ValidationResult[];
+    }
+  | {
+      status: 'FALLBACK_APPLIED';
+      suggestion: QuickMatchSuggestion;
+      warnings: ValidationResult[];
+      testedCombinations: number;
+    }
+  | {
+      status: 'INSUFFICIENT_INPUT';
+      message: string;
+    }
+  | {
+      status: 'INVALID_INPUT';
+      message: string;
+    }
+  | {
+      status: 'UNSUPPORTED_GARMENT_TYPE';
+      message: string;
+    }
+  | {
+      status: 'SEARCH_BUDGET_EXCEEDED';
+      message: string;
+      testedCombinations: number;
+    }
+  | {
+      status: 'CANDIDATES_EXHAUSTED';
+      message: string;
+      testedCombinations: number;
+    };
 
 // BỘ PRESET PHỐI ĐỒ CHUẨN VĂN HÓA CHO TỪNG LOẠI CỔ PHỤC
 const QUICK_MATCH_PRESETS: Record<
@@ -222,45 +280,274 @@ const QUICK_MATCH_PRESETS: Record<
 };
 
 /**
- * Hàm lấy gợi ý phối đồ nhanh (Quick Match) cho Cổ phục và Giới tính
- * @param garmentId Mã Cổ phục (V01, V02, V05, ...)
- * @param gender Giới tính người mặc ('male' | 'female')
- * @returns QuickMatchSuggestion chứa các ID an toàn, chuẩn văn hóa
+ * Lấy preset phối đồ nhanh cho Cổ phục và Giới tính nếu tồn tại thực sự.
+ * Không tự tạo fallback cứng; bỏ qua V09/V10 do mâu thuẫn nội dung.
  */
 export function getQuickMatchSuggestion(
   garmentId?: string | null,
   gender: string = 'female'
-): QuickMatchSuggestion {
+): QuickMatchSuggestion | null {
   const normGender = gender.toLowerCase() === 'male' ? 'male' : 'female';
+  if (!garmentId) return null;
 
-  if (!garmentId) {
-    return {
-      innerId: 'cs_10',
-      bottomId: normGender === 'male' ? 'cs_03' : 'cs_04',
-      shoesId: 'cs_14',
-      headwearId: null,
-      jewelryIds: [],
-      vibeTitle: 'Set Phối Cơ Bản',
-      description: 'Bộ phối cơ bản gồm áo phông trắng, quần suông và sneaker trắng tối giản.'
-    };
-  }
-
-  // Chuẩn hóa ID dạng V01, V01_1, V01_2 -> V01
   const baseGarmentId = garmentId.toUpperCase().split('_')[0];
+  if (baseGarmentId === 'V09' || baseGarmentId === 'V10') {
+    return null;
+  }
 
   const preset = QUICK_MATCH_PRESETS[baseGarmentId];
   if (preset && preset[normGender]) {
     return preset[normGender];
   }
 
-  // Fallback an toàn (Basic Set) nếu món cổ phục chưa có kịch bản riêng
+  return null;
+}
+
+/**
+ * ENGINE GỢI Ý PHỐI ĐỒ TỰ ĐỘNG CÓ FALLBACK THEO QUY ƯỚC SẢN PHẨM:
+ * 1. Kiểm tra tính hợp lệ của đầu vào (Context, Key Piece, Giới tính).
+ * 2. Thử preset tĩnh thực sự tồn tại (loại trừ V09/V10 mâu thuẫn) qua validator chung.
+ * 3. Nếu preset không dùng được, tạo ứng viên fallback riêng từ catalog theo quy ước:
+ *    - Fallback bắt buộc có bottom + shoes.
+ *    - Key piece type: outer -> thêm một inner.
+ *    - Key piece type: top hoặc inner -> không tự thêm inner.
+ *    - Headwear = null, jewelryIds = [].
+ *    - Duyệt theo thứ tự catalog ổn định, dừng ở ứng viên đầu tiên đạt không có BLOCK.
+ *    - Giới hạn trần tìm kiếm MAX_SEARCH_COMBINATIONS.
+ */
+export function findQuickMatchOutfit(options: QuickMatchRequest): QuickMatchResult {
+  const { costumeId, contextId, gender } = options;
+
+  // 1. Kiểm tra đầu vào tiên quyết (INSUFFICIENT_INPUT)
+  if (!contextId) {
+    return {
+      status: 'INSUFFICIENT_INPUT',
+      message: 'Chưa đủ điều kiện: Vui lòng chọn Bối cảnh ở Bước 1 trước khi sử dụng Gợi ý phối nhanh.'
+    };
+  }
+  if (!costumeId) {
+    return {
+      status: 'INSUFFICIENT_INPUT',
+      message: 'Chưa đủ điều kiện: Vui lòng chọn Cổ phục ở Bước 2 trước khi sử dụng Gợi ý phối nhanh.'
+    };
+  }
+  const rawGender = gender !== undefined && gender !== null ? String(gender).trim().toLowerCase() : '';
+  if (!rawGender) {
+    return {
+      status: 'INSUFFICIENT_INPUT',
+      message: 'Chưa đủ điều kiện: Vui lòng chọn Giới tính trước khi sử dụng Gợi ý phối nhanh.'
+    };
+  }
+  if (rawGender !== 'male' && rawGender !== 'female') {
+    return {
+      status: 'INVALID_INPUT',
+      message: `Dữ liệu không hợp lệ: Giới tính '${gender}' không hợp lệ (chỉ chấp nhận 'male' hoặc 'female').`
+    };
+  }
+  const normGender = rawGender as 'male' | 'female';
+
+  // 2. Kiểm tra tính hợp lệ của đầu vào trong catalog (INVALID_INPUT)
+  const foundContext = CONTEXTS.find((c) => c.id === contextId);
+  if (!foundContext) {
+    return {
+      status: 'INVALID_INPUT',
+      message: `Dữ liệu không hợp lệ: Bối cảnh đã chọn ('${contextId}') không tồn tại trong danh mục.`
+    };
+  }
+
+  const garmentItem = findCatalogItem(costumeId);
+  if (!garmentItem || garmentItem.source !== 'garment') {
+    return {
+      status: 'INVALID_INPUT',
+      message: `Dữ liệu không hợp lệ: Cổ phục trung tâm đã chọn ('${costumeId}') không tồn tại trong danh mục.`
+    };
+  }
+
+  const garment = garmentItem.item;
+  if (garment.type === 'shoes' || garment.category === 'traditional_footwear') {
+    return {
+      status: 'INVALID_INPUT',
+      message: `Món đồ '${garment.name}' là giày dép truyền thống, không thể làm trang phục trung tâm (Key Piece).`
+    };
+  }
+
+  const effectiveGarmentGender = resolveItemEffectiveGender(garment, costumeId);
+  if (!isItemGenderCompatible(effectiveGarmentGender, normGender)) {
+    return {
+      status: 'INVALID_INPUT',
+      message: `Món cổ phục '${garment.name}' được thiết kế dành riêng cho ${effectiveGarmentGender === 'female' ? 'Nữ' : 'Nam'}, không tương thích với giới tính ${normGender === 'female' ? 'Nữ' : 'Nam'} đang chọn.`
+    };
+  }
+
+  const gType = (garment.type || '').toLowerCase();
+  if (gType !== 'top' && gType !== 'inner' && gType !== 'outer') {
+    return {
+      status: 'UNSUPPORTED_GARMENT_TYPE',
+      message: `Chưa đủ dữ liệu: Loại trang phục '${garment.type || 'chưa xác định'}' của Cổ phục chưa được hỗ trợ để tạo gợi ý tự động.`
+    };
+  }
+
+  // 3. Thử PRESET thực sự tồn tại và được phép dùng
+  const baseGarmentId = resolveGarmentBaseId(costumeId).toUpperCase() || costumeId.toUpperCase().split('_')[0];
+  const isExcludedPreset = baseGarmentId === 'V09' || baseGarmentId === 'V10';
+  const rawPreset = !isExcludedPreset ? QUICK_MATCH_PRESETS[baseGarmentId]?.[normGender] : null;
+
+  if (rawPreset) {
+    const presetValidation = validateOutfit({
+      costumeId,
+      innerId: rawPreset.innerId,
+      bottomId: rawPreset.bottomId,
+      shoesId: rawPreset.shoesId,
+      headwearId: rawPreset.headwearId,
+      jewelryIds: rawPreset.jewelryIds,
+      contextId,
+      gender: normGender
+    });
+
+    const hasBlock = presetValidation.some((r) => r.severity === 'BLOCK');
+    if (!hasBlock) {
+      return {
+        status: 'PRESET_APPLIED',
+        suggestion: rawPreset,
+        warnings: presetValidation.filter((r) => r.severity === 'WARN')
+      };
+    }
+  }
+
+  // 4. TẠO ỨNG VIÊN FALLBACK RIÊNG TỪ CATALOG
+  // Quy ước sản phẩm:
+  // - Bắt buộc có bottom + shoes.
+  // - Key piece type: outer -> thêm 1 inner.
+  // - Key piece type: top hoặc inner -> không tự thêm inner (innerId = null).
+  // - Headwear = null, jewelryIds = [].
+  const requiresInner = gType === 'outer';
+
+  const bottoms = options._testEmptyPool === 'bottom'
+    ? []
+    : CASUAL_ITEMS.filter(
+        (item) => isBottomSlotItem(item) && isItemGenderCompatible(resolveItemEffectiveGender(item, item.id), normGender)
+      );
+
+  const allShoes = [
+    ...CASUAL_ITEMS.filter(isShoesSlotItem),
+    ...GARMENTS.filter(isShoesSlotItem)
+  ];
+  const shoes = options._testEmptyPool === 'shoes'
+    ? []
+    : allShoes.filter(
+        (item) => isShoesSlotItem(item) && isItemGenderCompatible(resolveItemEffectiveGender(item, item.id), normGender)
+      );
+
+  const inners = requiresInner
+    ? (options._testEmptyPool === 'inner'
+        ? []
+        : CASUAL_ITEMS.filter(
+            (item) => isInnerSlotItem(item) && isItemGenderCompatible(resolveItemEffectiveGender(item, item.id), normGender)
+          ))
+    : [null];
+
+  // Kiểm tra nếu pool ứng viên bắt buộc rỗng
+  if (bottoms.length === 0) {
+    return {
+      status: 'CANDIDATES_EXHAUSTED',
+      message: 'Thiếu dữ liệu ứng viên cho trang phục nửa dưới (Bottom) phù hợp với giới tính đang chọn.',
+      testedCombinations: 0
+    };
+  }
+
+  if (shoes.length === 0) {
+    return {
+      status: 'CANDIDATES_EXHAUSTED',
+      message: 'Thiếu dữ liệu ứng viên cho giày dép (Footwear) phù hợp với giới tính đang chọn.',
+      testedCombinations: 0
+    };
+  }
+
+  if (requiresInner && inners.length === 0) {
+    return {
+      status: 'CANDIDATES_EXHAUSTED',
+      message: 'Thiếu dữ liệu ứng viên cho áo mặc trong (Innerwear) phù hợp với giới tính đang chọn.',
+      testedCombinations: 0
+    };
+  }
+
+  const totalCombinationsAvailable = bottoms.length * shoes.length * inners.length;
+  const searchBudget = options.maxSearchCombinations ?? MAX_SEARCH_COMBINATIONS;
+  let testedCombinations = 0;
+
+  let commonBlockRuleId: string | null = null;
+  let commonBlockMessage: string | null = null;
+  let isFirstFailure = true;
+
+  // Duyệt theo thứ tự catalog ổn định (không hardcode ID ưu tiên, không safe pool, không scoring)
+  for (const b of bottoms) {
+    for (const s of shoes) {
+      for (const inItem of inners) {
+        testedCombinations++;
+
+        const candidatePayload = {
+          costumeId,
+          bottomId: b.id,
+          shoesId: s.id,
+          innerId: inItem ? inItem.id : null,
+          headwearId: null,
+          jewelryIds: [],
+          contextId,
+          gender: normGender
+        };
+
+        const validationResults = validateOutfit(candidatePayload);
+        const hasBlock = validationResults.some((r) => r.severity === 'BLOCK');
+
+        if (!hasBlock) {
+          return {
+            status: 'FALLBACK_APPLIED',
+            suggestion: {
+              innerId: inItem ? inItem.id : null,
+              bottomId: b.id,
+              shoesId: s.id,
+              headwearId: null,
+              jewelryIds: [],
+              vibeTitle: 'Gợi Ý Phối Cơ Bản',
+              description: `Bộ phối cơ bản kết hợp cùng ${b.name} và ${s.name}${inItem ? ', lớp trong ' + inItem.name : ''}.`
+            },
+            warnings: validationResults.filter((r) => r.severity === 'WARN'),
+            testedCombinations
+          };
+        }
+
+        // Theo dõi nguyên nhân BLOCK chung thực sự của mọi ứng viên đã thử
+        const blockErrors = validationResults.filter((r) => r.severity === 'BLOCK');
+        if (isFirstFailure) {
+          commonBlockRuleId = blockErrors[0]?.ruleId || null;
+          commonBlockMessage = blockErrors[0]?.message || null;
+          isFirstFailure = false;
+        } else if (commonBlockRuleId) {
+          if (!blockErrors.some((r) => r.ruleId === commonBlockRuleId)) {
+            commonBlockRuleId = null;
+            commonBlockMessage = null;
+          }
+        }
+
+        // Ranh giới giới hạn tìm kiếm:
+        // Chỉ trả SEARCH_BUDGET_EXCEEDED khi còn ứng viên chưa được kiểm tra.
+        // Ứng viên hợp lệ ở lần thử thứ 250 vẫn được chấp nhận ở nhánh !hasBlock phía trên.
+        if (testedCombinations >= searchBudget && testedCombinations < totalCombinationsAvailable) {
+          return {
+            status: 'SEARCH_BUDGET_EXCEEDED',
+            message: `Đã kiểm tra ${testedCombinations} tổ hợp trong danh mục nhưng chưa tìm thấy bộ phối phù hợp trong giới hạn tìm kiếm.`,
+            testedCombinations
+          };
+        }
+      }
+    }
+  }
+
+  // Đã thử hết ứng viên trong tập đã xét (kể cả trường hợp thử đúng 250 và đó là toàn bộ tập)
+  const exhaustionDetail = commonBlockMessage ? `: ${commonBlockMessage}` : '.';
   return {
-    innerId: 'cs_10', // Áo phông trắng basic
-    bottomId: normGender === 'male' ? 'cs_03' : 'cs_04', // Quần Tây hoặc Culottes
-    shoesId: 'cs_14', // Sneaker trắng tối giản
-    headwearId: null,
-    jewelryIds: [],
-    vibeTitle: 'Set Phối Chuẩn Mực',
-    description: 'Set đồ phối chuẩn mực hài hòa giữa nét truyền thống và phong cách tối giản đương đại.'
+    status: 'CANDIDATES_EXHAUSTED',
+    message: `Chưa tìm được gợi ý phù hợp trong ${testedCombinations} tổ hợp đã xét${exhaustionDetail}`,
+    testedCombinations
   };
 }
