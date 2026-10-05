@@ -164,7 +164,9 @@ export const Studio: React.FC = () => {
   const currentGarmentItem = GARMENTS.find((g) => g.id === selectedGarment);
   const currentInnerItem = CASUAL_ITEMS.find((c) => c.id === selectedInner);
   const currentBottomItem = CASUAL_ITEMS.find((c) => c.id === selectedBottom);
-  const currentShoesItem = CASUAL_ITEMS.find((c) => c.id === selectedShoes);
+  const currentShoesItem =
+    CASUAL_ITEMS.find((c) => c.id === selectedShoes) ||
+    GARMENTS.find((g) => g.id === selectedShoes);
   const currentHeadwearItem = ACCESSORIES.find((a) => a.id === selectedHeadwear);
   const currentJewelryItems = ACCESSORIES.filter((a) => selectedJewelries.includes(a.id));
 
@@ -177,93 +179,118 @@ export const Studio: React.FC = () => {
     (selectedHeadwear ? 1 : 0) +
     selectedJewelries.length;
 
-  // Điều kiện kích hoạt kiểm tra
-  const isReadyToValidate = Boolean(selectedContext && selectedGarment);
+  // Helper chuẩn bị payload validation dùng chung 100% giữa Real-time, Validate thủ công và Quick Match
+  const buildValidationPayload = (
+    garmentId: string | null,
+    contextId: string | null,
+    innerId: string | null,
+    bottomId: string | null,
+    shoesId: string | null,
+    headwearId: string | null,
+    jewelryIds: string[],
+    gender: string
+  ) => {
+    return {
+      costumeId: garmentId,
+      contextId: contextId,
+      innerId: innerId,
+      bottomId: bottomId,
+      shoesId: shoesId,
+      headwearId: headwearId,
+      jewelryIds: jewelryIds,
+      gender: gender,
+      outerLayer: null
+    };
+  };
+
+  // Phân loại các thông điệp kiểm tra để hiển thị chính xác theo từng nhóm
+  const inputErrors = realtimeErrors.filter(
+    (r) => r.ruleId === 'MISSING_CONTEXT' || r.ruleId === 'MISSING_KEY_PIECE'
+  );
+  const dataErrors = realtimeErrors.filter(
+    (r) => r.ruleId?.startsWith('INVALID_') || r.ruleId === 'GENDER_INCOMPATIBLE'
+  );
+  const ruleViolations = realtimeErrors.filter(
+    (r) =>
+      r.severity === 'BLOCK' &&
+      r.ruleId !== 'MISSING_CONTEXT' &&
+      r.ruleId !== 'MISSING_KEY_PIECE' &&
+      !r.ruleId?.startsWith('INVALID_') &&
+      r.ruleId !== 'GENDER_INCOMPATIBLE'
+  );
+  const warningNotices = realtimeErrors.filter((r) => r.severity === 'WARN');
+
+  const hasRuleViolation = ruleViolations.length > 0;
+  const hasDataError = dataErrors.length > 0;
+  const hasInputError = inputErrors.length > 0;
   const hasBlockError = realtimeErrors.some((r) => r.severity === 'BLOCK');
-  const hasWarnNotice = realtimeErrors.some((r) => r.severity === 'WARN');
+  const hasWarnNotice = warningNotices.length > 0;
+  const isReadyToValidate = Boolean(selectedContext && selectedGarment && !hasBlockError);
 
   // ==========================================
   // REAL-TIME VALIDATION EFFECT
   // ==========================================
   useEffect(() => {
-    if (!selectedGarment && !selectedContext && !selectedBottom && !selectedHeadwear && !selectedInner) {
+    if (
+      !selectedGarment &&
+      !selectedContext &&
+      !selectedBottom &&
+      !selectedHeadwear &&
+      !selectedInner &&
+      !selectedShoes &&
+      selectedJewelries.length === 0
+    ) {
       setRealtimeErrors([]);
       setValidationResults([]);
       return;
     }
 
-    const currentGarment = GARMENTS.find((g) => g.id === selectedGarment);
-    const currentInner = CASUAL_ITEMS.find((c) => c.id === selectedInner);
-    const currentBottom = CASUAL_ITEMS.find((c) => c.id === selectedBottom);
-    const currentHeadwear = ACCESSORIES.find((a) => a.id === selectedHeadwear);
+    const payload = buildValidationPayload(
+      selectedGarment,
+      selectedContext,
+      selectedInner,
+      selectedBottom,
+      selectedShoes,
+      selectedHeadwear,
+      selectedJewelries,
+      selectedGender
+    );
 
-    const resolvedGarment = currentGarment
-      ? resolveItemByGender(currentGarment, selectedGender)
-      : null;
-    const resolvedInner = currentInner
-      ? resolveItemByGender(currentInner, selectedGender)
-      : null;
-    const resolvedBottom = currentBottom
-      ? resolveItemByGender(currentBottom, selectedGender)
-      : null;
-    const resolvedHeadwear = currentHeadwear
-      ? resolveItemByGender(currentHeadwear, selectedGender)
-      : null;
-
-    const results = validateOutfit({
-      costumeId: resolvedGarment?.id || selectedGarment,
-      innerId: resolvedInner?.id || selectedInner,
-      bottomId: resolvedBottom?.id || selectedBottom,
-      contextId: selectedContext,
-      headwearId: resolvedHeadwear?.id || selectedHeadwear,
-      outerLayer: null
-    });
-
+    const results = validateOutfit(payload);
     setRealtimeErrors(results);
     setValidationResults(results);
-  }, [selectedGarment, selectedInner, selectedBottom, selectedHeadwear, selectedContext, selectedGender]);
+  }, [
+    selectedGarment,
+    selectedInner,
+    selectedBottom,
+    selectedShoes,
+    selectedHeadwear,
+    selectedJewelries,
+    selectedContext,
+    selectedGender
+  ]);
 
   // ==========================================
   // HÀM KIỂM TRA OUTFIT & XỬ LÝ ĐIỀU HƯỚNG
   // ==========================================
   const handleValidateOutfit = () => {
-    if (!selectedContext || !selectedGarment) {
-      setIsBottomBarExpanded(true);
-      return;
-    }
+    const payload = buildValidationPayload(
+      selectedGarment,
+      selectedContext,
+      selectedInner,
+      selectedBottom,
+      selectedShoes,
+      selectedHeadwear,
+      selectedJewelries,
+      selectedGender
+    );
 
-    const currentGarment = GARMENTS.find((g) => g.id === selectedGarment);
-    const currentInner = CASUAL_ITEMS.find((c) => c.id === selectedInner);
-    const currentBottom = CASUAL_ITEMS.find((c) => c.id === selectedBottom);
-    const currentHeadwear = ACCESSORIES.find((a) => a.id === selectedHeadwear);
-
-    const resolvedGarment = currentGarment
-      ? resolveItemByGender(currentGarment, selectedGender)
-      : null;
-    const resolvedInner = currentInner
-      ? resolveItemByGender(currentInner, selectedGender)
-      : null;
-    const resolvedBottom = currentBottom
-      ? resolveItemByGender(currentBottom, selectedGender)
-      : null;
-    const resolvedHeadwear = currentHeadwear
-      ? resolveItemByGender(currentHeadwear, selectedGender)
-      : null;
-
-    const results = validateOutfit({
-      costumeId: resolvedGarment?.id || selectedGarment,
-      innerId: resolvedInner?.id || selectedInner,
-      bottomId: resolvedBottom?.id || selectedBottom,
-      contextId: selectedContext,
-      headwearId: resolvedHeadwear?.id || selectedHeadwear,
-      outerLayer: null
-    });
-
+    const results = validateOutfit(payload);
     setValidationResults(results);
     setRealtimeErrors(results);
 
     const hasBlock = results.some((r) => r.severity === 'BLOCK');
-    if (hasBlock) {
+    if (hasBlock || !selectedContext || !selectedGarment) {
       setIsBottomBarExpanded(true); // Mở rộng thanh cảnh báo trực tiếp ở dưới, không dùng popup
       setIsShowingResult(false);
     } else {
@@ -313,77 +340,45 @@ export const Studio: React.FC = () => {
     // 3. Lấy ứng viên từ engine gợi ý hiện có (giữ nguyên QUICK_MATCH_PRESETS theo quy định)
     const suggestion = getQuickMatchSuggestion(garmentToUse, selectedGender);
 
-    // 4. Kiểm tra tính toàn vẹn dữ liệu: ID tham chiếu có tồn tại trong catalog hay không
-    const invalidAccessories: string[] = [];
-    if (suggestion.headwearId) {
-      const exists = ACCESSORIES.some((a) => a.id === suggestion.headwearId);
-      if (!exists) invalidAccessories.push(suggestion.headwearId);
-    }
-    if (suggestion.jewelryIds && suggestion.jewelryIds.length > 0) {
-      for (const jId of suggestion.jewelryIds) {
-        const exists = ACCESSORIES.some((a) => a.id === jId);
-        if (!exists) invalidAccessories.push(jId);
-      }
-    }
+    // 4. DRY-RUN VALIDATION: Sử dụng cùng bộ kiểm tra chung cho toàn bộ ứng viên
+    const dryRunPayload = buildValidationPayload(
+      garmentToUse,
+      selectedContext,
+      suggestion.innerId,
+      suggestion.bottomId,
+      suggestion.shoesId,
+      suggestion.headwearId,
+      suggestion.jewelryIds,
+      selectedGender
+    );
 
-    if (invalidAccessories.length > 0) {
-      // Preset tham chiếu ID không tồn tại được coi là ứng viên chưa dùng được
-      // Không bỏ âm thầm, không gán mã rác, giữ nguyên outfit hiện tại của người dùng
-      setQuickMatchNotice({
-        type: 'warn',
-        message: 'Dữ liệu gợi ý cho trang phục này chưa sẵn sàng (tham chiếu phụ kiện chưa có trong danh mục hệ thống).'
-      });
-      setIsBottomBarExpanded(true);
-      return;
-    }
-
-    if (suggestion.bottomId && suggestion.bottomId !== 'traditional_pant') {
-      const exists = CASUAL_ITEMS.some((c) => c.id === suggestion.bottomId);
-      if (!exists) {
-        setQuickMatchNotice({
-          type: 'warn',
-          message: 'Dữ liệu gợi ý cho trang phục này chưa sẵn sàng (món nửa dưới không tồn tại trong danh mục).'
-        });
-        setIsBottomBarExpanded(true);
-        return;
-      }
-    }
-
-    if (suggestion.innerId) {
-      const exists = CASUAL_ITEMS.some((c) => c.id === suggestion.innerId);
-      if (!exists) {
-        setQuickMatchNotice({
-          type: 'warn',
-          message: 'Dữ liệu gợi ý cho trang phục này chưa sẵn sàng (áo mặc trong không tồn tại trong danh mục).'
-        });
-        setIsBottomBarExpanded(true);
-        return;
-      }
-    }
-
-    // 5. DRY-RUN VALIDATION: Kiểm tra ứng viên với context hiện tại trước khi áp dụng
-    const dryRunResults = validateOutfit({
-      costumeId: garmentToUse,
-      innerId: suggestion.innerId,
-      bottomId: suggestion.bottomId,
-      contextId: selectedContext,
-      headwearId: suggestion.headwearId,
-      outerLayer: null
-    });
-
+    const dryRunResults = validateOutfit(dryRunPayload);
     const blockError = dryRunResults.find((r) => r.severity === 'BLOCK');
+
     if (blockError) {
-      // Ứng viên bị BLOCK: GIỮ NGUYÊN OUTFIT HIỆN TẠI CỦA NGƯỜI DÙNG, KHÔNG THAY ĐỔI ITEM
-      const ctxItem = CONTEXTS.find((c) => c.id === selectedContext);
-      setQuickMatchNotice({
-        type: 'warn',
-        message: `Gợi ý hiện có không phù hợp với bối cảnh đã chọn (${ctxItem?.name || selectedContext}): ${blockError.message}`
-      });
+      // Ứng viên lỗi dữ liệu hoặc bị BLOCK: GIỮ NGUYÊN 100% OUTFIT HIỆN TẠI CỦA NGƯỜI DÙNG
+      if (blockError.ruleId?.startsWith('INVALID_')) {
+        setQuickMatchNotice({
+          type: 'warn',
+          message: 'Dữ liệu gợi ý cho trang phục này chưa sẵn sàng (món đồ tham chiếu không tồn tại trong danh mục hệ thống).'
+        });
+      } else if (blockError.ruleId === 'GENDER_INCOMPATIBLE') {
+        setQuickMatchNotice({
+          type: 'warn',
+          message: 'Dữ liệu gợi ý cho trang phục này chưa sẵn sàng (phát hiện cấu hình gợi ý không tương thích giới tính).'
+        });
+      } else {
+        const ctxItem = CONTEXTS.find((c) => c.id === selectedContext);
+        setQuickMatchNotice({
+          type: 'warn',
+          message: `Gợi ý hiện có không phù hợp với bối cảnh đã chọn (${ctxItem?.name || selectedContext}): ${blockError.message}`
+        });
+      }
       setIsBottomBarExpanded(true);
       return;
     }
 
-    // 6. ỨNG VIÊN HỢP LỆ VÀ AN TOÀN: Áp dụng vào state Studio
+    // 5. ỨNG VIÊN HỢP LỆ VÀ AN TOÀN: Áp dụng vào state Studio
     if (!selectedGarment || selectedGarment !== garmentToUse) {
       setSelectedGarment(garmentToUse);
     }
@@ -954,13 +949,25 @@ export const Studio: React.FC = () => {
                       className={`px-6 py-2.5 rounded-full text-xs font-semibold flex items-center gap-2 transition-all shadow-xs ${
                         !isReadyToValidate
                           ? 'bg-stone-100 text-stone-400 cursor-not-allowed border border-stone-200/60 shadow-none'
+                          : hasRuleViolation
+                          ? 'bg-red-600 hover:bg-red-700 text-white cursor-pointer'
+                          : hasDataError
+                          ? 'bg-rose-600 hover:bg-rose-700 text-white cursor-pointer'
                           : hasBlockError
                           ? 'bg-red-600 hover:bg-red-700 text-white cursor-pointer'
                           : 'bg-stone-900 hover:bg-stone-800 text-white cursor-pointer active:scale-95'
                       }`}
                     >
                       <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                      <span>{hasBlockError ? 'Xem cảnh báo vi phạm' : 'Chiêm ngưỡng bản phối ✨'}</span>
+                      <span>
+                        {hasRuleViolation
+                          ? 'Xem vi phạm quy chuẩn'
+                          : hasDataError
+                          ? 'Xem lỗi dữ liệu'
+                          : hasBlockError
+                          ? 'Xem điều kiện bắt buộc'
+                          : 'Chiêm ngưỡng bản phối ✨'}
+                      </span>
                     </button>
                   </div>
                 </div>
@@ -1023,9 +1030,13 @@ export const Studio: React.FC = () => {
                     />
                   </div>
                   <div className="text-xs font-sans">
-                    {hasBlockError ? (
+                    {hasRuleViolation ? (
                       <span className="text-red-700 font-medium flex items-center gap-1.5 animate-in fade-in duration-200">
-                        Phát hiện xung đột quy chuẩn (Không thể hoàn tất)
+                        Phát hiện xung đột quy chuẩn văn hóa / phom dáng (Không thể hoàn tất)
+                      </span>
+                    ) : hasDataError ? (
+                      <span className="text-rose-700 font-medium flex items-center gap-1.5 animate-in fade-in duration-200">
+                        Phát hiện lỗi dữ liệu / sai slot món đồ (Không thể hoàn tất)
                       </span>
                     ) : hasWarnNotice ? (
                       <span className="text-amber-700 font-medium flex items-center gap-1.5 animate-in fade-in duration-200">
@@ -1039,9 +1050,13 @@ export const Studio: React.FC = () => {
                       <span className="text-stone-400">
                         Vui lòng chọn <strong>Bối cảnh</strong> ở Tab 1.
                       </span>
-                    ) : (
+                    ) : !selectedGarment ? (
                       <span className="text-stone-500">
                         Vui lòng chọn <strong>Cổ phục</strong> ở Tab 2.
+                      </span>
+                    ) : (
+                      <span className="text-stone-500">
+                        Chưa đủ điều kiện hoàn tất phối đồ.
                       </span>
                     )}
                   </div>
@@ -1055,13 +1070,25 @@ export const Studio: React.FC = () => {
                     className={`w-full sm:w-auto px-7 py-2.5 rounded-full font-semibold text-xs transition-all duration-200 flex items-center justify-center gap-2 select-none ${
                       !isReadyToValidate
                         ? 'bg-stone-100 text-stone-400 border border-stone-200/60 cursor-not-allowed shadow-none'
+                        : hasRuleViolation
+                        ? 'bg-red-600 hover:bg-red-700 text-white shadow-xs cursor-pointer'
+                        : hasDataError
+                        ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-xs cursor-pointer'
                         : hasBlockError
                         ? 'bg-red-600 hover:bg-red-700 text-white shadow-xs cursor-pointer'
                         : 'bg-stone-900 hover:bg-stone-800 text-white shadow-xs cursor-pointer active:scale-95'
                     }`}
                   >
                     <ShieldCheck className="w-3.5 h-3.5" />
-                    <span>{hasBlockError ? 'Xem xung đột quy chuẩn' : 'Kiểm Tra Outfit'}</span>
+                    <span>
+                      {hasRuleViolation
+                        ? 'Xem xung đột quy chuẩn'
+                        : hasDataError
+                        ? 'Xem lỗi dữ liệu'
+                        : hasBlockError
+                        ? 'Xem điều kiện bắt buộc'
+                        : 'Kiểm Tra Outfit'}
+                    </span>
                   </button>
                 </div>
               </div>
@@ -1080,37 +1107,61 @@ export const Studio: React.FC = () => {
                     </div>
                   )}
 
-                  {/* Lỗi BLOCK */}
-                  {realtimeErrors
-                    .filter((r) => r.severity === 'BLOCK')
-                    .map((err, idx) => (
-                      <div
-                        key={`block-${idx}`}
-                        className="flex items-start gap-2.5 text-xs text-red-950 bg-red-100/90 p-2.5 rounded-xl border border-red-200 shadow-xs"
-                      >
-                        <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
-                        <div className="space-y-0.5">
-                          <span className="font-bold block text-red-900">Xung đột quy chuẩn (Không thể hoàn tất):</span>
-                          <p className="leading-relaxed font-sans">{err.message}</p>
-                        </div>
+                  {/* 1. Lỗi Xung đột quy chuẩn văn hóa / phom dáng (RULE 1-8) */}
+                  {ruleViolations.map((err, idx) => (
+                    <div
+                      key={`rule-${idx}`}
+                      className="flex items-start gap-2.5 text-xs text-red-950 bg-red-100/90 p-2.5 rounded-xl border border-red-200 shadow-xs"
+                    >
+                      <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                      <div className="space-y-0.5">
+                        <span className="font-bold block text-red-900">Xung đột quy chuẩn văn hóa / phom dáng:</span>
+                        <p className="leading-relaxed font-sans">{err.message}</p>
                       </div>
-                    ))}
+                    </div>
+                  ))}
 
-                  {/* Lưu ý WARN */}
-                  {realtimeErrors
-                    .filter((r) => r.severity === 'WARN')
-                    .map((warn, idx) => (
-                      <div
-                        key={`warn-${idx}`}
-                        className="flex items-start gap-2.5 text-xs text-amber-950 bg-amber-50/90 p-2.5 rounded-xl border border-amber-200 shadow-xs"
-                      >
-                        <Info className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                        <div className="space-y-0.5">
-                          <span className="font-bold block text-amber-900">Lưu ý phối đồ (Vẫn cho phép tiếp tục):</span>
-                          <p className="leading-relaxed font-sans">{warn.message}</p>
-                        </div>
+                  {/* 2. Lỗi Dữ liệu không hợp lệ / Sai slot / Không tương thích giới tính */}
+                  {dataErrors.map((err, idx) => (
+                    <div
+                      key={`data-${idx}`}
+                      className="flex items-start gap-2.5 text-xs text-rose-950 bg-rose-100/90 p-2.5 rounded-xl border border-rose-200 shadow-xs"
+                    >
+                      <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                      <div className="space-y-0.5">
+                        <span className="font-bold block text-rose-900">Lỗi dữ liệu / Không hợp lệ (Không thể hoàn tất):</span>
+                        <p className="leading-relaxed font-sans">{err.message}</p>
                       </div>
-                    ))}
+                    </div>
+                  ))}
+
+                  {/* 3. Lỗi thiếu thông tin đầu vào bắt buộc */}
+                  {inputErrors.map((err, idx) => (
+                    <div
+                      key={`input-${idx}`}
+                      className="flex items-start gap-2.5 text-xs text-stone-900 bg-stone-100/90 p-2.5 rounded-xl border border-stone-200 shadow-xs"
+                    >
+                      <Info className="w-4 h-4 text-stone-600 shrink-0 mt-0.5" />
+                      <div className="space-y-0.5">
+                        <span className="font-bold block text-stone-800">Chưa đủ điều kiện kiểm tra:</span>
+                        <p className="leading-relaxed font-sans">{err.message}</p>
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* 4. Lưu ý WARN */}
+                  {warningNotices.map((warn, idx) => (
+                    <div
+                      key={`warn-${idx}`}
+                      className="flex items-start gap-2.5 text-xs text-amber-950 bg-amber-50/90 p-2.5 rounded-xl border border-amber-200 shadow-xs"
+                    >
+                      <Info className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                      <div className="space-y-0.5">
+                        <span className="font-bold block text-amber-900">Lưu ý phối đồ (Vẫn cho phép tiếp tục):</span>
+                        <p className="leading-relaxed font-sans">{warn.message}</p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -1120,8 +1171,12 @@ export const Studio: React.FC = () => {
               type="button"
               onClick={() => setIsBottomBarExpanded(true)}
               className={`pointer-events-auto px-4 py-2 rounded-full backdrop-blur-md border shadow-md text-xs font-medium flex items-center gap-2 transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer select-none ${
-                hasBlockError
+                hasRuleViolation
                   ? 'bg-red-600 border-red-700 text-white shadow-red-600/20'
+                  : hasDataError
+                  ? 'bg-rose-600 border-rose-700 text-white shadow-rose-600/20'
+                  : hasInputError
+                  ? 'bg-stone-800 border-stone-700 text-white shadow-stone-800/20'
                   : hasWarnNotice || quickMatchNotice
                   ? 'bg-amber-600 border-amber-700 text-white shadow-amber-600/20'
                   : isReadyToValidate
@@ -1129,10 +1184,20 @@ export const Studio: React.FC = () => {
                   : 'bg-white/95 border-stone-200 text-stone-700 hover:bg-white shadow-stone-200/50'
               }`}
             >
-              {hasBlockError ? (
+              {hasRuleViolation ? (
                 <>
                   <AlertTriangle className="w-3.5 h-3.5 text-amber-300" />
                   <span>Xung đột quy chuẩn</span>
+                </>
+              ) : hasDataError ? (
+                <>
+                  <AlertTriangle className="w-3.5 h-3.5 text-rose-200" />
+                  <span>Lỗi dữ liệu outfit</span>
+                </>
+              ) : hasInputError ? (
+                <>
+                  <Info className="w-3.5 h-3.5 text-stone-300" />
+                  <span>Chưa đủ điều kiện</span>
                 </>
               ) : hasWarnNotice || quickMatchNotice ? (
                 <>

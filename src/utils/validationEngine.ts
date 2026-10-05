@@ -5,10 +5,13 @@ export interface ValidateOutfitOptions {
   costumeId?: string | null;
   innerId?: string | null;
   bottomId?: string | null;
+  shoesId?: string | null;
+  headwearId?: string | null;
+  jewelryIds?: string[] | null;
   contextId?: string | null;
+  gender?: string | null;
   lapelFold?: string | null;
   outerLayer?: string | null | boolean;
-  headwearId?: string | null; // Bổ sung ID phụ kiện đầu cho Rule 5
 }
 
 /**
@@ -45,6 +48,73 @@ function isMatchingGarment(targetIds: string[], id: string | null | undefined): 
 }
 
 /**
+ * Helper tìm item trong toàn bộ catalog (CASUAL_ITEMS, GARMENTS, ACCESSORIES).
+ * Tôn trọng phân giải variant dựa trên has_gender_variants = true.
+ */
+function findCatalogItem(id: string | null | undefined): { item: any; source: 'casual' | 'garment' | 'accessory' } | null {
+  if (!id) return null;
+  const casual = CASUAL_ITEMS.find((c) => c.id === id);
+  if (casual) return { item: casual, source: 'casual' };
+
+  const garmentBase = resolveGarmentBaseId(id);
+  const garment = GARMENTS.find((g) => g.id === id || g.id === garmentBase);
+  if (garment) return { item: garment, source: 'garment' };
+
+  const accessory = ACCESSORIES.find((a) => a.id === id);
+  if (accessory) return { item: accessory, source: 'accessory' };
+
+  return null;
+}
+
+/**
+ * Helper kiểm tra tương thích giới tính dựa trên metadata của item.
+ * - 'unisex' hoặc thiếu trường: tương thích với mọi giới tính.
+ * - 'male' / 'female': bắt buộc phải khớp với targetGender.
+ */
+function isItemGenderCompatible(itemGender: string | undefined | null, targetGender: string | undefined | null): boolean {
+  if (!itemGender || !targetGender) return true;
+  const ig = itemGender.toLowerCase().trim();
+  const tg = targetGender.toLowerCase().trim();
+  if (ig === 'unisex' || ig === '') return true;
+  return ig === tg;
+}
+
+function isInnerSlotItem(item: any): boolean {
+  if (!item) return false;
+  const type = (item?.type || '').toLowerCase();
+  const category = (item?.category || '').toLowerCase();
+  return (type === 'inner' || category === 'inner') && type !== 'shoes' && category !== 'traditional_footwear';
+}
+
+function isBottomSlotItem(item: any): boolean {
+  if (!item) return false;
+  const type = (item?.type || '').toLowerCase();
+  const category = (item?.category || '').toLowerCase();
+  return type === 'bottom' || category.includes('bottom') || category.includes('pants') || category.includes('skirt');
+}
+
+function isShoesSlotItem(item: any): boolean {
+  if (!item) return false;
+  const type = (item?.type || '').toLowerCase();
+  const category = (item?.category || '').toLowerCase();
+  return type === 'shoes' || category.includes('shoes') || category.includes('footwear') || category === 'traditional_footwear';
+}
+
+function isHeadwearSlotItem(item: any): boolean {
+  if (!item) return false;
+  const type = (item?.type || '').toLowerCase();
+  const category = (item?.category || '').toLowerCase();
+  return type === 'headwear' || category === 'headwear';
+}
+
+function isJewelrySlotItem(item: any): boolean {
+  if (!item) return false;
+  const type = (item?.type || '').toLowerCase();
+  const category = (item?.category || '').toLowerCase();
+  return type === 'jewelry' || category === 'jewelry';
+}
+
+/**
  * Lõi kiểm tra văn hóa và phom dáng (Deterministic Cultural & Silhouette Validation Engine)
  * Thực thi các quy tắc nghiêm ngặt bảo vệ tính tôn nghiêm và mỹ cảm trang phục Việt.
  */
@@ -55,7 +125,10 @@ export function validateOutfit(
   contextId?: string | null,
   lapelFold?: string | null,
   outerLayer?: string | null | boolean,
-  headwearId?: string | null
+  headwearId?: string | null,
+  shoesId?: string | null,
+  jewelryIds?: string[] | null,
+  gender?: string | null
 ): ValidationResult[] {
   // Hỗ trợ cả hai kiểu gọi: dạng object hoặc dạng truyền tham số thứ tự
   let cId: string | null | undefined = typeof costumeId === 'string' ? costumeId : null;
@@ -65,6 +138,9 @@ export function validateOutfit(
   let lFold: string | null | undefined = lapelFold;
   let outLayer: string | null | boolean | undefined = outerLayer ?? null;
   let hId: string | null | undefined = headwearId;
+  let shId: string | null | undefined = shoesId;
+  let jIds: string[] = Array.isArray(jewelryIds) ? jewelryIds : [];
+  let userGender: string | null | undefined = gender;
 
   if (typeof costumeId === 'object' && costumeId !== null) {
     const opts = costumeId as ValidateOutfitOptions;
@@ -75,6 +151,9 @@ export function validateOutfit(
     lFold = opts.lapelFold;
     outLayer = opts.outerLayer ?? null;
     hId = opts.headwearId;
+    shId = opts.shoesId;
+    jIds = Array.isArray(opts.jewelryIds) ? opts.jewelryIds : [];
+    userGender = opts.gender;
   }
 
   const results: ValidationResult[] = [];
@@ -95,7 +174,7 @@ export function validateOutfit(
       results.push({
         isValid: false,
         severity: 'BLOCK',
-        message: 'Dữ liệu không hợp lệ: Bối cảnh đã chọn không tồn tại trong danh mục.',
+        message: `Dữ liệu không hợp lệ: Bối cảnh đã chọn ('${ctxId}') không tồn tại trong danh mục.`,
         ruleId: 'INVALID_CONTEXT_ID'
       });
     }
@@ -109,64 +188,202 @@ export function validateOutfit(
       ruleId: 'MISSING_KEY_PIECE'
     });
   } else {
-    const garmentBase = resolveGarmentBaseId(cId);
-    const foundGarment = GARMENTS.find((g) => g.id === cId || g.id === garmentBase);
-    if (!foundGarment) {
+    const foundGarmentItem = findCatalogItem(cId);
+    if (!foundGarmentItem || foundGarmentItem.source !== 'garment') {
       results.push({
         isValid: false,
         severity: 'BLOCK',
-        message: 'Dữ liệu không hợp lệ: Cổ phục trung tâm đã chọn không tồn tại trong danh mục.',
+        message: `Dữ liệu không hợp lệ: Cổ phục trung tâm đã chọn ('${cId}') không tồn tại trong danh mục.`,
         ruleId: 'INVALID_KEY_PIECE_ID'
       });
-    } else if (foundGarment.type === 'shoes' || foundGarment.category === 'traditional_footwear') {
-      results.push({
-        isValid: false,
-        severity: 'BLOCK',
-        message: `Món đồ '${foundGarment.name}' là giày dép truyền thống, không thể làm trang phục trung tâm (Key Piece).`,
-        ruleId: 'INVALID_KEY_PIECE_SLOT'
-      });
+    } else {
+      const foundGarment = foundGarmentItem.item;
+      if (foundGarment.type === 'shoes' || foundGarment.category === 'traditional_footwear') {
+        results.push({
+          isValid: false,
+          severity: 'BLOCK',
+          message: `Món đồ '${foundGarment.name}' là giày dép truyền thống, không thể làm trang phục trung tâm (Key Piece).`,
+          ruleId: 'INVALID_KEY_PIECE_SLOT'
+        });
+      }
+      if (!isItemGenderCompatible(foundGarment.gender, userGender)) {
+        results.push({
+          isValid: false,
+          severity: 'BLOCK',
+          message: `Món cổ phục '${foundGarment.name}' được thiết kế dành riêng cho ${foundGarment.gender === 'female' ? 'Nữ' : 'Nam'}, không tương thích với giới tính ${userGender === 'female' ? 'Nữ' : 'Nam'} đang chọn.`,
+          ruleId: 'GENDER_INCOMPATIBLE'
+        });
+      }
     }
   }
 
-  // Kiểm tra tồn tại của các món phối kèm nếu có truyền ID
+  // Kiểm tra tồn tại, đúng slot và tương thích giới tính của các món phối kèm
   if (inId) {
-    const foundInner = CASUAL_ITEMS.find((c) => c.id === inId);
-    if (!foundInner) {
+    const foundInnerItem = findCatalogItem(inId);
+    if (!foundInnerItem) {
       results.push({
         isValid: false,
         severity: 'BLOCK',
-        message: 'Dữ liệu không hợp lệ: Áo mặc trong đã chọn không tồn tại trong danh mục.',
+        message: `Dữ liệu không hợp lệ: Áo mặc trong đã chọn ('${inId}') không tồn tại trong danh mục.`,
         ruleId: 'INVALID_INNER_ID'
       });
+    } else {
+      if (!isInnerSlotItem(foundInnerItem.item)) {
+        results.push({
+          isValid: false,
+          severity: 'BLOCK',
+          message: `Món đồ '${foundInnerItem.item.name}' không thuộc danh mục áo mặc trong (Innerwear).`,
+          ruleId: 'INVALID_INNER_SLOT'
+        });
+      }
+      if (!isItemGenderCompatible(foundInnerItem.item.gender, userGender)) {
+        results.push({
+          isValid: false,
+          severity: 'BLOCK',
+          message: `Món áo mặc trong '${foundInnerItem.item.name}' không tương thích với giới tính ${userGender === 'female' ? 'Nữ' : 'Nam'} đang chọn.`,
+          ruleId: 'GENDER_INCOMPATIBLE'
+        });
+      }
     }
   }
 
-  if (botId && botId !== 'traditional_pant') {
-    const foundBottom = CASUAL_ITEMS.find((c) => c.id === botId);
-    if (!foundBottom) {
+  if (botId) {
+    const foundBottomItem = findCatalogItem(botId);
+    if (!foundBottomItem) {
       results.push({
         isValid: false,
         severity: 'BLOCK',
-        message: 'Dữ liệu không hợp lệ: Trang phục nửa dưới đã chọn không tồn tại trong danh mục.',
+        message: `Dữ liệu không hợp lệ: Trang phục nửa dưới đã chọn ('${botId}') không tồn tại trong danh mục.`,
         ruleId: 'INVALID_BOTTOM_ID'
       });
+    } else {
+      if (!isBottomSlotItem(foundBottomItem.item)) {
+        results.push({
+          isValid: false,
+          severity: 'BLOCK',
+          message: `Món đồ '${foundBottomItem.item.name}' không thuộc danh mục trang phục nửa dưới (Bottom).`,
+          ruleId: 'INVALID_BOTTOM_SLOT'
+        });
+      }
+      if (!isItemGenderCompatible(foundBottomItem.item.gender, userGender)) {
+        results.push({
+          isValid: false,
+          severity: 'BLOCK',
+          message: `Món đồ nửa dưới '${foundBottomItem.item.name}' không tương thích với giới tính ${userGender === 'female' ? 'Nữ' : 'Nam'} đang chọn.`,
+          ruleId: 'GENDER_INCOMPATIBLE'
+        });
+      }
+    }
+  }
+
+  if (shId) {
+    const foundShoesItem = findCatalogItem(shId);
+    if (!foundShoesItem) {
+      results.push({
+        isValid: false,
+        severity: 'BLOCK',
+        message: `Dữ liệu không hợp lệ: Giày dép đã chọn ('${shId}') không tồn tại trong danh mục.`,
+        ruleId: 'INVALID_SHOES_ID'
+      });
+    } else {
+      if (!isShoesSlotItem(foundShoesItem.item)) {
+        results.push({
+          isValid: false,
+          severity: 'BLOCK',
+          message: `Món đồ '${foundShoesItem.item.name}' không thuộc danh mục giày dép (Footwear).`,
+          ruleId: 'INVALID_SHOES_SLOT'
+        });
+      }
+      if (!isItemGenderCompatible(foundShoesItem.item.gender, userGender)) {
+        results.push({
+          isValid: false,
+          severity: 'BLOCK',
+          message: `Giày dép '${foundShoesItem.item.name}' không tương thích với giới tính ${userGender === 'female' ? 'Nữ' : 'Nam'} đang chọn.`,
+          ruleId: 'GENDER_INCOMPATIBLE'
+        });
+      }
     }
   }
 
   if (hId) {
-    const foundHeadwear = ACCESSORIES.find((a) => a.id === hId);
-    if (!foundHeadwear) {
+    const foundHeadwearItem = findCatalogItem(hId);
+    if (!foundHeadwearItem) {
       results.push({
         isValid: false,
         severity: 'BLOCK',
-        message: 'Dữ liệu không hợp lệ: Phụ kiện mũ nón đã chọn không tồn tại trong danh mục.',
+        message: `Dữ liệu không hợp lệ: Phụ kiện mũ nón đã chọn ('${hId}') không tồn tại trong danh mục.`,
         ruleId: 'INVALID_HEADWEAR_ID'
+      });
+    } else {
+      if (!isHeadwearSlotItem(foundHeadwearItem.item)) {
+        results.push({
+          isValid: false,
+          severity: 'BLOCK',
+          message: `Món phụ kiện '${foundHeadwearItem.item.name}' không thuộc danh mục mũ nón (Headwear).`,
+          ruleId: 'INVALID_HEADWEAR_SLOT'
+        });
+      }
+      if (!isItemGenderCompatible(foundHeadwearItem.item.gender, userGender)) {
+        results.push({
+          isValid: false,
+          severity: 'BLOCK',
+          message: `Mũ nón '${foundHeadwearItem.item.name}' không tương thích với giới tính ${userGender === 'female' ? 'Nữ' : 'Nam'} đang chọn.`,
+          ruleId: 'GENDER_INCOMPATIBLE'
+        });
+      }
+    }
+  }
+
+  if (jIds && jIds.length > 0) {
+    for (const jId of jIds) {
+      const foundJItem = findCatalogItem(jId);
+      if (!foundJItem) {
+        results.push({
+          isValid: false,
+          severity: 'BLOCK',
+          message: `Dữ liệu không hợp lệ: Trang sức đã chọn ('${jId}') không tồn tại trong danh mục.`,
+          ruleId: 'INVALID_JEWELRY_ID'
+        });
+      } else {
+        if (!isJewelrySlotItem(foundJItem.item)) {
+          results.push({
+            isValid: false,
+            severity: 'BLOCK',
+            message: `Món phụ kiện '${foundJItem.item.name}' không thuộc danh mục trang sức (Jewelry).`,
+            ruleId: 'INVALID_JEWELRY_SLOT'
+          });
+        }
+        if (!isItemGenderCompatible(foundJItem.item.gender, userGender)) {
+          results.push({
+            isValid: false,
+            severity: 'BLOCK',
+            message: `Trang sức '${foundJItem.item.name}' không tương thích với giới tính ${userGender === 'female' ? 'Nữ' : 'Nam'} đang chọn.`,
+            ruleId: 'GENDER_INCOMPATIBLE'
+          });
+        }
+      }
+    }
+  }
+
+  // Kiểm tra tính hợp lệ của lapelFold nếu được cung cấp
+  if (lFold !== undefined && lFold !== null && String(lFold).trim() !== '') {
+    const validLapels = ['left_over_right', 'right_over_left'];
+    if (!validLapels.includes(String(lFold))) {
+      results.push({
+        isValid: false,
+        severity: 'BLOCK',
+        message: `Dữ liệu không hợp lệ: Chiều vạt áo '${lFold}' không thuộc các giá trị được hỗ trợ ('left_over_right', 'right_over_left').`,
+        ruleId: 'INVALID_LAPEL_FOLD'
       });
     }
   }
 
-  // Nếu đã có lỗi thiếu context hoặc thiếu key piece, dừng kiểm tra guardrail để tránh báo sai
-  if (!ctxId || !cId) {
+  // Nếu đã có lỗi thiếu context, thiếu key piece hoặc ID không hợp lệ, dừng kiểm tra guardrail để tránh báo sai
+  if (
+    !ctxId ||
+    !cId ||
+    results.some((r) => r.ruleId === 'INVALID_CONTEXT_ID' || r.ruleId === 'INVALID_KEY_PIECE_ID')
+  ) {
     return results;
   }
 
@@ -219,7 +436,7 @@ export function validateOutfit(
         message: 'Sai quy chuẩn văn hóa: Áo Giao Lĩnh bắt buộc vạt Trái đè lên vạt Phải (Hữu nhẫm - trang phục người sống). Kiểu vạt Phải đè Trái (Tả nhẫm) chỉ dùng cho nghi thức tang lễ hoặc người đã khuất.',
         ruleId: 'GUARD_GL_LAPEL'
       });
-    } else if (!lFold) {
+    } else if (!lFold || String(lFold).trim() === '') {
       results.push({
         isValid: true,
         severity: 'WARN',

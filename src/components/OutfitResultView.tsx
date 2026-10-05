@@ -122,16 +122,29 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
           1. HEADER TỐI GIẢN (EDITORIAL LOOKBOOK HEADER)
          ========================================== */}
       <div className="text-center space-y-2 pt-1">
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-stone-100/90 text-stone-700 text-xs font-sans font-medium">
-          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-          <span>Phù hợp quy chuẩn kiểm tra</span>
-          {contextItem && (
-            <>
-              <span className="text-stone-300">•</span>
-              <span className="text-stone-600">{contextItem.name}</span>
-            </>
-          )}
-        </div>
+        {warnings.length > 0 ? (
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100/90 text-amber-900 text-xs font-sans font-medium border border-amber-200">
+            <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
+            <span>Có lưu ý quy chuẩn / phom dáng</span>
+            {contextItem && (
+              <>
+                <span className="text-amber-300">•</span>
+                <span className="text-amber-800">{contextItem.name}</span>
+              </>
+            )}
+          </div>
+        ) : (
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-stone-100/90 text-stone-700 text-xs font-sans font-medium">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Phù hợp quy chuẩn kiểm tra</span>
+            {contextItem && (
+              <>
+                <span className="text-stone-300">•</span>
+                <span className="text-stone-600">{contextItem.name}</span>
+              </>
+            )}
+          </div>
+        )}
 
         <h1 className="text-3xl sm:text-4xl font-serif font-bold text-stone-900 tracking-tight">
           Bảng Phối Đồ

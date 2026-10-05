@@ -156,16 +156,19 @@ export default function App() {
   const activeLabContext = CONTEXTS.find((ctx) => ctx.id === labContextId) || CONTEXTS[0];
 
   // Deterministic Cultural Validation Engine (Zero AI latency)
-  // Truyền selectedHeadwear.id vào tham số headwearId để kiểm định Rule 5 (GUARD_REGIONAL_HEADWEAR)
-  const validationResults = validateOutfit(
-    labGarmentId,
-    null,
-    labBottomId,
-    labContextId,
-    labLapelFold,
-    labHasOuterLayer ? 'outer_layer_present' : null,
-    selectedHeadwear ? selectedHeadwear.id : null
-  );
+  // Truyền đầy đủ các slot, phụ kiện và giới tính vào validateOutfit
+  const validationResults = validateOutfit({
+    costumeId: labGarmentId,
+    innerId: null,
+    bottomId: labBottomId,
+    contextId: labContextId,
+    lapelFold: labLapelFold,
+    outerLayer: labHasOuterLayer ? 'outer_layer_present' : null,
+    headwearId: selectedHeadwear ? selectedHeadwear.id : null,
+    shoesId: null,
+    jewelryIds: selectedJewelries.map((j) => j.id),
+    gender: selectedGender
+  });
 
   const hasBlockViolation = validationResults.some((r) => r.severity === 'BLOCK');
 
