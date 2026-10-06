@@ -73,32 +73,39 @@ export default function App() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState<NavTab>('home');
   const [exploreFilter, setExploreFilter] = useState<CategoryFilterKey>('all');
   const [exploreSearch, setExploreSearch] = useState<string>('');
   const [selectedGender, setSelectedGender] = useState<Gender>('Female');
 
-  // Đồng bộ giữa URL path và activeTab
-  useEffect(() => {
-    if (location.pathname === '/studio') {
-      setActiveTab('studio');
-    } else if (location.pathname === '/explore') {
-      setActiveTab('explore');
-    } else if (location.pathname === '/' || location.pathname === '') {
-      setActiveTab('home');
-    }
-  }, [location.pathname]);
+  // Xác định activeTab trực tiếp từ URL pathname (Single Source of Truth)
+  const getTabFromPath = (pathname: string): NavTab => {
+    if (pathname === '/studio') return 'studio';
+    if (pathname === '/explore') return 'explore';
+    if (pathname === '/lookbook') return 'lookbook';
+    return 'home';
+  };
+
+  const activeTab: NavTab = getTabFromPath(location.pathname);
 
   const handleTabChange = (tab: NavTab) => {
-    setActiveTab(tab);
-    if (tab === 'studio') {
-      navigate('/studio');
-    } else if (tab === 'explore') {
-      navigate('/explore');
-    } else {
-      navigate('/');
+    switch (tab) {
+      case 'studio':
+        navigate('/studio');
+        break;
+      case 'explore':
+        navigate('/explore');
+        break;
+      case 'lookbook':
+        navigate('/lookbook');
+        break;
+      case 'home':
+      default:
+        navigate('/');
+        break;
     }
   };
+
+  const setActiveTab = handleTabChange;
 
   // Modals
   const [selectedGarment, setSelectedGarment] = useState<Garment | null>(null);
@@ -158,16 +165,19 @@ export default function App() {
   const activeLabContext = CONTEXTS.find((ctx) => ctx.id === labContextId) || CONTEXTS[0];
 
   // Deterministic Cultural Validation Engine (Zero AI latency)
-  // Truyền selectedHeadwear.id vào tham số headwearId để kiểm định Rule 5 (GUARD_REGIONAL_HEADWEAR)
-  const validationResults = validateOutfit(
-    labGarmentId,
-    null,
-    labBottomId,
-    labContextId,
-    labLapelFold,
-    labHasOuterLayer ? 'outer_layer_present' : null,
-    selectedHeadwear ? selectedHeadwear.id : null
-  );
+  // Truyền đầy đủ các slot, phụ kiện và giới tính vào validateOutfit
+  const validationResults = validateOutfit({
+    costumeId: labGarmentId,
+    innerId: null,
+    bottomId: labBottomId,
+    contextId: labContextId,
+    lapelFold: labLapelFold,
+    outerLayer: labHasOuterLayer ? 'outer_layer_present' : null,
+    headwearId: selectedHeadwear ? selectedHeadwear.id : null,
+    shoesId: null,
+    jewelryIds: selectedJewelries.map((j) => j.id),
+    gender: selectedGender
+  });
 
   const hasBlockViolation = validationResults.some((r) => r.severity === 'BLOCK');
 
@@ -273,7 +283,7 @@ export default function App() {
     } else if (CASUAL_ITEMS.some((c) => c.id === id)) {
       setLabBottomId(id);
     }
-    setActiveTab('studio');
+    handleTabChange('studio');
   };
 
   const getTabTitle = () => {
@@ -351,7 +361,7 @@ export default function App() {
                     size="sm"
                   />
                   <button
-                    onClick={() => setActiveTab('explore')}
+                    onClick={() => handleTabChange('explore')}
                     className="text-xs font-semibold text-red-700 hover:text-red-800 flex items-center gap-1 group"
                   >
                     Xem tất cả ({filterByGender(GARMENTS, selectedGender).length})
@@ -680,6 +690,88 @@ export default function App() {
 
         {/* 3. TAB PHỐI ĐỒ (STUDIO REMIX) - SPRINT 2 */}
         {activeTab === 'studio' && <Studio />}
+        {/* 4. TAB BỘ SƯU TẬP (LOOKBOOK) */}
+        {activeTab === 'lookbook' && (
+          <div className="space-y-6">
+            <div className="border-b border-stone-200/80 pb-4">
+              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
+                Bản Phối Mẫu
+              </h2>
+              <p className="text-xs sm:text-sm text-stone-500 mt-1 max-w-xl">
+                Những công thức phối đồ mẫu đã được kiểm định thỏa mãn tiêu chuẩn văn hóa và phom dáng đương đại.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {OUTFIT_COMBINATIONS.map((outfit) => {
+                return (
+                  <div
+                    key={outfit.id}
+                    className="bg-white rounded-3xl overflow-hidden border border-stone-200/80 shadow-sm flex flex-col group hover:shadow-md transition-all duration-300"
+                  >
+                    <div className="aspect-[4/3] sm:aspect-[16/10] w-full overflow-hidden bg-stone-100 relative">
+                      <SafeImage
+                        src={outfit.image_mockup}
+                        alt={outfit.name}
+                        fallbackText={outfit.name}
+                        expectedPath={outfit.image_mockup}
+                        className="w-full h-full"
+                      />
+                      <div className="absolute top-4 left-4 bg-white/95 backdrop-blur-sm text-stone-900 text-xs font-mono font-bold px-3 py-1 rounded-full shadow-xs">
+                        {outfit.id}
+                      </div>
+                    </div>
+
+                    <div className="p-6 sm:p-8 flex-1 flex flex-col justify-between space-y-5">
+                      <div className="space-y-3">
+                        <span className="text-xs font-sans text-red-700 font-semibold tracking-wider uppercase block">
+                          Bản phối tiêu biểu
+                        </span>
+                        <h3 className="text-2xl font-bold text-gray-900 tracking-tight leading-tight">
+                          {outfit.name}
+                        </h3>
+                        <p className="text-xs sm:text-sm text-gray-600 italic">
+                          "{outfit.concept_tagline}"
+                        </p>
+                        <p className="text-xs sm:text-sm text-gray-600 leading-relaxed bg-stone-50 p-4 rounded-xl border border-stone-200/60">
+                          {outfit.style_notes}
+                        </p>
+
+                        <div className="pt-2 flex flex-wrap gap-2">
+                          {outfit.tags.map((tag, idx) => (
+                            <span
+                              key={idx}
+                              className="text-[11px] font-sans text-stone-600 bg-stone-100 px-2.5 py-1 rounded-md"
+                            >
+                              #{tag}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="pt-4 border-t border-stone-100 flex items-center justify-between">
+                        <span className="text-xs text-gray-400 font-sans">
+                          {outfit.occasion}
+                        </span>
+                        <button
+                          onClick={() => {
+                            setLabGarmentId(outfit.garment_id);
+                            if (outfit.casual_item_ids[0]) setLabBottomId(outfit.casual_item_ids[0]);
+                            handleTabChange('studio');
+                          }}
+                          className="px-4 py-2 rounded-xl bg-red-700 hover:bg-red-800 text-white text-xs font-semibold shadow-sm transition-all flex items-center gap-1.5"
+                        >
+                          <SlidersHorizontal className="w-3.5 h-3.5" />
+                          <span>Mở trong phòng phối đồ</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </main>
 
       {/* 5. CÁC HỘP THOẠI CHI TIẾT */}
