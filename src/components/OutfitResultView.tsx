@@ -6,15 +6,23 @@ import {
   Sparkles,
   ArrowLeft,
   ChevronUp,
-  ChevronDown
+  ChevronDown,
+  Palette
 } from 'lucide-react';
 import { Garment, CasualItem, AccessoryItem, ContextItem, ValidationResult } from '../types';
 import { SafeImage } from './SafeImage';
+import { TintedImage } from './TintedImage';
 import { getSafeImageUrl, resolveItemByGender } from '../utils/helpers';
 import { CulturalKnowledgeModal } from './CulturalKnowledgeModal';
 import { GarmentDetailModal } from './GarmentDetailModal';
 import { CasualDetailModal } from './CasualDetailModal';
 import { AccessoryDetailModal } from './AccessoryDetailModal';
+import { ColorCustomizerModal } from './ColorCustomizerModal';
+
+interface ItemColorSetting {
+  hex: string | null;
+  intensity: number;
+}
 
 interface OutfitResultViewProps {
   selectedGender: 'male' | 'female';
@@ -50,6 +58,17 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
   const [detailCasual, setDetailCasual] = useState<CasualItem | null>(null);
   const [detailAccessory, setDetailAccessory] = useState<AccessoryItem | null>(null);
 
+  // State quản lý màu sắc tùy biến theo từng item (ID -> { hex, intensity })
+  const [itemColors, setItemColors] = useState<Record<string, ItemColorSetting>>({});
+  
+  // State mở Color Customizer Modal cho món đồ cụ thể
+  const [colorTargetItem, setColorTargetItem] = useState<{
+    id: string;
+    name: string;
+    categoryName: string;
+    imageUrl: string;
+  } | null>(null);
+
   // Phân giải các món đồ theo giới tính để lấy ảnh chính xác
   const resolvedGarment = resolveItemByGender(garmentItem, selectedGender);
   const resolvedInner = innerItem ? resolveItemByGender(innerItem, selectedGender) : null;
@@ -61,13 +80,16 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
   const warnings = validationResults.filter((r) => r.severity === 'WARN');
 
   const garmentImageUrl = getSafeImageUrl(resolvedGarment.resolvedImageUrl || resolvedGarment);
+  const garmentColorSetting = itemColors[garmentItem.id] || { hex: null, intensity: 0.85 };
 
   // Danh sách các món đồ phụ phối kèm (Tự động dàn trang linh hoạt, không bao giờ bị tràn lề)
   const companionItems = [
     resolvedHeadwear && headwearItem && {
       id: headwearItem.id,
       name: resolvedHeadwear.name,
+      categoryName: 'Mũ nón',
       imageUrl: getSafeImageUrl(resolvedHeadwear.resolvedImageUrl || resolvedHeadwear),
+      colorSetting: itemColors[headwearItem.id] || { hex: null, intensity: 0.85 },
       rotation: '-rotate-3',
       sizeClass: 'w-20 sm:w-28 h-20 sm:h-28',
       onClick: () => setDetailAccessory(headwearItem)
@@ -75,7 +97,9 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
     resolvedInner && innerItem && {
       id: innerItem.id,
       name: resolvedInner.name,
+      categoryName: 'Áo mặc trong',
       imageUrl: getSafeImageUrl(resolvedInner.resolvedImageUrl || resolvedInner),
+      colorSetting: itemColors[innerItem.id] || { hex: null, intensity: 0.85 },
       rotation: 'rotate-2',
       sizeClass: 'w-22 sm:w-30 h-22 sm:h-30',
       onClick: () => setDetailCasual(innerItem)
@@ -83,7 +107,9 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
     resolvedBottom && bottomItem && {
       id: bottomItem.id,
       name: resolvedBottom.name,
+      categoryName: 'Quần / Váy',
       imageUrl: getSafeImageUrl(resolvedBottom.resolvedImageUrl || resolvedBottom),
+      colorSetting: itemColors[bottomItem.id] || { hex: null, intensity: 0.85 },
       rotation: '-rotate-2',
       sizeClass: 'w-22 sm:w-32 h-28 sm:h-36',
       onClick: () => setDetailCasual(bottomItem)
@@ -91,7 +117,9 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
     resolvedShoes && shoesItem && {
       id: shoesItem.id,
       name: resolvedShoes.name,
+      categoryName: 'Giày dép',
       imageUrl: getSafeImageUrl(resolvedShoes.resolvedImageUrl || resolvedShoes),
+      colorSetting: itemColors[shoesItem.id] || { hex: null, intensity: 0.85 },
       rotation: 'rotate-3',
       sizeClass: 'w-20 sm:w-28 h-20 sm:h-28',
       onClick: () => setDetailCasual(shoesItem)
@@ -101,7 +129,9 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
       return {
         id: j.id,
         name: resolvedJ.name,
+        categoryName: 'Trang sức',
         imageUrl: getSafeImageUrl(resolvedJ.resolvedImageUrl || resolvedJ),
+        colorSetting: itemColors[j.id] || { hex: null, intensity: 0.85 },
         rotation: idx % 2 === 0 ? '-rotate-6' : 'rotate-6',
         sizeClass: 'w-16 sm:w-22 h-16 sm:h-22',
         onClick: () => setDetailAccessory(j)
@@ -110,7 +140,9 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
   ].filter(Boolean) as Array<{
     id: string;
     name: string;
+    categoryName: string;
     imageUrl: string;
+    colorSetting: ItemColorSetting;
     rotation: string;
     sizeClass: string;
     onClick: () => void;
@@ -184,15 +216,17 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
         <div className="flex flex-col items-center justify-center relative z-10 space-y-6 sm:space-y-8">
           
           {/* VỊ TRÍ TRUNG TÂM: CỔ PHỤC DI SẢN (KEY PIECE) */}
-          <div
-            onClick={() => setDetailGarment(garmentItem)}
-            className="group cursor-pointer flex flex-col items-center select-none w-full max-w-sm sm:max-w-md pt-2"
-            title="Xem chi tiết Cổ phục di sản"
-          >
+          <div className="flex flex-col items-center select-none w-full max-w-sm sm:max-w-md pt-2">
             {/* Ảnh Cổ phục với khoảng cách trên thoáng đãng, không bị cắt cổ áo */}
-            <div className="w-full aspect-[3/4] sm:aspect-[4/5] relative max-h-[380px] sm:max-h-[440px] flex items-center justify-center p-2">
-              <SafeImage
+            <div
+              onClick={() => setDetailGarment(garmentItem)}
+              className="group cursor-pointer w-full aspect-[3/4] sm:aspect-[4/5] relative max-h-[380px] sm:max-h-[440px] flex items-center justify-center p-2"
+              title="Xem chi tiết Cổ phục di sản"
+            >
+              <TintedImage
                 src={garmentImageUrl}
+                colorHex={garmentColorSetting.hex}
+                intensity={garmentColorSetting.intensity}
                 alt={resolvedGarment.name}
                 fallbackText={resolvedGarment.name}
                 className="bg-transparent w-full h-full flex items-center justify-center"
@@ -200,20 +234,50 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
               />
             </div>
 
-            {/* Thông tin Cổ phục sang trọng */}
-            <div className="text-center space-y-1.5 mt-2 sm:mt-3 px-4 max-w-lg">
+            {/* Thông tin Cổ phục sang trọng & Nút Đổi Màu */}
+            <div className="text-center space-y-2 mt-2 sm:mt-3 px-4 max-w-lg">
               <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-red-800 font-bold block">
                 CỔ PHỤC DI SẢN
               </span>
-              <h2 className="text-2xl sm:text-3xl font-serif font-bold text-stone-900 tracking-tight group-hover:text-red-900 transition-colors">
+              <h2
+                onClick={() => setDetailGarment(garmentItem)}
+                className="text-2xl sm:text-3xl font-serif font-bold text-stone-900 tracking-tight hover:text-red-900 transition-colors cursor-pointer"
+              >
                 {resolvedGarment.name}
               </h2>
+
+              {/* Nút Đổi màu trực quan cho Cổ phục */}
+              <div className="flex items-center justify-center gap-2 pt-0.5">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setColorTargetItem({
+                      id: garmentItem.id,
+                      name: resolvedGarment.name,
+                      categoryName: 'Cổ phục',
+                      imageUrl: garmentImageUrl
+                    })
+                  }
+                  className="px-3.5 py-1 rounded-full bg-white hover:bg-stone-50 border border-stone-300 text-stone-800 text-xs font-medium flex items-center gap-1.5 shadow-2xs hover:border-stone-400 transition-all cursor-pointer active:scale-95"
+                  title="Đổi màu áo bằng bảng màu di sản hoặc màu tùy chỉnh"
+                >
+                  <Palette className="w-3.5 h-3.5 text-red-700" />
+                  <span>{garmentColorSetting.hex ? 'Đổi màu khác' : 'Đổi màu áo'}</span>
+                  {garmentColorSetting.hex && (
+                    <span
+                      className="w-2.5 h-2.5 rounded-full border border-black/20 inline-block ml-0.5"
+                      style={{ backgroundColor: garmentColorSetting.hex }}
+                    />
+                  )}
+                </button>
+              </div>
+
               {resolvedGarment.origin ? (
-                <p className="text-xs text-stone-500 font-sans leading-relaxed">
+                <p className="text-xs text-stone-500 font-sans leading-relaxed pt-1">
                   {resolvedGarment.origin}
                 </p>
               ) : resolvedGarment.description ? (
-                <p className="text-xs text-stone-500 font-sans leading-relaxed">
+                <p className="text-xs text-stone-500 font-sans leading-relaxed pt-1">
                   {resolvedGarment.description}
                 </p>
               ) : null}
@@ -234,22 +298,49 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
                 {companionItems.map((c) => (
                   <div
                     key={c.id}
-                    onClick={c.onClick}
-                    className={`group cursor-pointer ${c.rotation} hover:rotate-0 hover:scale-105 transition-all duration-300 flex flex-col items-center select-none p-1`}
-                    title={`Xem chi tiết ${c.name}`}
+                    className={`group ${c.rotation} hover:rotate-0 hover:scale-105 transition-all duration-300 flex flex-col items-center select-none p-1 relative`}
                   >
-                    <div className={`${c.sizeClass} relative flex items-center justify-center`}>
-                      <SafeImage
+                    <div
+                      onClick={c.onClick}
+                      className={`${c.sizeClass} relative flex items-center justify-center cursor-pointer`}
+                      title={`Xem chi tiết ${c.name}`}
+                    >
+                      <TintedImage
                         src={c.imageUrl}
+                        colorHex={c.colorSetting.hex}
+                        intensity={c.colorSetting.intensity}
                         alt={c.name}
                         fallbackText={c.name}
                         className="bg-transparent w-full h-full flex items-center justify-center"
                         imgClassName="mix-blend-multiply object-contain object-center drop-shadow-sm"
                       />
                     </div>
-                    <span className="text-[9px] sm:text-[10px] font-mono uppercase tracking-wider text-stone-500 mt-1 max-w-[90px] sm:max-w-[120px] truncate text-center group-hover:text-red-800 transition-colors">
-                      {c.name}
-                    </span>
+
+                    <div className="flex items-center gap-1 mt-1">
+                      <span
+                        onClick={c.onClick}
+                        className="text-[9px] sm:text-[10px] font-mono uppercase tracking-wider text-stone-500 max-w-[90px] sm:max-w-[120px] truncate text-center group-hover:text-red-800 transition-colors cursor-pointer"
+                      >
+                        {c.name}
+                      </span>
+                      {/* Nút đổi màu nhanh cho món phụ */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setColorTargetItem({
+                            id: c.id,
+                            name: c.name,
+                            categoryName: c.categoryName,
+                            imageUrl: c.imageUrl
+                          });
+                        }}
+                        className="p-1 rounded-full text-stone-400 hover:text-red-800 hover:bg-stone-200/60 transition-colors cursor-pointer opacity-70 group-hover:opacity-100"
+                        title={`Đổi màu ${c.name}`}
+                      >
+                        <Palette className="w-2.5 h-2.5" />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -292,6 +383,22 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
 
               <button
                 type="button"
+                onClick={() =>
+                  setColorTargetItem({
+                    id: garmentItem.id,
+                    name: resolvedGarment.name,
+                    categoryName: 'Cổ phục',
+                    imageUrl: garmentImageUrl
+                  })
+                }
+                className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-stone-200 hover:border-stone-300 bg-stone-50 hover:bg-stone-100 text-stone-800 font-semibold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95"
+              >
+                <Palette className="w-3.5 h-3.5 text-red-700" />
+                <span>Đổi sắc màu áo</span>
+              </button>
+
+              <button
+                type="button"
                 onClick={() => setShowCulturalModal(true)}
                 className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-red-700 hover:bg-red-800 text-white font-semibold text-xs flex items-center justify-center gap-1.5 shadow-xs transition-all active:scale-95 cursor-pointer"
               >
@@ -308,7 +415,7 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
             className="pointer-events-auto px-4 py-2 rounded-full backdrop-blur-md bg-stone-900/95 border border-stone-800 text-white shadow-lg text-xs font-medium flex items-center gap-2 transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer select-none"
           >
             <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-            <span>Tùy chọn bản phối</span>
+            <span>Tùy chọn bản phối & Đổi màu</span>
             <ChevronUp className="w-3.5 h-3.5 opacity-60" />
           </button>
         )}
@@ -338,6 +445,24 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
           accessory={detailAccessory}
           onClose={() => setDetailAccessory(null)}
           selectedGender={selectedGender === 'female' ? 'Female' : 'Male'}
+        />
+      )}
+
+      {/* MODAL TÙY BIẾN SẮC MÀU TRANG PHỤC (CANVAS 2D) */}
+      {colorTargetItem && (
+        <ColorCustomizerModal
+          isOpen={Boolean(colorTargetItem)}
+          onClose={() => setColorTargetItem(null)}
+          itemName={colorTargetItem.name}
+          itemCategoryName={colorTargetItem.categoryName}
+          originalImageUrl={colorTargetItem.imageUrl}
+          currentColorHex={itemColors[colorTargetItem.id]?.hex || null}
+          onApplyColor={(hex, intensity) => {
+            setItemColors((prev) => ({
+              ...prev,
+              [colorTargetItem.id]: { hex, intensity }
+            }));
+          }}
         />
       )}
 

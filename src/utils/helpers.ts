@@ -146,4 +146,22 @@ export function filterByGender<T extends { gender?: string }>(
   });
 }
 
+/**
+ * Trả về tên category bằng tiếng Việt chuẩn.
+ */
+export function getCategoryVietnamese(cat?: string, type?: string): string {
+  const raw = (cat || type || '').toLowerCase();
+  if (raw === 'inner') return 'Áo lót / Mặc trong';
+  if (raw === 'top') return 'Áo trên';
+  if (raw === 'bottom_pants' || raw.includes('pants')) return 'Quần dài';
+  if (raw === 'bottom_skirt' || raw.includes('skirt')) return 'Chân váy';
+  if (raw === 'outer_traditional') return 'Cổ phục truyền thống';
+  if (raw === 'outer_formal') return 'Lễ phục trang trọng';
+  if (raw === 'traditional_footwear') return 'Hài / Guốc truyền thống';
+  if (raw.includes('shoes') || raw.includes('footwear')) return 'Giày dép';
+  if (raw.includes('headwear')) return 'Mũ nón di sản';
+  if (raw.includes('jewelry')) return 'Trang sức / Phụ kiện';
+  return cat || type || 'Trang phục di sản';
+}
+
 

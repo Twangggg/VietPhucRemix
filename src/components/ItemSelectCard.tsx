@@ -1,7 +1,7 @@
 import React from 'react';
 import { Check, Sparkles, Eye, Plus } from 'lucide-react';
 import { SafeImage } from './SafeImage';
-import { getSafeImageUrl } from '../utils/helpers';
+import { getSafeImageUrl, getCategoryVietnamese } from '../utils/helpers';
 
 export interface ItemSelectCardProps {
   item: {
@@ -88,7 +88,7 @@ export const ItemSelectCard: React.FC<ItemSelectCardProps> = ({
             {item.name}
           </h4>
           <p className="text-[11px] text-stone-500 line-clamp-1 font-sans">
-            {subtitle || item.origin || item.category || 'Thời trang truyền thống'}
+            {subtitle || item.origin || getCategoryVietnamese(item.category, item.type) || 'Thời trang truyền thống'}
           </p>
         </div>
       </div>

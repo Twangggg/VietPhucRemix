@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { CasualItem, Gender } from '../types';
 import { SafeImage } from './SafeImage';
-import { getSafeImageUrl, resolveImageUrl } from '../utils/helpers';
+import { getSafeImageUrl, resolveImageUrl, getCategoryVietnamese } from '../utils/helpers';
 
 // CƠ SỞ TRI THỨC MÔ TẢ VÀ GỢI Ý PHỐI ĐỒ CHO TẤT CẢ TRANG PHỤC THƯỜNG PHỤC (CASUAL / CONTEMPORARY)
 const CASUAL_KNOWLEDGE_BASE: Record<
@@ -154,16 +154,6 @@ export const CasualDetailModal: React.FC<CasualDetailModalProps> = ({
       vibe: 'Đương đại, Thanh lịch, Dễ ứng dụng'
     };
 
-  // Chuẩn hóa tên danh mục thuần Việt, KHÔNG lộ mã kỹ thuật
-  const getCategoryVietnamese = (cat?: string, type?: string) => {
-    const raw = (cat || type || '').toLowerCase();
-    if (raw.includes('skirt') || raw.includes('bottom_skirt')) return 'CHÂN VÁY ĐƯƠNG ĐẠI';
-    if (raw.includes('pants') || raw.includes('bottom_pants') || raw.includes('bottom'))
-      return 'QUẦN DÀI ĐƯƠNG ĐẠI';
-    if (raw.includes('inner') || raw.includes('top')) return 'ÁO MẶC TRONG ĐƯƠNG ĐẠI';
-    if (raw.includes('shoe') || raw.includes('footwear')) return 'GIÀY DÉP ĐƯƠNG ĐẠI';
-    return 'THỜI TRANG ĐƯƠNG ĐẠI';
-  };
 
   const getFormalityVietnamese = (level?: string) => {
     if (!level) return 'Linh hoạt thường nhật';
@@ -193,7 +183,7 @@ export const CasualDetailModal: React.FC<CasualDetailModalProps> = ({
         </button>
 
         {/* 1. HERO IMAGE (EDITORIAL MUSEUM) - Khung ảnh lớn, thoáng đãng */}
-        <div className="relative w-full h-[360px] sm:h-[440px] bg-[#FAF8F5] flex items-center justify-center pt-10 sm:pt-12 pb-4 px-4 sm:px-6 border-b border-stone-100 shrink-0">
+        <div className="relative w-full h-[260px] sm:h-[320px] bg-[#FAF8F5] flex items-center justify-center pt-10 sm:pt-12 pb-4 px-4 sm:px-6 border-b border-stone-100 shrink-0">
           <SafeImage
             src={resolvedThumbnailUrl}
             alt={item.name}
@@ -280,18 +270,11 @@ export const CasualDetailModal: React.FC<CasualDetailModalProps> = ({
                   onSelectForStudio(item.id);
                   onClose();
                 }}
-                className="px-6 py-2.5 rounded-full bg-red-700 hover:bg-red-800 text-white text-xs font-semibold transition-all shadow-xs cursor-pointer active:scale-95"
+                className="px-8 py-2.5 rounded-full bg-red-700 hover:bg-red-800 text-white text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95"
               >
                 Chọn phối
               </button>
             )}
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2.5 rounded-full bg-white hover:bg-stone-100 text-stone-600 text-xs font-medium transition-all border border-stone-200 cursor-pointer"
-            >
-              Đóng
-            </button>
           </div>
         </div>
       </div>

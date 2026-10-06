@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   X,
   BookOpen,
@@ -7,11 +7,15 @@ import {
   ShieldCheck,
   Palette,
   Layers,
-  Info
+  Info,
+  RotateCcw,
+  Check
 } from 'lucide-react';
 import { Garment, Gender } from '../types';
 import { SafeImage } from './SafeImage';
+import { TintedImage } from './TintedImage';
 import { getSafeImageUrl, resolveImageUrl } from '../utils/helpers';
+import { TRADITIONAL_COLORS } from '../utils/recolorEngine';
 
 export interface GarmentDetailModalProps {
   item?: Garment | null;
@@ -28,11 +32,19 @@ export const GarmentDetailModal: React.FC<GarmentDetailModalProps> = ({
   onSelectForStudio,
   selectedGender = 'Female'
 }) => {
+  const [previewColorHex, setPreviewColorHex] = useState<string | null>(null);
   const currentGarment = item || garment;
 
   if (!currentGarment) {
     return null;
   }
+
+  const activeColor =
+    TRADITIONAL_COLORS.find((col) =>
+      col.id === 'original'
+        ? !previewColorHex || previewColorHex === 'original'
+        : previewColorHex?.toLowerCase() === col.hex.toLowerCase()
+    ) || TRADITIONAL_COLORS[0];
 
   const safeBaseUrl = getSafeImageUrl(currentGarment);
   const resolvedImageUrl = resolveImageUrl(
@@ -110,22 +122,101 @@ export const GarmentDetailModal: React.FC<GarmentDetailModalProps> = ({
         </button>
 
         {/* 1. HERO IMAGE (EDITORIAL MUSEUM) - Khung ảnh lớn, thoáng đãng, tôn trọn vẹn chi tiết */}
-        <div className="relative w-full h-[360px] sm:h-[440px] bg-[#FAF8F5] flex items-center justify-center pt-10 sm:pt-12 pb-4 px-4 sm:px-6 border-b border-stone-100 shrink-0">
-          <SafeImage
+        <div className="relative w-full h-[390px] sm:h-[460px] bg-[#FAF8F5] flex items-center justify-center pt-8 sm:pt-10 pb-24 sm:pb-28 px-4 sm:px-6 border-b border-stone-100 shrink-0">
+          <TintedImage
             src={resolvedImageUrl}
+            colorHex={previewColorHex}
+            intensity={0.85}
             alt={currentGarment.name}
             fallbackText={`${currentGarment.name} (${selectedGender === 'Male' ? 'Nam' : 'Nữ'})`}
             expectedPath={resolvedImageUrl}
             className="w-full h-full bg-transparent flex items-center justify-center"
-            imgClassName="w-full h-full object-contain object-center scale-105 sm:scale-110 transition-transform duration-300"
+            imgClassName="w-full h-full object-contain object-center scale-105 sm:scale-110 transition-transform duration-300 drop-shadow-md"
           />
 
           {/* Tag phom dáng nhẹ nhàng nếu có biến thể */}
           {currentGarment.has_gender_variants && (
-            <div className="absolute bottom-3 left-4 text-[10px] tracking-wider uppercase font-mono text-stone-500 bg-white/90 px-2.5 py-0.5 rounded-full border border-stone-200/60 shadow-2xs">
+            <div className="absolute top-4 left-4 text-[10px] tracking-wider uppercase font-mono text-stone-500 bg-white/90 px-2.5 py-0.5 rounded-full border border-stone-200/60 shadow-2xs">
               Phom {selectedGender === 'Male' ? 'Nam' : 'Nữ'}
             </div>
           )}
+
+          {/* Thanh chọn màu sắc di sản trực tiếp trên modal - Nổi bật, Rộng rãi & Không bị che khuất */}
+          <div className="absolute bottom-3 inset-x-2.5 sm:inset-x-4 bg-white/95 backdrop-blur-md p-3 sm:p-3.5 rounded-2xl border border-stone-200/90 shadow-xl shadow-stone-900/10 z-10 flex flex-col gap-1.5">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-50 text-red-800 text-xs font-bold shrink-0 border border-red-100">
+                  <Palette className="w-3.5 h-3.5 text-red-700 animate-pulse" />
+                  <span>Thử sắc màu di sản</span>
+                </div>
+
+                <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-stone-100/90 border border-stone-200/70 text-[11px] font-medium text-stone-700 truncate">
+                  <span
+                    className="w-2.5 h-2.5 rounded-full border border-black/10 shrink-0"
+                    style={{
+                      backgroundColor:
+                        activeColor.id === 'original' ? '#a8a29e' : activeColor.hex
+                    }}
+                  />
+                  <span className="truncate">
+                    {activeColor.id === 'original'
+                      ? 'Nguyên bản'
+                      : `${activeColor.name}${activeColor.alias ? ` (${activeColor.alias})` : ''}`}
+                  </span>
+                </div>
+              </div>
+
+              {previewColorHex && previewColorHex !== 'original' && (
+                <button
+                  type="button"
+                  onClick={() => setPreviewColorHex(null)}
+                  className="px-2.5 py-1 rounded-md text-[11px] font-medium text-stone-500 hover:text-red-700 hover:bg-red-50 transition-colors flex items-center gap-1 shrink-0 cursor-pointer"
+                  title="Khôi phục màu gốc"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  <span>Đặt lại</span>
+                </button>
+              )}
+            </div>
+
+            {/* Dải nút chọn màu trực quan rộng rãi, không bị cắt viền highlight */}
+            <div className="flex items-center gap-2.5 sm:gap-3 overflow-x-auto scrollbar-hide py-2 sm:py-2.5 px-1.5">
+              {TRADITIONAL_COLORS.map((col) => {
+                const isSelected =
+                  col.id === 'original'
+                    ? !previewColorHex || previewColorHex === 'original'
+                    : previewColorHex?.toLowerCase() === col.hex.toLowerCase();
+
+                return (
+                  <button
+                    key={col.id}
+                    type="button"
+                    onClick={() => setPreviewColorHex(col.id === 'original' ? null : col.hex)}
+                    className={`relative w-7 h-7 sm:w-8 sm:h-8 rounded-full transition-all duration-200 cursor-pointer flex items-center justify-center shrink-0 ${
+                      isSelected
+                        ? 'ring-2 ring-red-700 ring-offset-2 scale-110 shadow-md z-10'
+                        : 'border border-black/15 hover:scale-110 opacity-90 hover:opacity-100 shadow-2xs hover:shadow-xs'
+                    }`}
+                    style={{
+                      backgroundColor: col.id === 'original' ? '#F3F4F6' : col.hex
+                    }}
+                    title={`${col.name} ${col.alias ? `(${col.alias})` : ''} - ${col.description}`}
+                    aria-label={col.name}
+                  >
+                    {col.id === 'original' ? (
+                      <RotateCcw
+                        className={`w-3.5 h-3.5 ${
+                          isSelected ? 'text-stone-900 font-bold' : 'text-stone-500'
+                        }`}
+                      />
+                    ) : isSelected ? (
+                      <Check className="w-3.5 h-3.5 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]" />
+                    ) : null}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
 
         {/* 2. BORDERLESS CONTENT FLOW (DÒNG CHẢY BẢO TÀNG SỐ - KHÔNG ĐÓNG HỘP) */}
@@ -238,18 +329,11 @@ export const GarmentDetailModal: React.FC<GarmentDetailModalProps> = ({
                   onSelectForStudio(currentGarment.id);
                   onClose();
                 }}
-                className="px-6 py-2.5 rounded-full bg-red-700 hover:bg-red-800 text-white text-xs font-semibold transition-all shadow-xs cursor-pointer active:scale-95"
+                className="px-8 py-2.5 rounded-full bg-red-700 hover:bg-red-800 text-white text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95"
               >
                 Chọn Cổ phục
               </button>
             )}
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2.5 rounded-full bg-white hover:bg-stone-100 text-stone-600 text-xs font-medium transition-all border border-stone-200 cursor-pointer"
-            >
-              Đóng
-            </button>
           </div>
         </div>
       </div>
