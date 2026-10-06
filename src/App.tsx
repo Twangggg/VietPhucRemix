@@ -17,12 +17,13 @@ import {
   Tag,
   Crown,
   X,
+  ArrowLeft,
   Search,
   Footprints,
   FolderTree
 } from 'lucide-react';
 import { GARMENTS, CASUAL_ITEMS, CONTEXTS, OUTFIT_COMBINATIONS, ACCESSORIES } from './data';
-import { Garment, CasualItem, LapelFold, Gender, AccessoryItem } from './types';
+import { Garment, CasualItem, LapelFold, Gender, AccessoryItem, OutfitCombination } from './types';
 import { validateOutfit } from './utils/validationEngine';
 import { getSafeImageUrl, resolveImageUrl, resolveItemByGender, filterByGender } from './utils/helpers';
 import { BottomNavbar, NavTab } from './components/BottomNavbar';
@@ -110,6 +111,7 @@ export default function App() {
   const [selectedGarment, setSelectedGarment] = useState<Garment | null>(null);
   const [selectedCasual, setSelectedCasual] = useState<CasualItem | null>(null);
   const [inspectingAccessory, setInspectingAccessory] = useState<AccessoryItem | null>(null);
+  const [repositoryType, setRepositoryType] = useState<'traditional' | 'modern'>('traditional');
 
   // Studio Remix State
   const [labGarmentId, setLabGarmentId] = useState<string>(GARMENTS[0].id);
@@ -395,10 +397,12 @@ export default function App() {
 
         {/* 2. TAB KHÁM PHÁ (EXPLORE) */}
         {activeTab === 'explore' && (() => {
-          // Lọc danh sách món đồ theo giới tính đang chọn
-          const filteredGarments = filterByGender(GARMENTS, selectedGender);
-          const filteredCasual = filterByGender(CASUAL_ITEMS, selectedGender);
-          const filteredAccessories = filterByGender(ACCESSORIES, selectedGender);
+          const isModernItem = (item: any) => item.id && item.id.toLowerCase().startsWith('cs');
+
+          // Lọc danh sách món đồ theo giới tính đang chọn và loại kho
+          const filteredGarments = filterByGender(GARMENTS, selectedGender).filter(item => repositoryType === 'modern' ? isModernItem(item) : !isModernItem(item));
+          const filteredCasual = filterByGender(CASUAL_ITEMS, selectedGender).filter(item => repositoryType === 'modern' ? isModernItem(item) : !isModernItem(item));
+          const filteredAccessories = filterByGender(ACCESSORIES, selectedGender).filter(item => repositoryType === 'modern' ? isModernItem(item) : !isModernItem(item));
 
           // Hàm lấy category ID chuẩn từ item
           const getItemCategoryId = (item: any): CategoryFilterKey => {
@@ -429,17 +433,50 @@ export default function App() {
             );
           };
 
+          const availableCategoryIds = new Set([
+            ...filteredGarments.map(getItemCategoryId),
+            ...filteredCasual.map(getItemCategoryId),
+            ...filteredAccessories.map(getItemCategoryId)
+          ]);
+
+          const visibleCategoriesForTabs = CATEGORY_DEFINITIONS.filter(cat =>
+            cat.id === 'all' || availableCategoryIds.has(cat.id)
+          );
+
           // Lọc danh sách theo Category đang chọn & Search
           const visibleCategories = CATEGORY_DEFINITIONS.filter(cat => {
             if (cat.id === 'all') return false;
+            if (!availableCategoryIds.has(cat.id)) return false;
             if (exploreFilter !== 'all' && exploreFilter !== cat.id) return false;
             return true;
           });
 
           return (
             <div className="space-y-6 sm:space-y-8">
+              {/* TAB CHỌN KHO */}
+              <div className="sticky top-0 sm:top-0 z-40 bg-stone-50 flex items-center overflow-x-auto whitespace-nowrap scrollbar-hide snap-x gap-5 sm:gap-8 pt-4 pb-2 border-b border-stone-200 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8">
+                <button
+                  onClick={() => {
+                    setRepositoryType('traditional');
+                    setExploreFilter('all');
+                  }}
+                  className={`shrink-0 pb-3 text-sm sm:text-base font-bold transition-colors border-b-2 ${repositoryType === 'traditional' ? 'border-red-700 text-red-700' : 'border-transparent text-stone-400 hover:text-stone-800'}`}
+                >
+                  Kho Cổ Phục Truyền Thống
+                </button>
+                <button
+                  onClick={() => {
+                    setRepositoryType('modern');
+                    setExploreFilter('all');
+                  }}
+                  className={`shrink-0 pb-3 text-sm sm:text-base font-bold transition-colors border-b-2 ${repositoryType === 'modern' ? 'border-red-700 text-red-700' : 'border-transparent text-stone-400 hover:text-stone-800'}`}
+                >
+                  Kho Đương Đại Hiện Đại
+                </button>
+              </div>
+
               {/* STICKY HEADER: GỘP SEARCH + GENDER TOGGLE VÀ TAB CUỘN NGANG (MINIMALIST E-COMMERCE) */}
-              <div className="sticky top-12 sm:top-14 z-30 bg-[#F9F8F6] pt-3 pb-0 border-b border-stone-200 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 space-y-3 shadow-2xs">
+              <div className="sticky top-[53px] sm:top-[57px] z-30 bg-[#F9F8F6] pt-3 pb-0 border-b border-stone-200 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 space-y-3 shadow-2xs">
                 {/* Hàng 1: Search Bar Tàng Hình & Gender Toggle Tinh Gọn */}
                 <div className="flex items-center justify-between gap-4">
                   {/* Search Bar tối giản chỉ có border-b */}
@@ -468,11 +505,10 @@ export default function App() {
                     <button
                       type="button"
                       onClick={() => handleGenderChange('Female')}
-                      className={`transition-all pb-0.5 ${
-                        selectedGender === 'Female'
-                          ? 'font-bold text-stone-900 border-b-2 border-stone-900'
-                          : 'text-stone-400 hover:text-stone-700'
-                      }`}
+                      className={`transition-all pb-0.5 ${selectedGender === 'Female'
+                        ? 'font-bold text-stone-900 border-b-2 border-stone-900'
+                        : 'text-stone-400 hover:text-stone-700'
+                        }`}
                     >
                       Nữ
                     </button>
@@ -480,11 +516,10 @@ export default function App() {
                     <button
                       type="button"
                       onClick={() => handleGenderChange('Male')}
-                      className={`transition-all pb-0.5 ${
-                        selectedGender === 'Male'
-                          ? 'font-bold text-stone-900 border-b-2 border-stone-900'
-                          : 'text-stone-400 hover:text-stone-700'
-                      }`}
+                      className={`transition-all pb-0.5 ${selectedGender === 'Male'
+                        ? 'font-bold text-stone-900 border-b-2 border-stone-900'
+                        : 'text-stone-400 hover:text-stone-700'
+                        }`}
                     >
                       Nam
                     </button>
@@ -493,7 +528,7 @@ export default function App() {
 
                 {/* Hàng 2: Horizontal Scrollable Tabs */}
                 <div className="flex flex-row overflow-x-auto whitespace-nowrap scrollbar-hide snap-x gap-6 sm:gap-8 pt-1">
-                  {CATEGORY_DEFINITIONS.map((cat) => {
+                  {visibleCategoriesForTabs.map((cat) => {
                     const isSelected = exploreFilter === cat.id;
 
                     return (
@@ -501,11 +536,10 @@ export default function App() {
                         key={cat.id}
                         type="button"
                         onClick={() => setExploreFilter(cat.id)}
-                        className={`shrink-0 text-xs sm:text-sm font-sans transition-all pb-2.5 relative select-none ${
-                          isSelected
-                            ? 'text-stone-900 font-bold border-b-2 border-stone-900 -mb-[1px]'
-                            : 'text-stone-400 hover:text-stone-700 font-medium'
-                        }`}
+                        className={`shrink-0 text-xs sm:text-sm font-sans transition-all pb-2.5 relative select-none ${isSelected
+                          ? 'text-stone-900 font-bold border-b-2 border-stone-900 -mb-[1px]'
+                          : 'text-stone-400 hover:text-stone-700 font-medium'
+                          }`}
                       >
                         {cat.label}
                       </button>
@@ -614,7 +648,7 @@ export default function App() {
                                     )}
                                   </div>
                                   <span className="text-[11px] text-red-700 font-medium group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5">
-                                    Xem chi tiết di sản →
+                                    Chi tiết →
                                   </span>
                                 </div>
                               </div>
@@ -656,7 +690,6 @@ export default function App() {
 
         {/* 3. TAB PHỐI ĐỒ (STUDIO REMIX) - SPRINT 2 */}
         {activeTab === 'studio' && <Studio />}
-
         {/* 4. TAB BỘ SƯU TẬP (LOOKBOOK) */}
         {activeTab === 'lookbook' && (
           <div className="space-y-6">

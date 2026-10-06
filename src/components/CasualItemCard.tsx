@@ -1,7 +1,7 @@
 import React from 'react';
 import { CasualItem, Gender } from '../types';
 import { SafeImage } from './SafeImage';
-import { getSafeImageUrl, resolveImageUrl } from '../utils/helpers';
+import { getSafeImageUrl, resolveImageUrl, getCategoryVietnamese } from '../utils/helpers';
 
 interface CasualItemCardProps {
   item: CasualItem;
@@ -26,17 +26,7 @@ export const CasualItemCard: React.FC<CasualItemCardProps> = ({
     selectedGender
   );
 
-  // Translate category into standard Vietnamese
-  const getCategoryVietnamese = (cat?: string) => {
-    if (!cat) return '';
-    const lower = cat.toLowerCase();
-    if (lower.includes('bottom')) return 'Quần / Váy';
-    if (lower.includes('inner') || lower.includes('top')) return 'Áo mặc trong';
-    if (lower.includes('shoe') || lower.includes('footwear')) return 'Giày dép';
-    if (lower.includes('outer')) return 'Áo khoác';
-    if (lower.includes('acc')) return 'Phụ kiện';
-    return cat;
-  };
+
 
   // Translate formality level into standard Vietnamese
   const getFormalityVietnamese = (level?: string) => {
@@ -82,7 +72,7 @@ export const CasualItemCard: React.FC<CasualItemCardProps> = ({
             {item.name}
           </h4>
           <p className="text-xs text-stone-400 font-normal mt-0.5">
-            {getCategoryVietnamese(item.category)}
+            {getCategoryVietnamese(item.category, item.type)}
           </p>
         </div>
       </div>

@@ -329,18 +329,11 @@ export const GarmentDetailModal: React.FC<GarmentDetailModalProps> = ({
                   onSelectForStudio(currentGarment.id);
                   onClose();
                 }}
-                className="px-6 py-2.5 rounded-full bg-red-700 hover:bg-red-800 text-white text-xs font-semibold transition-all shadow-xs cursor-pointer active:scale-95"
+                className="px-8 py-2.5 rounded-full bg-red-700 hover:bg-red-800 text-white text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95"
               >
                 Chọn Cổ phục
               </button>
             )}
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2.5 rounded-full bg-white hover:bg-stone-100 text-stone-600 text-xs font-medium transition-all border border-stone-200 cursor-pointer"
-            >
-              Đóng
-            </button>
           </div>
         </div>
       </div>
