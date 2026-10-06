@@ -35,6 +35,7 @@ import { AccessoryDetailModal } from './components/AccessoryDetailModal';
 import { GenderToggle } from './components/GenderToggle';
 import { SafeImage } from './components/SafeImage';
 import { Studio } from './pages/Studio';
+import { Collection } from './pages/Collection';
 
 export type CategoryFilterKey =
   | 'all'
@@ -81,6 +82,7 @@ export default function App() {
     if (pathname === '/studio') return 'studio';
     if (pathname === '/explore') return 'explore';
     if (pathname === '/lookbook') return 'lookbook';
+    if (pathname === '/collection') return 'collection';
     return 'home';
   };
 
@@ -96,6 +98,9 @@ export default function App() {
         break;
       case 'lookbook':
         navigate('/lookbook');
+        break;
+      case 'collection':
+        navigate('/collection');
         break;
       case 'home':
       default:
@@ -293,7 +298,9 @@ export default function App() {
       case 'studio':
         return 'Phòng phối đồ & Thử nghiệm';
       case 'lookbook':
-        return 'Bộ sưu tập phối mẫu';
+        return 'Bộ phối mẫu tiêu biểu';
+      case 'collection':
+        return 'Bộ sưu tập cá nhân';
     }
   };
 
@@ -738,6 +745,11 @@ export default function App() {
               })}
             </div>
           </div>
+        )}
+
+        {/* 5. TAB BỘ SƯU TẬP CÁ NHÂN */}
+        {activeTab === 'collection' && (
+          <Collection onNavigateToStudio={() => handleTabChange('studio')} />
         )}
       </main>
 

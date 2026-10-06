@@ -6,15 +6,23 @@ import {
   Sparkles,
   ArrowLeft,
   ChevronUp,
-  ChevronDown
+  ChevronDown,
+  Bookmark,
+  BookmarkCheck,
+  Check
 } from 'lucide-react';
 import { Garment, CasualItem, AccessoryItem, ContextItem, ValidationResult } from '../types';
-import { SafeImage } from './SafeImage';
 import { getSafeImageUrl, resolveItemByGender } from '../utils/helpers';
 import { CulturalKnowledgeModal } from './CulturalKnowledgeModal';
 import { GarmentDetailModal } from './GarmentDetailModal';
 import { CasualDetailModal } from './CasualDetailModal';
 import { AccessoryDetailModal } from './AccessoryDetailModal';
+import { SafeImage } from './SafeImage';
+
+export interface SaveNotice {
+  type: 'success' | 'warn' | 'error' | 'info';
+  message: string;
+}
 
 interface OutfitResultViewProps {
   selectedGender: 'male' | 'female';
@@ -28,6 +36,12 @@ interface OutfitResultViewProps {
   validationResults: ValidationResult[];
   onBackToStudio: () => void;
   onResetOutfit?: () => void;
+  onSaveOutfit?: () => void;
+  isSaved?: boolean;
+  saveNotice?: SaveNotice | null;
+  isFromCollection?: boolean;
+  backButtonText?: string;
+  isOutdatedOrBlocked?: boolean;
 }
 
 export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
@@ -41,9 +55,15 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
   jewelryItems = [],
   validationResults,
   onBackToStudio,
+  onSaveOutfit,
+  isSaved = false,
+  saveNotice = null,
+  isFromCollection = false,
+  backButtonText,
+  isOutdatedOrBlocked = false
 }) => {
   const [showCulturalModal, setShowCulturalModal] = useState<boolean>(false);
-  const [isActionsExpanded, setIsActionsExpanded] = useState<boolean>(false);
+  const [isActionsExpanded, setIsActionsExpanded] = useState<boolean>(true);
 
   // State mở Modal chi tiết từng món đồ khi người dùng click vào thẻ
   const [detailGarment, setDetailGarment] = useState<Garment | null>(null);
@@ -122,7 +142,18 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
           1. HEADER TỐI GIẢN (EDITORIAL LOOKBOOK HEADER)
          ========================================== */}
       <div className="text-center space-y-2 pt-1">
-        {warnings.length > 0 ? (
+        {isOutdatedOrBlocked ? (
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-100/90 text-red-900 text-xs font-sans font-medium border border-red-200">
+            <AlertTriangle className="w-3.5 h-3.5 text-red-600" />
+            <span>Cần kiểm tra lại quy chuẩn</span>
+            {contextItem && (
+              <>
+                <span className="text-red-300">•</span>
+                <span className="text-red-800">{contextItem.name}</span>
+              </>
+            )}
+          </div>
+        ) : warnings.length > 0 ? (
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100/90 text-amber-900 text-xs font-sans font-medium border border-amber-200">
             <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
             <span>Có lưu ý quy chuẩn / phom dáng</span>
@@ -153,6 +184,21 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
           EDITORIAL COLLAGE • CHẠM ĐỂ XEM CHI TIẾT TỪNG MÓN
         </p>
       </div>
+
+      {/* LỖI XUNG ĐỘT QUY CHUẨN NẾU CÓ (KHI XEM LẠI BỘ LƯU CŨ) */}
+      {isOutdatedOrBlocked && (
+        <div className="space-y-2 max-w-2xl mx-auto">
+          {validationResults.filter(r => r.severity === 'BLOCK').map((err, index) => (
+            <div
+              key={index}
+              className="p-3.5 rounded-2xl bg-red-50/90 border border-red-200/80 text-red-950 flex items-start gap-2.5 text-xs font-sans"
+            >
+              <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+              <p className="leading-relaxed font-medium">{err.message}</p>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* CẢNH BÁO NẾU CÓ */}
       {warnings.length > 0 && (
@@ -280,6 +326,26 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
               </button>
             </div>
 
+            {/* THÔNG BÁO LƯU BỘ PHỐI NẾU CÓ */}
+            {saveNotice && (
+              <div
+                className={`p-2.5 px-3 rounded-xl text-xs font-sans font-medium flex items-center gap-2 border shadow-2xs ${
+                  saveNotice.type === 'success'
+                    ? 'bg-emerald-50 text-emerald-950 border-emerald-200'
+                    : saveNotice.type === 'warn'
+                    ? 'bg-amber-50 text-amber-950 border-amber-200'
+                    : 'bg-red-50 text-red-950 border-red-200'
+                }`}
+              >
+                {saveNotice.type === 'success' ? (
+                  <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                ) : (
+                  <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                )}
+                <span>{saveNotice.message}</span>
+              </div>
+            )}
+
             <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
               <button
                 type="button"
@@ -287,8 +353,32 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
                 className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-stone-200 hover:border-stone-300 bg-stone-50 hover:bg-stone-100 text-stone-800 font-semibold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95"
               >
                 <ArrowLeft className="w-3.5 h-3.5 text-stone-600" />
-                <span>Quay lại phối đồ</span>
+                <span>{backButtonText || 'Quay lại phối đồ'}</span>
               </button>
+
+              {!isFromCollection && onSaveOutfit && (
+                <button
+                  type="button"
+                  onClick={onSaveOutfit}
+                  className={`w-full sm:w-auto px-4 py-2.5 rounded-xl font-semibold text-xs flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-xs ${
+                    isSaved
+                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 hover:bg-emerald-200/70'
+                      : 'bg-stone-900 hover:bg-stone-800 text-white'
+                  }`}
+                >
+                  {isSaved ? (
+                    <>
+                      <BookmarkCheck className="w-3.5 h-3.5 text-emerald-700" />
+                      <span>Đã có trong bộ sưu tập</span>
+                    </>
+                  ) : (
+                    <>
+                      <Bookmark className="w-3.5 h-3.5 text-stone-300" />
+                      <span>Thêm vào bộ sưu tập</span>
+                    </>
+                  )}
+                </button>
+              )}
 
               <button
                 type="button"

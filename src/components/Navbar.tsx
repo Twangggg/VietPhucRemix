@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Sparkles, Menu, X, Compass, Shirt, SlidersHorizontal, BookOpen } from 'lucide-react';
+import { Sparkles, Menu, X, Compass, Shirt, SlidersHorizontal, BookOpen, Bookmark } from 'lucide-react';
 
-export type NavTab = 'home' | 'explore' | 'studio' | 'lookbook';
+export type NavTab = 'home' | 'explore' | 'studio' | 'lookbook' | 'collection';
 
 interface NavbarProps {
   activeTab: NavTab;
@@ -37,8 +37,13 @@ export const Navbar: React.FC<NavbarProps> = ({
     },
     {
       id: 'lookbook' as NavTab,
-      label: 'Bộ sưu tập',
+      label: 'Bộ phối mẫu',
       icon: Sparkles
+    },
+    {
+      id: 'collection' as NavTab,
+      label: 'Bộ sưu tập',
+      icon: Bookmark
     }
   ];
 
