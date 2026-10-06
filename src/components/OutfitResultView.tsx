@@ -9,7 +9,8 @@ import {
   ChevronDown,
   Bookmark,
   BookmarkCheck,
-  Check
+  Check,
+  Info
 } from 'lucide-react';
 import { Garment, CasualItem, AccessoryItem, ContextItem, ValidationResult } from '../types';
 import { getSafeImageUrl, resolveItemByGender } from '../utils/helpers';
@@ -228,7 +229,7 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
 
         {/* Khung Moodboard chính */}
         <div className="flex flex-col items-center justify-center relative z-10 space-y-6 sm:space-y-8">
-          
+
           {/* VỊ TRÍ TRUNG TÂM: CỔ PHỤC DI SẢN (KEY PIECE) */}
           <div
             onClick={() => setDetailGarment(garmentItem)}
@@ -334,13 +335,21 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
                     ? 'bg-emerald-50 text-emerald-950 border-emerald-200'
                     : saveNotice.type === 'warn'
                     ? 'bg-amber-50 text-amber-950 border-amber-200'
+                    : saveNotice.type === 'info'
+                    ? 'bg-stone-100 text-stone-800 border-stone-200/90'
                     : 'bg-red-50 text-red-950 border-red-200'
                 }`}
               >
                 {saveNotice.type === 'success' ? (
                   <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                ) : saveNotice.type === 'info' ? (
+                  <Info className="w-3.5 h-3.5 text-stone-600 shrink-0" />
                 ) : (
-                  <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                  <AlertTriangle
+                    className={`w-3.5 h-3.5 shrink-0 ${
+                      saveNotice.type === 'warn' ? 'text-amber-600' : 'text-red-600'
+                    }`}
+                  />
                 )}
                 <span>{saveNotice.message}</span>
               </div>

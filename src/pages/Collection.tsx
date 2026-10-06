@@ -35,6 +35,7 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio }) =>
   const [viewingOutfitId, setViewingOutfitId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [showClearConfirm, setShowClearConfirm] = useState<boolean>(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   // Tải danh sách bộ phối đã lưu
   const loadOutfits = () => {
@@ -52,16 +53,26 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio }) =>
     loadOutfits();
   }, []);
 
-  // Xóa một bộ phối đã chọn
+  // Xóa một bộ phối đã chọn: kiểm tra kết quả và giữ dữ liệu nếu thất bại
   const handleDelete = (id: string) => {
-    deleteSavedOutfit(id);
+    setActionError(null);
+    const result = deleteSavedOutfit(id);
+    if (!result.success) {
+      setActionError(result.error || 'Xóa bộ phối thất bại. Dữ liệu đã được giữ nguyên an toàn.');
+      return;
+    }
     setConfirmDeleteId(null);
     loadOutfits();
   };
 
-  // Đặt lại dữ liệu hỏng khi người dùng xác nhận
+  // Đặt lại dữ liệu hỏng khi người dùng xác nhận: kiểm tra kết quả và báo lỗi nếu thất bại
   const handleClearCorrupted = () => {
-    clearCorruptedStorage();
+    setActionError(null);
+    const result = clearCorruptedStorage();
+    if (!result.success) {
+      setActionError(result.error || 'Đặt lại dữ liệu lưu trữ thất bại. Dữ liệu đã được giữ nguyên an toàn.');
+      return;
+    }
     setShowClearConfirm(false);
     loadOutfits();
   };
@@ -201,6 +212,24 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio }) =>
             </div>
           </div>
         </div>
+
+        {/* CẢNH BÁO LỖI THAO TÁC XÓA HOẶC ĐẶT LẠI */}
+        {actionError && (
+          <div className="p-4 rounded-2xl bg-red-50 border border-red-200 text-red-950 flex items-center justify-between gap-3 animate-in fade-in duration-200">
+            <div className="flex items-center gap-2.5 text-xs sm:text-sm">
+              <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
+              <span className="font-medium leading-relaxed">{actionError}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setActionError(null)}
+              className="p-1 rounded-lg text-red-400 hover:text-red-700 hover:bg-red-100 transition-colors cursor-pointer shrink-0"
+              title="Đóng thông báo"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
 
         {/* CẢNH BÁO NẾU DỮ LIỆU LƯU TRỮ BỊ HỎNG */}
         {isCorrupted && (
