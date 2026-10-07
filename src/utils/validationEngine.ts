@@ -2,7 +2,7 @@ import { ValidationResult } from '../types';
 import { GARMENTS, CONTEXTS, CASUAL_ITEMS, ACCESSORIES } from '../data';
 
 export interface ValidateOutfitOptions {
-  costumeId?: string | null;
+  costumeId?: string | string[] | null;
   innerId?: string | null;
   bottomId?: string | null;
   shoesId?: string | null;
@@ -35,13 +35,16 @@ export function resolveGarmentBaseId(id: string | null | undefined): string {
  * Kiểm tra xem garment ID (Base hoặc Suffix) có khớp với danh sách target hay không.
  * Chỉ công nhận quan hệ Base/Variant khi catalog xác nhận has_gender_variants = true.
  */
-function isMatchingGarment(targetIds: string[], id: string | null | undefined): boolean {
-  if (!id) return false;
-  const baseId = resolveGarmentBaseId(id);
-  for (const t of targetIds) {
-    const tBase = resolveGarmentBaseId(t);
-    if (t === id || t === baseId || tBase === id || tBase === baseId) {
-      return true;
+function isMatchingGarment(targetIds: string[], idOrIds: string | string[] | null | undefined): boolean {
+  if (!idOrIds) return false;
+  const ids = Array.isArray(idOrIds) ? idOrIds : [idOrIds];
+  for (const id of ids) {
+    const baseId = resolveGarmentBaseId(id);
+    for (const t of targetIds) {
+      const tBase = resolveGarmentBaseId(t);
+      if (t === id || t === baseId || tBase === id || tBase === baseId) {
+        return true;
+      }
     }
   }
   return false;
@@ -132,6 +135,18 @@ function isJewelrySlotItem(item: any): boolean {
   return type === 'jewelry' || category === 'jewelry';
 }
 
+export function isTraditional(item: any): boolean {
+  return !!item?.id && item.id.toLowerCase().startsWith('v');
+}
+
+export function isFootwear(item: any): boolean {
+  return isShoesSlotItem(item);
+}
+
+export function isTraditionalClothing(item: any): boolean {
+  return isTraditional(item) && !isFootwear(item);
+}
+
 /**
  * Lõi kiểm tra văn hóa và phom dáng (Deterministic Cultural & Silhouette Validation Engine)
  * Thực thi các quy tắc nghiêm ngặt bảo vệ tính tôn nghiêm và mỹ cảm trang phục Việt.
@@ -149,7 +164,7 @@ export function validateOutfit(
   gender?: string | null
 ): ValidationResult[] {
   // Hỗ trợ cả hai kiểu gọi: dạng object hoặc dạng truyền tham số thứ tự
-  let cId: string | null | undefined = typeof costumeId === 'string' ? costumeId : null;
+  let cId: string | string[] | null | undefined = typeof costumeId === 'string' || Array.isArray(costumeId) ? costumeId : null;
   let inId: string | null | undefined = innerId;
   let botId: string | null | undefined = bottomId;
   let ctxId: string | null | undefined = contextId;
@@ -160,7 +175,7 @@ export function validateOutfit(
   let jIds: string[] = Array.isArray(jewelryIds) ? jewelryIds : [];
   let userGender: string | null | undefined = gender;
 
-  if (typeof costumeId === 'object' && costumeId !== null) {
+  if (typeof costumeId === 'object' && costumeId !== null && !Array.isArray(costumeId)) {
     const opts = costumeId as ValidateOutfitOptions;
     cId = opts.costumeId;
     inId = opts.innerId;
@@ -198,7 +213,9 @@ export function validateOutfit(
     }
   }
 
-  if (!cId) {
+  const cIdArray = Array.isArray(cId) ? cId : (cId ? [cId] : []);
+
+  if (cIdArray.length === 0) {
     results.push({
       isValid: false,
       severity: 'BLOCK',
@@ -206,32 +223,75 @@ export function validateOutfit(
       ruleId: 'MISSING_KEY_PIECE'
     });
   } else {
-    const foundGarmentItem = findCatalogItem(cId);
-    if (!foundGarmentItem || foundGarmentItem.source !== 'garment') {
+    for (const id of cIdArray) {
+      const foundGarmentItem = findCatalogItem(id);
+      if (!foundGarmentItem || foundGarmentItem.source !== 'garment') {
+        results.push({
+          isValid: false,
+          severity: 'BLOCK',
+          message: `Dữ liệu không hợp lệ: Cổ phục trung tâm đã chọn ('${id}') không tồn tại trong danh mục.`,
+          ruleId: 'INVALID_KEY_PIECE_ID'
+        });
+      } else {
+        const foundGarment = foundGarmentItem.item;
+        const effectiveGender = resolveItemEffectiveGender(foundGarment, id);
+        if (!isItemGenderCompatible(effectiveGender, userGender)) {
+          results.push({
+            isValid: false,
+            severity: 'BLOCK',
+            message: `Món cổ phục '${foundGarment.name}' được thiết kế dành riêng cho ${effectiveGender === 'female' ? 'Nữ' : 'Nam'}, không tương thích với giới tính ${userGender === 'female' ? 'Nữ' : 'Nam'} đang chọn.`,
+            ruleId: 'GENDER_INCOMPATIBLE'
+          });
+        }
+      }
+    }
+  }
+
+  // Yêu cầu: Bắt buộc phải có bottom và shoes
+  if (!botId) {
+    results.push({
+      isValid: false,
+      severity: 'BLOCK',
+      message: 'Vui lòng chọn trang phục nửa dưới (quần/váy) vì phần này không có sẵn trong Cổ phục.',
+      ruleId: 'MISSING_BOTTOM_PIECE'
+    });
+  }
+
+  if (!shId) {
+    results.push({
+      isValid: false,
+      severity: 'BLOCK',
+      message: 'Vui lòng chọn giày dép vì phần này không có sẵn trong Cổ phục.',
+      ruleId: 'MISSING_SHOES_PIECE'
+    });
+  }
+
+  // Yêu cầu: outer_formal bắt buộc phải có 1 lớp trong là loại khác (top, inner, outer_traditional)
+  const hasOuterFormal = cIdArray.some(id => {
+    const itemInfo = findCatalogItem(id);
+    return itemInfo?.item?.category === 'outer_formal';
+  });
+
+  if (hasOuterFormal) {
+    if (!inId) {
       results.push({
         isValid: false,
         severity: 'BLOCK',
-        message: `Dữ liệu không hợp lệ: Cổ phục trung tâm đã chọn ('${cId}') không tồn tại trong danh mục.`,
-        ruleId: 'INVALID_KEY_PIECE_ID'
+        message: 'Trang phục outer_formal bắt buộc phải chọn 1 lớp trong.',
+        ruleId: 'MISSING_INNER_FOR_OUTER_FORMAL'
       });
     } else {
-      const foundGarment = foundGarmentItem.item;
-      if (foundGarment.type === 'shoes' || foundGarment.category === 'traditional_footwear') {
-        results.push({
-          isValid: false,
-          severity: 'BLOCK',
-          message: `Món đồ '${foundGarment.name}' là giày dép truyền thống, không thể làm trang phục trung tâm (Key Piece).`,
-          ruleId: 'INVALID_KEY_PIECE_SLOT'
-        });
-      }
-      const effectiveGender = resolveItemEffectiveGender(foundGarment, cId);
-      if (!isItemGenderCompatible(effectiveGender, userGender)) {
-        results.push({
-          isValid: false,
-          severity: 'BLOCK',
-          message: `Món cổ phục '${foundGarment.name}' được thiết kế dành riêng cho ${effectiveGender === 'female' ? 'Nữ' : 'Nam'}, không tương thích với giới tính ${userGender === 'female' ? 'Nữ' : 'Nam'} đang chọn.`,
-          ruleId: 'GENDER_INCOMPATIBLE'
-        });
+      const innerItemInfo = findCatalogItem(inId);
+      if (innerItemInfo?.item) {
+        const allowedInnerCategories = ['top', 'inner', 'outer_traditional'];
+        if (!allowedInnerCategories.includes(innerItemInfo.item.category)) {
+          results.push({
+            isValid: false,
+            severity: 'BLOCK',
+            message: 'Lớp trong của outer_formal phải là loại top, inner hoặc outer_traditional.',
+            ruleId: 'INVALID_INNER_CATEGORY_FOR_OUTER_FORMAL'
+          });
+        }
       }
     }
   }
@@ -424,6 +484,20 @@ export function validateOutfit(
     return arr.includes(val);
   };
 
+  // Kiểm tra: Bắt buộc phải có ít nhất 1 Traditional clothing item
+  const allIds = [...cIdArray, inId, botId, shId, hId, ...jIds].filter(Boolean) as string[];
+  const allItems = allIds.map(id => findCatalogItem(id)?.item).filter(Boolean);
+  const hasTraditionalClothing = allItems.some(isTraditionalClothing);
+  
+  if (!hasTraditionalClothing) {
+    results.push({
+      isValid: false,
+      severity: 'BLOCK',
+      message: 'Một outfit bắt buộc phải có ít nhất 1 trang phục truyền thống (không tính giày dép).',
+      ruleId: 'MISSING_TRADITIONAL_CLOTHING'
+    });
+  }
+
   // RULE 1: GUARD_SACRED_LENGTH
   if (ctxId === 'C05' && isIn(['cs_05', 'cs_06', 'cs_21'], botId)) {
     results.push({
@@ -436,11 +510,14 @@ export function validateOutfit(
 
   // RULE 2: GUARD_YEM_STANDALONE
   const publicContexts = ['C01', 'C02', 'C03', 'C04', 'C05', 'C06'];
-  if (isMatchingGarment(['V03'], cId) && (outLayer === null || outLayer === undefined || outLayer === false || outLayer === '') && isIn(publicContexts, ctxId)) {
+  const hasTraditionalInner = allItems.some(item => isTraditionalClothing(item) && isInnerSlotItem(item));
+  const hasOuterOrTop = allItems.some(item => !isInnerSlotItem(item) && !isBottomSlotItem(item) && !isShoesSlotItem(item) && !isHeadwearSlotItem(item) && !isJewelrySlotItem(item));
+  
+  if (hasTraditionalInner && !hasOuterOrTop && isIn(publicContexts, ctxId)) {
     results.push({
       isValid: false,
       severity: 'BLOCK',
-      message: 'Áo yếm mang bản chất là nội y truyền thống (Innerwear). Bắt buộc phải có lớp khoác ngoài (Áo Đối Khâm, Áo tứ thân, Cardigan mỏng hoặc Blazer) khi ra phố hoặc đến nơi công cộng. (Giới hạn hiện tại: Hệ thống chưa hỗ trợ slot áo khoác ngoài trong phòng phối đồ).',
+      message: 'Trang phục lót truyền thống (như Áo yếm) mang bản chất là nội y. Bắt buộc phải có lớp khoác ngoài (Áo Đối Khâm, Áo tứ thân, Cardigan mỏng hoặc Blazer) khi ra phố hoặc đến nơi công cộng.',
       ruleId: 'GUARD_YEM_STANDALONE'
     });
   }
