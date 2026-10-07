@@ -8,7 +8,7 @@ export interface SavedOutfit {
   name: string;
   createdAt: string;
   contextId: string;
-  costumeId: string;
+  costumeId: string | string[];
   gender: 'male' | 'female';
   innerId: string | null;
   bottomId: string | null;
@@ -26,7 +26,7 @@ export interface GetSavedOutfitsResult {
 export interface SaveOutfitInput {
   name?: string;
   contextId: string;
-  costumeId: string;
+  costumeId: string | string[];
   gender: 'male' | 'female';
   innerId: string | null;
   bottomId: string | null;
@@ -45,8 +45,11 @@ export interface SaveOutfitResult {
 function selectionError(value: unknown): string | null {
   if (!value || typeof value !== 'object') return 'Bản ghi không hợp lệ.';
   const item = value as Record<string, unknown>;
-  for (const field of ['costumeId', 'contextId']) {
+  for (const field of ['contextId']) {
     if (typeof item[field] !== 'string' || !(item[field] as string).trim()) return `Trường ${field} không hợp lệ.`;
+  }
+  if (!item.costumeId || (typeof item.costumeId !== 'string' && !Array.isArray(item.costumeId))) {
+    return 'Trường costumeId không hợp lệ.';
   }
   if (item.gender !== 'male' && item.gender !== 'female') return 'Trường gender không hợp lệ.';
   for (const field of ['innerId', 'bottomId', 'shoesId', 'headwearId']) {
@@ -63,7 +66,7 @@ function selectionError(value: unknown): string | null {
  */
 export function isSameOutfit(
   a: {
-    costumeId?: string | null;
+    costumeId?: string | string[] | null;
     contextId?: string | null;
     gender?: string | null;
     innerId?: string | null;
@@ -73,7 +76,7 @@ export function isSameOutfit(
     jewelryIds?: string[] | null;
   },
   b: {
-    costumeId?: string | null;
+    costumeId?: string | string[] | null;
     contextId?: string | null;
     gender?: string | null;
     innerId?: string | null;
@@ -83,7 +86,13 @@ export function isSameOutfit(
     jewelryIds?: string[] | null;
   }
 ): boolean {
-  if (a.costumeId !== b.costumeId) return false;
+  const aCostume = Array.isArray(a.costumeId) ? [...a.costumeId].sort() : (a.costumeId ? [a.costumeId] : []);
+  const bCostume = Array.isArray(b.costumeId) ? [...b.costumeId].sort() : (b.costumeId ? [b.costumeId] : []);
+  if (aCostume.length !== bCostume.length) return false;
+  for (let i = 0; i < aCostume.length; i++) {
+    if (aCostume[i] !== bCostume[i]) return false;
+  }
+  
   if (a.contextId !== b.contextId) return false;
   if (a.gender !== b.gender) return false;
   if ((a.innerId || null) !== (b.innerId || null)) return false;
@@ -129,7 +138,7 @@ export function getSavedOutfits(): GetSavedOutfitsResult {
         item &&
         typeof item === 'object' &&
         typeof item.id === 'string' &&
-        typeof item.costumeId === 'string' &&
+        (typeof item.costumeId === 'string' || Array.isArray(item.costumeId)) &&
         typeof item.contextId === 'string' &&
         (item.gender === 'male' || item.gender === 'female')
       ) {
@@ -210,8 +219,9 @@ export function saveOutfit(input: SaveOutfitInput): SaveOutfitResult {
   }
 
   // 4. Sinh tên mặc định
-  const baseGarmentId = resolveGarmentBaseId(input.costumeId);
-  const garment = GARMENTS.find((g) => g.id === input.costumeId || g.id === baseGarmentId);
+  const mainGarmentId = Array.isArray(input.costumeId) ? input.costumeId[0] : input.costumeId;
+  const baseGarmentId = resolveGarmentBaseId(mainGarmentId);
+  const garment = GARMENTS.find((g) => g.id === mainGarmentId || g.id === baseGarmentId);
   const context = CONTEXTS.find((c) => c.id === input.contextId);
   const defaultName =
     garment && context

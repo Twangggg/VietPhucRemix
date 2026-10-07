@@ -37,6 +37,7 @@ interface OutfitResultViewProps {
   selectedGender: 'male' | 'female';
   contextItem?: ContextItem | null;
   garmentItem: Garment;
+  additionalGarments?: Garment[];
   innerItem?: CasualItem | null;
   bottomItem?: CasualItem | null;
   shoesItem?: CasualItem | null;
@@ -57,6 +58,7 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
   selectedGender,
   contextItem,
   garmentItem,
+  additionalGarments = [],
   innerItem,
   bottomItem,
   shoesItem,
@@ -105,6 +107,20 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
 
   // Danh sách các món đồ phụ phối kèm (Tự động dàn trang linh hoạt, không bao giờ bị tràn lề)
   const companionItems = [
+    ...(additionalGarments || []).map((g, idx) => {
+      if (!g) return null;
+      const resolvedG = resolveItemByGender(g, selectedGender);
+      return {
+        id: g.id,
+        name: resolvedG.name || g.name || 'Cổ phục',
+        categoryName: 'Cổ phục',
+        imageUrl: getSafeImageUrl(resolvedG.resolvedImageUrl || resolvedG),
+        colorSetting: itemColors[g.id] || { hex: null, intensity: 0.85 },
+        rotation: idx % 2 === 0 ? '-rotate-4' : 'rotate-4',
+        sizeClass: 'w-24 sm:w-32 h-32 sm:h-40',
+        onClick: () => setDetailGarment(g)
+      };
+    }),
     resolvedHeadwear && headwearItem && {
       id: headwearItem.id,
       name: resolvedHeadwear.name,
