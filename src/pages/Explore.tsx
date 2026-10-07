@@ -114,7 +114,7 @@ export const Explore: React.FC<ExploreProps> = ({ onSelectForStudio }) => {
         </div>
 
         {/* TAB CHỌN KHO */}
-        <div className="sticky top-0 sm:top-0 z-40 bg-stone-50 flex items-center overflow-x-auto whitespace-nowrap scrollbar-hide snap-x gap-5 sm:gap-8 pt-4 pb-2 border-b border-stone-200 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center overflow-x-auto whitespace-nowrap scrollbar-hide snap-x gap-5 sm:gap-8 pt-2 pb-0 border-b border-stone-200 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 mb-2">
           <button
             onClick={() => {
               setRepositoryType('traditional');
@@ -135,8 +135,8 @@ export const Explore: React.FC<ExploreProps> = ({ onSelectForStudio }) => {
           </button>
         </div>
 
-        {/* STICKY HEADER: GỘP SEARCH + GENDER TOGGLE VÀ TAB CUỘN NGANG (MINIMALIST E-COMMERCE) */}
-        <div className="sticky top-[53px] sm:top-[57px] z-30 bg-[#F9F8F6] pt-3 pb-0 border-b border-stone-200 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 space-y-3 shadow-2xs">
+        {/* STICKY HEADER: THANH TÌM KIẾM, GIỚI TÍNH & BỘ LỌC DANH MỤC (ĐI THEO KHI CUỘN) */}
+        <div className="sticky top-12 sm:top-14 z-30 bg-[#F9F8F6]/95 backdrop-blur-md pt-3 pb-0 border-b border-stone-200 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 space-y-3 shadow-2xs transition-all">
           {/* Hàng 1: Search Bar Tàng Hình & Gender Toggle Tinh Gọn */}
           <div className="flex items-center justify-between gap-4">
             {/* Search Bar tối giản chỉ có border-b */}
