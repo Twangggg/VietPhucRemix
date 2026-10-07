@@ -24,10 +24,11 @@ import { findQuickMatchOutfit, getQuickMatchSuggestion } from '../utils/recommen
 import { ValidationResult, Garment, CasualItem, AccessoryItem } from '../types';
 import { ItemSelectCard } from '../components/ItemSelectCard';
 import { SafeImage } from '../components/SafeImage';
-import { OutfitResultView } from '../components/OutfitResultView';
+import { OutfitResultView, SaveNotice } from '../components/OutfitResultView';
 import { GarmentDetailModal } from '../components/GarmentDetailModal';
 import { CasualDetailModal } from '../components/CasualDetailModal';
 import { AccessoryDetailModal } from '../components/AccessoryDetailModal';
+import { saveOutfit, getSavedOutfits, isSameOutfit } from '../utils/storage';
 
 export const Studio: React.FC = () => {
   // ==========================================
@@ -60,6 +61,10 @@ export const Studio: React.FC = () => {
     type: 'warn' | 'info';
     message: string;
   } | null>(null);
+
+  // State quản lý lưu bộ phối vào Bộ sưu tập
+  const [saveNotice, setSaveNotice] = useState<SaveNotice | null>(null);
+  const [isCurrentOutfitSaved, setIsCurrentOutfitSaved] = useState<boolean>(false);
 
   // State ẩn/hiện thanh validation dưới cùng (mặc định ẩn gọn, chỉ mở khi bấm, tự ẩn khi chọn món khác)
   const [isBottomBarExpanded, setIsBottomBarExpanded] = useState<boolean>(false);
@@ -300,6 +305,71 @@ export const Studio: React.FC = () => {
     }
   };
 
+  // Đồng bộ trạng thái đã lưu khi mở màn hình kết quả
+  useEffect(() => {
+    if (isShowingResult && selectedGarment && selectedContext) {
+      const { outfits } = getSavedOutfits();
+      const isAlreadySaved = outfits.some((o) =>
+        isSameOutfit(o, {
+          costumeId: selectedGarment,
+          contextId: selectedContext,
+          gender: selectedGender,
+          innerId: selectedInner,
+          bottomId: selectedBottom,
+          shoesId: selectedShoes,
+          headwearId: selectedHeadwear,
+          jewelryIds: selectedJewelries
+        })
+      );
+      setIsCurrentOutfitSaved(isAlreadySaved);
+      setSaveNotice(null);
+    }
+  }, [
+    isShowingResult,
+    selectedGarment,
+    selectedContext,
+    selectedGender,
+    selectedInner,
+    selectedBottom,
+    selectedShoes,
+    selectedHeadwear,
+    selectedJewelries
+  ]);
+
+  // Xử lý lưu bộ phối vào Bộ sưu tập
+  const handleSaveOutfit = () => {
+    if (!selectedGarment || !selectedContext) return;
+    const res = saveOutfit({
+      costumeId: selectedGarment,
+      contextId: selectedContext,
+      gender: selectedGender,
+      innerId: selectedInner,
+      bottomId: selectedBottom,
+      shoesId: selectedShoes,
+      headwearId: selectedHeadwear,
+      jewelryIds: selectedJewelries
+    });
+
+    if (res.success) {
+      setIsCurrentOutfitSaved(true);
+      setSaveNotice({
+        type: 'success',
+        message: 'Đã thêm vào bộ sưu tập.'
+      });
+    } else if (res.isDuplicate) {
+      setIsCurrentOutfitSaved(true);
+      setSaveNotice({
+        type: 'info',
+        message: 'Đã có trong bộ sưu tập.'
+      });
+    } else {
+      setSaveNotice({
+        type: 'error',
+        message: res.error || 'Không thể lưu bộ phối.'
+      });
+    }
+  };
+
   // ==========================================
   // HÀM GỢI Ý PHỐI NHANH 1-CLICK (EPIC 04 — QUICK MATCH: KIỂM TRA TRƯỚC, ÁP DỤNG SAU)
   // ==========================================
@@ -451,6 +521,9 @@ export const Studio: React.FC = () => {
             validationResults={validationResults}
             onBackToStudio={() => setIsShowingResult(false)}
             onResetOutfit={handleResetOutfit}
+            onSaveOutfit={handleSaveOutfit}
+            isSaved={isCurrentOutfitSaved}
+            saveNotice={saveNotice}
           />
         ) : (
           <>
