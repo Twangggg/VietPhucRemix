@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Bookmark,
   Sparkles,
@@ -10,9 +11,11 @@ import {
   Eye,
   CheckCircle2,
   Info,
-  X
+  X,
+  Scale
 } from 'lucide-react';
-import { GARMENTS, CASUAL_ITEMS, ACCESSORIES, CONTEXTS } from '../data';
+import { GARMENTS, CASUAL_ITEMS, ACCESSORIES, CONTEXTS, OUTFIT_COMBINATIONS } from '../data';
+import { OutfitCombination } from '../types';
 import { resolveItemByGender, getSafeImageUrl } from '../utils/helpers';
 import { validateOutfit, resolveGarmentBaseId } from '../utils/validationEngine';
 import {
@@ -23,7 +26,6 @@ import {
 } from '../utils/storage';
 import { SafeImage } from '../components/SafeImage';
 import { OutfitResultView } from '../components/OutfitResultView';
-import { CompareResultModal } from '../components/CompareResultModal';
 import { CompareResult, compareOutfits } from '../utils/compareEngine';
 
 interface CollectionProps {
@@ -39,10 +41,11 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio }) =>
   const [showClearConfirm, setShowClearConfirm] = useState<boolean>(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
+  const navigate = useNavigate();
   // Compare mode states
   const [isCompareMode, setIsCompareMode] = useState<boolean>(false);
   const [selectedForCompare, setSelectedForCompare] = useState<SavedOutfit[]>([]);
-  const [compareResult, setCompareResult] = useState<CompareResult | null>(null);
+  const [showLookbookPicker, setShowLookbookPicker] = useState<boolean>(false);
 
   // Tải danh sách bộ phối đã lưu
   const loadOutfits = () => {
@@ -115,10 +118,9 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio }) =>
     if (selectedForCompare.length !== 2) return;
     const outfitA = selectedForCompare[0];
     const outfitB = selectedForCompare[1];
-    
-    // Tạo cấu trúc đầu vào cho compare engine (giả định validation được tạo lại)
+
     const inputA = {
-      itemIds: [outfitA.costumeId, outfitA.innerId, outfitA.bottomId, outfitA.shoesId, outfitA.headwearId, ...outfitA.jewelryIds].flat().filter(Boolean) as string[],
+      itemIds: [outfitA.costumeId, outfitA.innerId, outfitA.bottomId, outfitA.shoesId, outfitA.headwearId, ...(outfitA.jewelryIds || [])].flat().filter(Boolean) as string[],
       contextId: outfitA.contextId,
       validationResults: validateOutfit({
         costumeId: outfitA.costumeId,
@@ -131,9 +133,9 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio }) =>
         jewelryIds: outfitA.jewelryIds
       })
     };
-    
+
     const inputB = {
-      itemIds: [outfitB.costumeId, outfitB.innerId, outfitB.bottomId, outfitB.shoesId, outfitB.headwearId, ...outfitB.jewelryIds].flat().filter(Boolean) as string[],
+      itemIds: [outfitB.costumeId, outfitB.innerId, outfitB.bottomId, outfitB.shoesId, outfitB.headwearId, ...(outfitB.jewelryIds || [])].flat().filter(Boolean) as string[],
       contextId: outfitB.contextId,
       validationResults: validateOutfit({
         costumeId: outfitB.costumeId,
@@ -148,15 +150,82 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio }) =>
     };
 
     const result = compareOutfits(inputA, inputB);
-    setCompareResult(result);
+    navigate('/compare', {
+      state: {
+        result,
+        outfitAName: outfitA.name,
+        outfitBName: outfitB.name,
+        inputA: { ...inputA, gender: outfitA.gender },
+        inputB: { ...inputB, gender: outfitB.gender }
+      }
+    });
   };
+
+  const handleCompareWithLookbook = (lookbookOutfit: OutfitCombination) => {
+    setShowLookbookPicker(false);
+
+    if (selectedForCompare.length < 1) return;
+
+    const outfitA = selectedForCompare[0];
+    const inputA = {
+      itemIds: [outfitA.costumeId, outfitA.innerId, outfitA.bottomId, outfitA.shoesId, outfitA.headwearId, ...(outfitA.jewelryIds || [])].flat().filter(Boolean) as string[],
+      contextId: outfitA.contextId,
+      validationResults: validateOutfit({
+        costumeId: outfitA.costumeId,
+        contextId: outfitA.contextId,
+        gender: outfitA.gender,
+        innerId: outfitA.innerId,
+        bottomId: outfitA.bottomId,
+        shoesId: outfitA.shoesId,
+        headwearId: outfitA.headwearId,
+        jewelryIds: outfitA.jewelryIds || []
+      })
+    };
+
+    const comp = lookbookOutfit.composition;
+    const costumeId = comp.outer_formal || comp.outer_traditional || comp.top || '';
+    const jewelryIds = comp.jewelry || [];
+
+    const contextId = lookbookOutfit.applicable_events[0] || 'C01';
+
+    const validationB = validateOutfit({
+      costumeId: costumeId,
+      contextId: contextId,
+      gender: lookbookOutfit.gender.toLowerCase() as 'male' | 'female',
+      innerId: comp.inner || null,
+      bottomId: comp.bottom_pants || comp.bottom_skirt || null,
+      shoesId: comp.shoes || comp.traditional_footwear || null,
+      headwearId: comp.headwear || null,
+      jewelryIds: jewelryIds
+    });
+
+    const itemIds = [costumeId, comp.inner, comp.bottom_pants, comp.bottom_skirt, comp.shoes, comp.traditional_footwear, comp.headwear, ...jewelryIds].filter(Boolean) as string[];
+
+    const inputB = {
+      itemIds,
+      contextId: contextId,
+      validationResults: validationB
+    };
+
+    const result = compareOutfits(inputA, inputB);
+    navigate('/compare', {
+      state: {
+        result,
+        outfitAName: outfitA.name,
+        outfitBName: lookbookOutfit.name,
+        inputA: { ...inputA, gender: outfitA.gender },
+        inputB: { ...inputB, gender: lookbookOutfit.gender }
+      }
+    });
+  };
+
 
   // 1. MÀN HÌNH XEM CHI TIẾT BỘ PHỐI ĐÃ LƯU
   if (viewingOutfitId) {
     const viewingOutfit = savedList.find((o) => o.id === viewingOutfitId);
     if (viewingOutfit) {
-      const mainCostumeId = Array.isArray(viewingOutfit.costumeId) 
-        ? viewingOutfit.costumeId[0] 
+      const mainCostumeId = Array.isArray(viewingOutfit.costumeId)
+        ? viewingOutfit.costumeId[0]
         : viewingOutfit.costumeId;
       const baseGarmentId = resolveGarmentBaseId(mainCostumeId);
       const foundGarment = GARMENTS.find(
@@ -171,7 +240,7 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio }) =>
         : null;
       const foundShoes = viewingOutfit.shoesId
         ? CASUAL_ITEMS.find((c) => c.id === viewingOutfit.shoesId) ||
-          GARMENTS.find((g) => g.id === viewingOutfit.shoesId)
+        GARMENTS.find((g) => g.id === viewingOutfit.shoesId)
         : null;
       const foundHeadwear = viewingOutfit.headwearId
         ? ACCESSORIES.find((a) => a.id === viewingOutfit.headwearId)
@@ -271,42 +340,54 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio }) =>
                 <Info className="w-3.5 h-3.5 text-stone-400 shrink-0" />
                 <span>Lưu trên trình duyệt này, chưa đồng bộ tài khoản.</span>
               </div>
-              
-              {!isCorrupted && savedList.length > 1 && (
+
+              {!isCorrupted && (
                 <button
                   onClick={() => {
+                    if (savedList.length === 0) {
+                      setActionError('Bạn cần lưu ít nhất 1 bộ phối để so sánh.');
+                      return;
+                    }
                     setIsCompareMode(!isCompareMode);
                     setSelectedForCompare([]);
                   }}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold shadow-xs transition-colors cursor-pointer border ${
-                    isCompareMode 
-                      ? 'bg-stone-900 text-white border-stone-900' 
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold shadow-xs transition-colors cursor-pointer border ${isCompareMode
+                      ? 'bg-stone-900 text-white border-stone-900'
                       : 'bg-white text-stone-700 border-stone-200 hover:bg-stone-50'
-                  }`}
+                    }`}
                 >
                   {isCompareMode ? 'Hủy so sánh' : 'So sánh Outfit'}
                 </button>
               )}
             </div>
           </div>
-          
+
           {isCompareMode && (
-            <div className="mt-4 p-3 bg-indigo-50 border border-indigo-100 rounded-xl flex items-center justify-between animate-in fade-in slide-in-from-top-2 duration-200">
-              <div className="flex items-center gap-2 text-indigo-900 text-sm font-medium">
-                <Scale className="w-5 h-5 text-indigo-600" />
-                <span>Chọn 2 bộ phối để so sánh ({selectedForCompare.length}/2)</span>
+            <div className="mt-4 p-4 bg-red-50 border border-red-100 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="flex items-center gap-2 text-red-900 text-sm font-medium">
+                <Scale className="w-5 h-5 text-red-700" />
+                <span>Chọn bộ phối để so sánh ({selectedForCompare.length}/2)</span>
               </div>
-              <button
-                onClick={handleRunCompare}
-                disabled={selectedForCompare.length !== 2}
-                className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-colors ${
-                  selectedForCompare.length === 2 
-                    ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm' 
-                    : 'bg-indigo-100 text-indigo-400 cursor-not-allowed'
-                }`}
-              >
-                So sánh ngay
-              </button>
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                {selectedForCompare.length === 1 && (
+                  <button
+                    onClick={() => setShowLookbookPicker(true)}
+                    className="px-4 py-2 rounded-xl text-sm font-semibold transition-colors bg-white text-red-700 border border-red-200 hover:bg-red-50 hover:border-red-300 shadow-sm flex-1 sm:flex-none cursor-pointer"
+                  >
+                    So sánh với Bộ phối mẫu
+                  </button>
+                )}
+                <button
+                  onClick={handleRunCompare}
+                  disabled={selectedForCompare.length !== 2}
+                  className={`px-6 py-2 rounded-xl text-sm font-bold transition-all flex-1 sm:flex-none ${selectedForCompare.length === 2
+                      ? 'bg-red-700 text-white hover:bg-red-800 shadow-md hover:shadow-lg active:scale-95 cursor-pointer'
+                      : 'bg-stone-200 text-stone-400 cursor-not-allowed'
+                    }`}
+                >
+                  So sánh ngay
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -461,16 +542,14 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio }) =>
                       toggleCompareSelection(outfit);
                     }
                   }}
-                  className={`bg-white rounded-3xl overflow-hidden shadow-xs flex flex-col group transition-all duration-300 relative ${
-                    isCompareMode ? 'cursor-pointer' : ''
-                  } ${
-                    isSelected 
-                      ? 'border-2 border-indigo-500 ring-4 ring-indigo-500/10' 
+                  className={`bg-white rounded-3xl overflow-hidden shadow-xs flex flex-col group transition-all duration-300 relative ${isCompareMode ? 'cursor-pointer' : ''
+                    } ${isSelected
+                      ? 'border-2 border-red-500 ring-4 ring-red-500/10'
                       : 'border border-stone-200/80 hover:shadow-md hover:border-stone-300'
-                  }`}
+                    }`}
                 >
                   {isSelected && (
-                    <div className="absolute top-2 right-2 z-10 bg-indigo-600 text-white rounded-full p-1 shadow-md">
+                    <div className="absolute top-2 right-2 z-10 bg-red-700 text-white rounded-full p-1 shadow-md">
                       <CheckCircle2 className="w-5 h-5" />
                     </div>
                   )}
@@ -587,12 +666,35 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio }) =>
         )}
       </div>
 
-      <CompareResultModal 
-        result={compareResult}
-        outfitAName={selectedForCompare[0]?.name || 'Outfit A'}
-        outfitBName={selectedForCompare[1]?.name || 'Outfit B'}
-        onClose={() => setCompareResult(null)}
-      />
+      {showLookbookPicker && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-lg max-h-[75vh] flex flex-col shadow-xl border border-stone-200">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-lg text-stone-900">Chọn bộ phối mẫu</h3>
+              <button onClick={() => setShowLookbookPicker(false)} className="p-2 hover:bg-stone-100 rounded-full transition-colors cursor-pointer">
+                <X className="w-5 h-5 text-stone-500" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto pr-2 space-y-3">
+              {OUTFIT_COMBINATIONS.map(outfit => (
+                <div
+                  key={outfit.id}
+                  onClick={() => handleCompareWithLookbook(outfit as any)}
+                  className="p-4 rounded-xl border border-stone-200 hover:border-red-300 hover:bg-red-50/50 cursor-pointer transition-colors flex items-center justify-between group"
+                >
+                  <div>
+                    <h4 className="font-bold text-stone-900 group-hover:text-red-700">{outfit.name}</h4>
+                    <p className="text-xs text-stone-500 mt-1">{outfit.traditional_focus}</p>
+                  </div>
+                  <span className="text-xs font-semibold text-red-700 bg-red-100 px-3 py-1 rounded-full shrink-0 ml-4 group-hover:bg-red-700 group-hover:text-white transition-colors">
+                    Chọn
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -78,8 +78,16 @@ export function isItemGenderCompatible(itemGender: string | undefined | null, ta
   if (!itemGender || !targetGender) return true;
   const ig = itemGender.toLowerCase().trim();
   const tg = targetGender.toLowerCase().trim();
-  if (ig === 'unisex' || ig === '') return true;
+  if (ig === 'unisex' || ig === '' || tg === 'unisex') return true;
   return ig === tg;
+}
+
+export function getDisplayGender(gender: string | null | undefined): string {
+  if (!gender) return 'Không xác định';
+  const g = gender.toLowerCase().trim();
+  if (g === 'female') return 'Nữ';
+  if (g === 'male') return 'Nam';
+  return 'Phi giới tính (Unisex)';
 }
 
 /**
@@ -239,7 +247,7 @@ export function validateOutfit(
           results.push({
             isValid: false,
             severity: 'BLOCK',
-            message: `Món cổ phục '${foundGarment.name}' được thiết kế dành riêng cho ${effectiveGender === 'female' ? 'Nữ' : 'Nam'}, không tương thích với giới tính ${userGender === 'female' ? 'Nữ' : 'Nam'} đang chọn.`,
+            message: `Món cổ phục '${foundGarment.name}' được thiết kế dành riêng cho ${getDisplayGender(effectiveGender)}, không tương thích với giới tính ${getDisplayGender(userGender)} đang chọn.`,
             ruleId: 'GENDER_INCOMPATIBLE'
           });
         }
@@ -301,9 +309,9 @@ export function validateOutfit(
     const foundInnerItem = findCatalogItem(inId);
     if (!foundInnerItem) {
       results.push({
-        isValid: false,
-        severity: 'BLOCK',
-        message: `Dữ liệu không hợp lệ: Áo mặc trong đã chọn ('${inId}') không tồn tại trong danh mục.`,
+        isValid: true,
+        severity: 'INFO',
+        message: `Gợi ý: Áo mặc trong đã chọn ('${inId}') không tồn tại trong danh mục hiện tại.`,
         ruleId: 'INVALID_INNER_ID'
       });
     } else {
@@ -320,7 +328,7 @@ export function validateOutfit(
         results.push({
           isValid: false,
           severity: 'BLOCK',
-          message: `Món áo mặc trong '${foundInnerItem.item.name}' không tương thích với giới tính ${userGender === 'female' ? 'Nữ' : 'Nam'} đang chọn.`,
+          message: `Món áo mặc trong '${foundInnerItem.item.name}' không tương thích với giới tính ${getDisplayGender(userGender)} đang chọn.`,
           ruleId: 'GENDER_INCOMPATIBLE'
         });
       }
@@ -331,9 +339,9 @@ export function validateOutfit(
     const foundBottomItem = findCatalogItem(botId);
     if (!foundBottomItem) {
       results.push({
-        isValid: false,
-        severity: 'BLOCK',
-        message: `Dữ liệu không hợp lệ: Trang phục nửa dưới đã chọn ('${botId}') không tồn tại trong danh mục.`,
+        isValid: true,
+        severity: 'INFO',
+        message: `Gợi ý: Trang phục nửa dưới đã chọn ('${botId}') không tồn tại trong danh mục.`,
         ruleId: 'INVALID_BOTTOM_ID'
       });
     } else {
@@ -350,7 +358,7 @@ export function validateOutfit(
         results.push({
           isValid: false,
           severity: 'BLOCK',
-          message: `Món đồ nửa dưới '${foundBottomItem.item.name}' không tương thích với giới tính ${userGender === 'female' ? 'Nữ' : 'Nam'} đang chọn.`,
+          message: `Món đồ nửa dưới '${foundBottomItem.item.name}' không tương thích với giới tính ${getDisplayGender(userGender)} đang chọn.`,
           ruleId: 'GENDER_INCOMPATIBLE'
         });
       }
@@ -361,9 +369,9 @@ export function validateOutfit(
     const foundShoesItem = findCatalogItem(shId);
     if (!foundShoesItem) {
       results.push({
-        isValid: false,
-        severity: 'BLOCK',
-        message: `Dữ liệu không hợp lệ: Giày dép đã chọn ('${shId}') không tồn tại trong danh mục.`,
+        isValid: true,
+        severity: 'INFO',
+        message: `Gợi ý: Giày dép đã chọn ('${shId}') không tồn tại trong danh mục.`,
         ruleId: 'INVALID_SHOES_ID'
       });
     } else {
@@ -380,7 +388,7 @@ export function validateOutfit(
         results.push({
           isValid: false,
           severity: 'BLOCK',
-          message: `Giày dép '${foundShoesItem.item.name}' không tương thích với giới tính ${userGender === 'female' ? 'Nữ' : 'Nam'} đang chọn.`,
+          message: `Giày dép '${foundShoesItem.item.name}' không tương thích với giới tính ${getDisplayGender(userGender)} đang chọn.`,
           ruleId: 'GENDER_INCOMPATIBLE'
         });
       }
@@ -391,9 +399,9 @@ export function validateOutfit(
     const foundHeadwearItem = findCatalogItem(hId);
     if (!foundHeadwearItem) {
       results.push({
-        isValid: false,
-        severity: 'BLOCK',
-        message: `Dữ liệu không hợp lệ: Phụ kiện mũ nón đã chọn ('${hId}') không tồn tại trong danh mục.`,
+        isValid: true,
+        severity: 'INFO',
+        message: `Gợi ý: Phụ kiện mũ nón đã chọn ('${hId}') không tồn tại trong danh mục.`,
         ruleId: 'INVALID_HEADWEAR_ID'
       });
     } else {
@@ -410,7 +418,7 @@ export function validateOutfit(
         results.push({
           isValid: false,
           severity: 'BLOCK',
-          message: `Mũ nón '${foundHeadwearItem.item.name}' không tương thích với giới tính ${userGender === 'female' ? 'Nữ' : 'Nam'} đang chọn.`,
+          message: `Mũ nón '${foundHeadwearItem.item.name}' không tương thích với giới tính ${getDisplayGender(userGender)} đang chọn.`,
           ruleId: 'GENDER_INCOMPATIBLE'
         });
       }
@@ -422,9 +430,9 @@ export function validateOutfit(
       const foundJItem = findCatalogItem(jId);
       if (!foundJItem) {
         results.push({
-          isValid: false,
-          severity: 'BLOCK',
-          message: `Dữ liệu không hợp lệ: Trang sức đã chọn ('${jId}') không tồn tại trong danh mục.`,
+          isValid: true,
+          severity: 'INFO',
+          message: `Gợi ý: Trang sức đã chọn ('${jId}') không tồn tại trong danh mục.`,
           ruleId: 'INVALID_JEWELRY_ID'
         });
       } else {
@@ -441,7 +449,7 @@ export function validateOutfit(
           results.push({
             isValid: false,
             severity: 'BLOCK',
-            message: `Trang sức '${foundJItem.item.name}' không tương thích với giới tính ${userGender === 'female' ? 'Nữ' : 'Nam'} đang chọn.`,
+            message: `Trang sức '${foundJItem.item.name}' không tương thích với giới tính ${getDisplayGender(userGender)} đang chọn.`,
             ruleId: 'GENDER_INCOMPATIBLE'
           });
         }
