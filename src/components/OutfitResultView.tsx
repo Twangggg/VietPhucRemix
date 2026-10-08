@@ -52,7 +52,7 @@ interface OutfitResultViewProps {
   validationResults: ValidationResult[];
   onBackToStudio: () => void;
   onResetOutfit?: () => void;
-  onSaveOutfit?: (colors: Record<string, ItemColorSetting>) => void;
+  onSaveOutfit?: (colors: Record<string, ItemColorSetting>, name?: string) => void;
   initialItemColors?: Record<string, ItemColorSetting>;
   onColorsChange?: (colors: Record<string, ItemColorSetting>) => void;
   isSaved?: boolean;
@@ -188,6 +188,10 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
       jewelryIds: jewelryItems?.map((j) => j.id) || [],
       itemColors: itemColors
     });
+    // Đồng thời lưu vào Bộ sưu tập cá nhân nếu có callback
+    if (onSaveOutfit) {
+      onSaveOutfit(itemColors);
+    }
   };
 
   // Phân giải các món đồ theo giới tính để lấy ảnh chính xác
@@ -196,12 +200,17 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
   const resolvedBottom = bottomItem ? resolveItemByGender(bottomItem, selectedGender) : null;
   const resolvedShoes = shoesItem ? resolveItemByGender(shoesItem, selectedGender) : null;
   const resolvedHeadwear = headwearItem ? resolveItemByGender(headwearItem, selectedGender) : null;
+  const [customOutfitName, setCustomOutfitName] = useState<string>(`Phối đồ ${resolvedGarment.name}`);
+
+  useEffect(() => {
+    setCustomOutfitName(`Phối đồ ${resolvedGarment.name}`);
+  }, [resolvedGarment.name]);
 
   // Lọc các thông báo cảnh báo mức WARN
   const warnings = validationResults.filter((r) => r.severity === 'WARN');
 
   const garmentImageUrl = getSafeImageUrl(resolvedGarment.resolvedImageUrl || resolvedGarment);
-  const garmentColorSetting = itemColors[garmentItem.id] || { hex: null, intensity: 0.85 };
+  const garmentColorSetting = itemColors[garmentItem.id] || (resolvedGarment ? itemColors[resolvedGarment.id] : undefined) || { hex: null, intensity: 0.85 };
 
   // Danh sách các món đồ phụ phối kèm (Tự động dàn trang linh hoạt, không bao giờ bị tràn lề)
   const companionItems = [
@@ -213,7 +222,7 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
         name: resolvedG.name || g.name || 'Cổ phục',
         categoryName: 'Cổ phục',
         imageUrl: getSafeImageUrl(resolvedG.resolvedImageUrl || resolvedG),
-        colorSetting: itemColors[g.id] || { hex: null, intensity: 0.85 },
+        colorSetting: itemColors[g.id] || (resolvedG ? itemColors[resolvedG.id] : undefined) || { hex: null, intensity: 0.85 },
         rotation: idx % 2 === 0 ? '-rotate-4' : 'rotate-4',
         sizeClass: 'w-24 sm:w-32 h-32 sm:h-40',
         onClick: () => setDetailGarment(g)
@@ -224,7 +233,7 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
       name: resolvedHeadwear.name,
       categoryName: 'Mũ nón',
       imageUrl: getSafeImageUrl(resolvedHeadwear.resolvedImageUrl || resolvedHeadwear),
-      colorSetting: itemColors[headwearItem.id] || { hex: null, intensity: 0.85 },
+      colorSetting: itemColors[headwearItem.id] || (resolvedHeadwear ? itemColors[resolvedHeadwear.id] : undefined) || { hex: null, intensity: 0.85 },
       rotation: '-rotate-3',
       sizeClass: 'w-20 sm:w-28 h-20 sm:h-28',
       onClick: () => setDetailAccessory(headwearItem)
@@ -234,7 +243,7 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
       name: resolvedInner.name,
       categoryName: 'Áo mặc trong',
       imageUrl: getSafeImageUrl(resolvedInner.resolvedImageUrl || resolvedInner),
-      colorSetting: itemColors[innerItem.id] || { hex: null, intensity: 0.85 },
+      colorSetting: itemColors[innerItem.id] || (resolvedInner ? itemColors[resolvedInner.id] : undefined) || { hex: null, intensity: 0.85 },
       rotation: 'rotate-2',
       sizeClass: 'w-22 sm:w-30 h-22 sm:h-30',
       onClick: () => setDetailCasual(innerItem)
@@ -244,7 +253,7 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
       name: resolvedBottom.name,
       categoryName: 'Quần / Váy',
       imageUrl: getSafeImageUrl(resolvedBottom.resolvedImageUrl || resolvedBottom),
-      colorSetting: itemColors[bottomItem.id] || { hex: null, intensity: 0.85 },
+      colorSetting: itemColors[bottomItem.id] || (resolvedBottom ? itemColors[resolvedBottom.id] : undefined) || { hex: null, intensity: 0.85 },
       rotation: '-rotate-2',
       sizeClass: 'w-22 sm:w-32 h-28 sm:h-36',
       onClick: () => setDetailCasual(bottomItem)
@@ -254,7 +263,7 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
       name: resolvedShoes.name,
       categoryName: 'Giày dép',
       imageUrl: getSafeImageUrl(resolvedShoes.resolvedImageUrl || resolvedShoes),
-      colorSetting: itemColors[shoesItem.id] || { hex: null, intensity: 0.85 },
+      colorSetting: itemColors[shoesItem.id] || (resolvedShoes ? itemColors[resolvedShoes.id] : undefined) || { hex: null, intensity: 0.85 },
       rotation: 'rotate-3',
       sizeClass: 'w-20 sm:w-28 h-20 sm:h-28',
       onClick: () => setDetailCasual(shoesItem)
@@ -266,7 +275,7 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
         name: resolvedJ.name,
         categoryName: 'Trang sức',
         imageUrl: getSafeImageUrl(resolvedJ.resolvedImageUrl || resolvedJ),
-        colorSetting: itemColors[j.id] || { hex: null, intensity: 0.85 },
+        colorSetting: itemColors[j.id] || (resolvedJ ? itemColors[resolvedJ.id] : undefined) || { hex: null, intensity: 0.85 },
         rotation: idx % 2 === 0 ? '-rotate-6' : 'rotate-6',
         sizeClass: 'w-16 sm:w-22 h-16 sm:h-22',
         onClick: () => setDetailAccessory(j)
@@ -585,12 +594,35 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
                 className="w-full px-3.5 py-2.5 rounded-xl bg-red-700 hover:bg-red-800 text-white font-semibold text-xs flex items-center justify-between shadow-xs transition-all active:scale-95 cursor-pointer"
               >
                 <div className="flex items-center gap-2">
-                  <Bookmark className="w-4 h-4" />
-                  <span>Lưu Lookbook & Chia sẻ</span>
+                  <Share2 className="w-4 h-4" />
+                  <span>Xuất thẻ ảnh & Chia sẻ</span>
                 </div>
-                <Share2 className="w-3.5 h-3.5 opacity-80" />
+                <Sparkles className="w-3.5 h-3.5 opacity-80" />
               </button>
 
+              {!isFromCollection && onSaveOutfit && (
+                <button
+                  type="button"
+                  onClick={() => onSaveOutfit(itemColors, customOutfitName)}
+                  className={`w-full px-3.5 py-2 rounded-xl font-semibold text-xs flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-xs ${
+                    isSaved
+                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 hover:bg-emerald-200/70'
+                      : 'bg-stone-900 hover:bg-stone-800 text-white'
+                  }`}
+                >
+                  {isSaved ? (
+                    <>
+                      <BookmarkCheck className="w-3.5 h-3.5 text-emerald-700" />
+                      <span>Đã lưu vào bộ sưu tập</span>
+                    </>
+                  ) : (
+                    <>
+                      <Bookmark className="w-3.5 h-3.5 text-stone-300" />
+                      <span>Lưu vào bộ sưu tập</span>
+                    </>
+                  )}
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => {
@@ -680,6 +712,8 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
           garment={detailGarment}
           onClose={() => setDetailGarment(null)}
           selectedGender={selectedGender === 'female' ? 'Female' : 'Male'}
+          currentColorHex={itemColors[detailGarment.id]?.hex || null}
+          onApplyColor={(hex) => updateItemColor(detailGarment.id, hex)}
         />
       )}
 
@@ -688,6 +722,8 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
           item={detailCasual}
           onClose={() => setDetailCasual(null)}
           selectedGender={selectedGender === 'female' ? 'Female' : 'Male'}
+          currentColorHex={itemColors[detailCasual.id]?.hex || null}
+          onApplyColor={(hex) => updateItemColor(detailCasual.id, hex)}
         />
       )}
 
@@ -696,6 +732,8 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
           accessory={detailAccessory}
           onClose={() => setDetailAccessory(null)}
           selectedGender={selectedGender === 'female' ? 'Female' : 'Male'}
+          currentColorHex={itemColors[detailAccessory.id]?.hex || null}
+          onApplyColor={(hex) => updateItemColor(detailAccessory.id, hex)}
         />
       )}
 
@@ -722,12 +760,17 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
         selectedGender={selectedGender.toLowerCase() as 'male' | 'female'}
       />
 
-      {/* Modal Lưu Lookbook & Chia Sẻ */}
+      {/* Modal Xuất Thẻ Ảnh & Chia Sẻ */}
       <SaveLookbookModal
         isOpen={showSaveModal}
         onClose={() => setShowSaveModal(false)}
-        defaultTitle={`Phối đồ ${resolvedGarment.name}`}
-        onSave={handleSaveToLookbook}
+        defaultTitle={customOutfitName}
+        onUpdateName={(newName) => {
+          setCustomOutfitName(newName);
+          if (isSaved && onSaveOutfit) {
+            onSaveOutfit(itemColors, newName);
+          }
+        }}
         onExportImage={handleExportLookbookImage}
         isExporting={isExporting}
         sharePayload={{
