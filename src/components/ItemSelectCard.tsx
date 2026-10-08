@@ -1,6 +1,7 @@
 import React from 'react';
-import { Check, Sparkles, Eye, Plus } from 'lucide-react';
+import { Check, Sparkles, Eye, Plus, Palette } from 'lucide-react';
 import { SafeImage } from './SafeImage';
+import { TintedImage } from './TintedImage';
 import { getSafeImageUrl, getCategoryVietnamese } from '../utils/helpers';
 
 export interface ItemSelectCardProps {
@@ -22,6 +23,9 @@ export interface ItemSelectCardProps {
   onViewDetail?: () => void;
   badgeText?: string;
   subtitle?: string;
+  colorHex?: string | null;
+  colorIntensity?: number;
+  onRecolor?: () => void;
 }
 
 export const ItemSelectCard: React.FC<ItemSelectCardProps> = ({
@@ -30,7 +34,10 @@ export const ItemSelectCard: React.FC<ItemSelectCardProps> = ({
   onSelect,
   onViewDetail,
   badgeText,
-  subtitle
+  subtitle,
+  colorHex,
+  colorIntensity = 0.85,
+  onRecolor
 }) => {
   const imageUrl = item.resolvedImageUrl || getSafeImageUrl(item);
 
@@ -49,13 +56,25 @@ export const ItemSelectCard: React.FC<ItemSelectCardProps> = ({
           className="aspect-[3/4] w-full rounded-xl overflow-hidden relative bg-stone-100 flex items-center justify-center cursor-pointer"
         >
           {imageUrl ? (
-            <SafeImage
-              src={imageUrl}
-              alt={item.name}
-              fallbackText={item.name}
-              expectedPath={imageUrl}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            />
+            colorHex ? (
+              <TintedImage
+                src={imageUrl}
+                colorHex={colorHex}
+                intensity={colorIntensity}
+                alt={item.name}
+                fallbackText={item.name}
+                className="w-full h-full flex items-center justify-center"
+                imgClassName="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              />
+            ) : (
+              <SafeImage
+                src={imageUrl}
+                alt={item.name}
+                fallbackText={item.name}
+                expectedPath={imageUrl}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              />
+            )
           ) : (
             <div className="flex flex-col items-center justify-center text-stone-300 gap-1 p-2">
               <Sparkles className="w-6 h-6 text-stone-300 group-hover:text-red-700/60 transition-colors" />
@@ -63,9 +82,24 @@ export const ItemSelectCard: React.FC<ItemSelectCardProps> = ({
             </div>
           )}
 
+          {/* Nút đổi màu trực tiếp trên card nếu có onRecolor */}
+          {onRecolor && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onRecolor();
+              }}
+              className="absolute top-2 left-2 z-10 p-1.5 rounded-full bg-white/90 hover:bg-white text-stone-600 hover:text-red-700 shadow-xs transition-all border border-stone-200/60 cursor-pointer hover:scale-110 active:scale-95"
+              title="Đổi màu sắc cho trang phục này"
+            >
+              <Palette className="w-3 h-3 text-red-700" />
+            </button>
+          )}
+
           {/* Dấu tích xanh khi được chọn ở góc trên bên phải */}
           {isSelected && (
-            <div className="absolute top-2 right-2 bg-emerald-600 text-white rounded-full p-1 shadow-md animate-in zoom-in-50 duration-150">
+            <div className="absolute top-2 right-2 bg-emerald-600 text-white rounded-full p-1 shadow-md animate-in zoom-in-50 duration-150 z-10">
               <Check className="w-3 h-3 stroke-[3]" />
             </div>
           )}

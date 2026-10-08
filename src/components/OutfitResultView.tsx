@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   BookOpen,
   CheckCircle2,
@@ -6,6 +6,7 @@ import {
   Sparkles,
   ArrowLeft,
   ChevronUp,
+  ChevronDown,
   Palette,
   Bookmark,
   BookmarkCheck,
@@ -16,7 +17,7 @@ import {
   Info
 } from 'lucide-react';
 import { toPng } from 'html-to-image';
-import { Garment, CasualItem, AccessoryItem, ContextItem, ValidationResult } from '../types';
+import { Garment, CasualItem, AccessoryItem, ContextItem, ValidationResult, Gender } from '../types';
 import { SafeImage } from './SafeImage';
 import { TintedImage } from './TintedImage';
 import { getSafeImageUrl, resolveItemByGender } from '../utils/helpers';
@@ -39,7 +40,7 @@ interface ItemColorSetting {
 }
 
 interface OutfitResultViewProps {
-  selectedGender: 'male' | 'female';
+  selectedGender: 'male' | 'female' | 'Male' | 'Female' | Gender;
   contextItem?: ContextItem | null;
   garmentItem: Garment;
   additionalGarments?: Garment[];
@@ -51,7 +52,9 @@ interface OutfitResultViewProps {
   validationResults: ValidationResult[];
   onBackToStudio: () => void;
   onResetOutfit?: () => void;
-  onSaveOutfit?: () => void;
+  onSaveOutfit?: (colors: Record<string, ItemColorSetting>) => void;
+  initialItemColors?: Record<string, ItemColorSetting>;
+  onColorsChange?: (colors: Record<string, ItemColorSetting>) => void;
   isSaved?: boolean;
   saveNotice?: SaveNotice | null;
   isFromCollection?: boolean;
@@ -72,6 +75,8 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
   validationResults,
   onBackToStudio,
   onSaveOutfit,
+  initialItemColors,
+  onColorsChange,
   isSaved = false,
   saveNotice = null,
   isFromCollection = false,
@@ -87,7 +92,25 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
   const [detailAccessory, setDetailAccessory] = useState<AccessoryItem | null>(null);
 
   // State quản lý màu sắc tùy biến theo từng item (ID -> { hex, intensity })
-  const [itemColors, setItemColors] = useState<Record<string, ItemColorSetting>>({});
+  const [itemColors, setItemColors] = useState<Record<string, ItemColorSetting>>(initialItemColors || {});
+
+  // Cập nhật khi initialItemColors thay đổi
+  useEffect(() => {
+    if (initialItemColors) {
+      setItemColors(initialItemColors);
+    }
+  }, [initialItemColors]);
+
+  const updateItemColor = (id: string, hex: string | null, intensity: number = 0.85) => {
+    setItemColors((prev) => {
+      const next = {
+        ...prev,
+        [id]: { hex, intensity }
+      };
+      onColorsChange?.(next);
+      return next;
+    });
+  };
   
   // State mở Color Customizer Modal cho món đồ cụ thể
   const [colorTargetItem, setColorTargetItem] = useState<{
@@ -387,6 +410,32 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
                 {resolvedGarment.name}
               </h2>
 
+              {/* Nút đổi màu trực quan ngay trên thẻ Cổ phục chính */}
+              <div className="pt-0.5 pb-1 flex items-center justify-center">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setColorTargetItem({
+                      id: garmentItem.id,
+                      name: resolvedGarment.name,
+                      categoryName: 'Cổ phục',
+                      imageUrl: garmentImageUrl
+                    });
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-stone-100 hover:bg-stone-200/80 text-stone-700 hover:text-stone-900 text-[11px] font-sans font-medium transition-all shadow-2xs cursor-pointer border border-stone-200"
+                  title={`Đổi sắc màu cho ${resolvedGarment.name}`}
+                >
+                  <Palette className="w-3.5 h-3.5 text-red-700" />
+                  <span>Đổi màu áo</span>
+                  {garmentColorSetting.hex && (
+                    <span
+                      className="w-2.5 h-2.5 rounded-full border border-stone-300 shadow-2xs inline-block ml-0.5"
+                      style={{ backgroundColor: garmentColorSetting.hex }}
+                    />
+                  )}
+                </button>
+              </div>
 
               {resolvedGarment.origin ? (
                 <p className="text-xs text-stone-500 font-sans leading-relaxed pt-1">
@@ -534,7 +583,7 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
               {!isFromCollection && onSaveOutfit && (
                 <button
                   type="button"
-                  onClick={onSaveOutfit}
+                  onClick={() => onSaveOutfit(itemColors)}
                   className={`w-full px-3.5 py-2 rounded-xl font-semibold text-xs flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-xs ${
                     isSaved
                       ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 hover:bg-emerald-200/70'
@@ -674,10 +723,7 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
           originalImageUrl={colorTargetItem.imageUrl}
           currentColorHex={itemColors[colorTargetItem.id]?.hex || null}
           onApplyColor={(hex, intensity) => {
-            setItemColors((prev) => ({
-              ...prev,
-              [colorTargetItem.id]: { hex, intensity }
-            }));
+            updateItemColor(colorTargetItem.id, hex, intensity);
           }}
         />
       )}
@@ -687,7 +733,7 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
         isOpen={showCulturalModal}
         onClose={() => setShowCulturalModal(false)}
         garment={garmentItem}
-        selectedGender={selectedGender}
+        selectedGender={selectedGender.toLowerCase() as 'male' | 'female'}
       />
 
       {/* Modal Lưu Lookbook & Chia Sẻ */}

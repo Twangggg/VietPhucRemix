@@ -29,6 +29,7 @@ import { OutfitResultView, SaveNotice } from '../components/OutfitResultView';
 import { GarmentDetailModal } from '../components/GarmentDetailModal';
 import { CasualDetailModal } from '../components/CasualDetailModal';
 import { AccessoryDetailModal } from '../components/AccessoryDetailModal';
+import { ColorCustomizerModal } from '../components/ColorCustomizerModal';
 import { saveOutfit, getSavedOutfits, isSameOutfit } from '../utils/storage';
 
 export const Studio: React.FC = () => {
@@ -56,7 +57,7 @@ export const Studio: React.FC = () => {
       if (state.presetGender) {
         setSelectedGender(state.presetGender);
       }
-      setSelectedGarment(state.presetGarmentId);
+      setSelectedGarments(Array.isArray(state.presetGarmentId) ? state.presetGarmentId : [state.presetGarmentId]);
       setSelectedContext(state.presetContextId || null);
       setSelectedInner(state.presetInnerId || null);
       setSelectedBottom(state.presetBottomId || null);
@@ -68,10 +69,18 @@ export const Studio: React.FC = () => {
     }
   }, [location.state]);
 
-  // State mở Modal chi tiết xem trước từng món đồ
   const [previewGarment, setPreviewGarment] = useState<Garment | null>(null);
   const [previewCasual, setPreviewCasual] = useState<CasualItem | null>(null);
   const [previewAccessory, setPreviewAccessory] = useState<AccessoryItem | null>(null);
+
+  // State quản lý màu sắc tùy biến theo từng món trong Studio (ID -> { hex, intensity })
+  const [itemColors, setItemColors] = useState<Record<string, { hex: string | null; intensity: number }>>({});
+  const [colorCustomizerTarget, setColorCustomizerTarget] = useState<{
+    id: string;
+    name: string;
+    categoryName: string;
+    imageUrl: string;
+  } | null>(null);
 
   // State kết quả kiểm tra & chuyển màn hình hiển thị thành quả
   const [validationResults, setValidationResults] = useState<ValidationResult[]>([]);
@@ -158,47 +167,92 @@ export const Studio: React.FC = () => {
   }, []);
 
   // 2. Chọn Cổ phục (Tab 2)
-  const handleSelectGarment = (garmentId: string) => {
+  const handleSelectGarment = (garmentId: string, forceSelect?: boolean) => {
     setIsBottomBarExpanded(false);
     setQuickMatchNotice(null);
     setSelectedGarments((prev) => {
-      if (prev.includes(garmentId)) {
-        return prev.filter((id) => id !== garmentId);
-      } else {
-        return [...prev, garmentId];
+      const alreadySelected = prev.includes(garmentId);
+      if (forceSelect === true) {
+        return alreadySelected ? prev : [...prev, garmentId];
       }
+      if (forceSelect === false) {
+        return prev.filter((id) => id !== garmentId);
+      }
+      return alreadySelected ? prev.filter((id) => id !== garmentId) : [...prev, garmentId];
     });
   };
 
   // 3. SMART ASSIGNMENT cho đồ Mặc kèm (Tab 3)
-  const handleSmartSelectCasual = (item: any) => {
+  const handleSmartSelectCasual = (item: any, forceSelect?: boolean) => {
     setIsBottomBarExpanded(false);
     setQuickMatchNotice(null);
     const rawCat = (item.category || item.type || '').toLowerCase();
 
+    const applySingleSlot = (prev: string | null) => {
+      if (forceSelect === true) return item.id;
+      if (forceSelect === false) return prev === item.id ? null : prev;
+      return prev === item.id ? null : item.id;
+    };
+
     if (rawCat.includes('inner') || rawCat.includes('top')) {
-      setSelectedInner((prev) => (prev === item.id ? null : item.id));
+      setSelectedInner((prev) => applySingleSlot(prev));
     } else if (rawCat.includes('bottom') || rawCat.includes('pants') || rawCat.includes('skirt')) {
-      setSelectedBottom((prev) => (prev === item.id ? null : item.id));
+      setSelectedBottom((prev) => applySingleSlot(prev));
     } else if (rawCat.includes('shoe') || rawCat.includes('footwear')) {
-      setSelectedShoes((prev) => (prev === item.id ? null : item.id));
+      setSelectedShoes((prev) => applySingleSlot(prev));
     } else {
-      if (item.type === 'inner') setSelectedInner((prev) => (prev === item.id ? null : item.id));
-      else if (item.type === 'bottom') setSelectedBottom((prev) => (prev === item.id ? null : item.id));
-      else if (item.type === 'shoes') setSelectedShoes((prev) => (prev === item.id ? null : item.id));
+      if (item.type === 'inner') setSelectedInner((prev) => applySingleSlot(prev));
+      else if (item.type === 'bottom') setSelectedBottom((prev) => applySingleSlot(prev));
+      else if (item.type === 'shoes') setSelectedShoes((prev) => applySingleSlot(prev));
     }
   };
 
   // 4. SMART ASSIGNMENT cho Phụ kiện (Tab 4)
-  const handleSmartSelectAccessory = (item: any) => {
+  const handleSmartSelectAccessory = (item: any, forceSelect?: boolean) => {
     setIsBottomBarExpanded(false);
     setQuickMatchNotice(null);
     if (item.type === 'headwear' || item.category === 'headwear') {
-      setSelectedHeadwear((prev) => (prev === item.id ? null : item.id));
+      setSelectedHeadwear((prev) => {
+        if (forceSelect === true) return item.id;
+        if (forceSelect === false) return prev === item.id ? null : prev;
+        return prev === item.id ? null : item.id;
+      });
     } else {
-      setSelectedJewelries((prev) =>
-        prev.includes(item.id) ? prev.filter((id) => id !== item.id) : [...prev, item.id]
-      );
+      setSelectedJewelries((prev) => {
+        const alreadySelected = prev.includes(item.id);
+        if (forceSelect === true) return alreadySelected ? prev : [...prev, item.id];
+        if (forceSelect === false) return prev.filter((id) => id !== item.id);
+        return alreadySelected ? prev.filter((id) => id !== item.id) : [...prev, item.id];
+      });
+    }
+  };
+
+  // Helper tự động đảm bảo món đồ được chọn khi tùy biến màu sắc
+  const autoSelectItem = (itemId: string) => {
+    // 1. Kiểm tra Cổ phục hoặc giày truyền thống trong GARMENTS
+    const garment = GARMENTS.find((g) => g.id === itemId);
+    if (garment) {
+      const isFootwear = garment.type === 'shoes' || garment.category === 'traditional_footwear';
+      if (isFootwear) {
+        setSelectedShoes(itemId);
+      } else {
+        handleSelectGarment(itemId, true);
+      }
+      return;
+    }
+
+    // 2. Kiểm tra Đồ mặc kèm Casual
+    const casual = CASUAL_ITEMS.find((c) => c.id === itemId);
+    if (casual) {
+      handleSmartSelectCasual(casual, true);
+      return;
+    }
+
+    // 3. Kiểm tra Phụ kiện & Mũ nón
+    const acc = ACCESSORIES.find((a) => a.id === itemId);
+    if (acc) {
+      handleSmartSelectAccessory(acc, true);
+      return;
     }
   };
 
@@ -408,7 +462,7 @@ export const Studio: React.FC = () => {
   ]);
 
   // Xử lý lưu bộ phối vào Bộ sưu tập
-  const handleSaveOutfit = () => {
+  const handleSaveOutfit = (colors?: Record<string, { hex: string | null; intensity: number }>) => {
     if (selectedGarments.length === 0 || !selectedContext) return;
     const res = saveOutfit({
       costumeId: selectedGarments,
@@ -418,7 +472,8 @@ export const Studio: React.FC = () => {
       bottomId: selectedBottom,
       shoesId: selectedShoes,
       headwearId: selectedHeadwear,
-      jewelryIds: selectedJewelries
+      jewelryIds: selectedJewelries,
+      itemColors: colors
     });
 
     if (res.success) {
@@ -600,6 +655,8 @@ export const Studio: React.FC = () => {
             onBackToStudio={() => setIsShowingResult(false)}
             onResetOutfit={handleResetOutfit}
             onSaveOutfit={handleSaveOutfit}
+            initialItemColors={itemColors}
+            onColorsChange={(newColors) => setItemColors(newColors)}
             isSaved={isCurrentOutfitSaved}
             saveNotice={saveNotice}
           />
@@ -769,6 +826,7 @@ export const Studio: React.FC = () => {
                     {filteredGarments.map((garment) => {
                       const resolved = resolveItemByGender(garment, selectedGender);
                       const isSelected = selectedGarments.includes(garment.id);
+                      const colorSetting = itemColors[garment.id];
 
                       return (
                         <ItemSelectCard
@@ -779,6 +837,16 @@ export const Studio: React.FC = () => {
                           onViewDetail={() => setPreviewGarment(garment)}
                           subtitle={resolved.origin}
                           badgeText={garment.has_gender_variants ? (selectedGender === 'female' ? 'Nữ' : 'Nam') : undefined}
+                          colorHex={colorSetting?.hex}
+                          colorIntensity={colorSetting?.intensity}
+                          onRecolor={() =>
+                            setColorCustomizerTarget({
+                              id: garment.id,
+                              name: resolved.name,
+                              categoryName: 'Cổ phục',
+                              imageUrl: getSafeImageUrl(resolved.resolvedImageUrl || resolved)
+                            })
+                          }
                         />
                       );
                     })}
@@ -881,6 +949,7 @@ export const Studio: React.FC = () => {
                       {inners.map((item) => {
                         const resolved = resolveItemByGender(item, selectedGender);
                         const isSelected = selectedInner === item.id;
+                        const colorSetting = itemColors[item.id];
                         return (
                           <ItemSelectCard
                             key={resolved.id}
@@ -889,6 +958,16 @@ export const Studio: React.FC = () => {
                             onSelect={() => handleSmartSelectCasual(item)}
                             onViewDetail={() => setPreviewCasual(item)}
                             subtitle={item.silhouette ? `Dáng ${item.silhouette}` : undefined}
+                            colorHex={colorSetting?.hex}
+                            colorIntensity={colorSetting?.intensity}
+                            onRecolor={() =>
+                              setColorCustomizerTarget({
+                                id: item.id,
+                                name: resolved.name,
+                                categoryName: 'Áo mặc trong',
+                                imageUrl: getSafeImageUrl(resolved.resolvedImageUrl || resolved)
+                              })
+                            }
                           />
                         );
                       })}
@@ -915,6 +994,7 @@ export const Studio: React.FC = () => {
                       {bottoms.map((item) => {
                         const resolved = resolveItemByGender(item, selectedGender);
                         const isSelected = selectedBottom === item.id;
+                        const colorSetting = itemColors[item.id];
                         return (
                           <ItemSelectCard
                             key={resolved.id}
@@ -923,6 +1003,16 @@ export const Studio: React.FC = () => {
                             onSelect={() => handleSmartSelectCasual(item)}
                             onViewDetail={() => setPreviewCasual(item)}
                             subtitle={item.silhouette ? `Dáng ${item.silhouette}` : undefined}
+                            colorHex={colorSetting?.hex}
+                            colorIntensity={colorSetting?.intensity}
+                            onRecolor={() =>
+                              setColorCustomizerTarget({
+                                id: item.id,
+                                name: resolved.name,
+                                categoryName: 'Quần / Váy',
+                                imageUrl: getSafeImageUrl(resolved.resolvedImageUrl || resolved)
+                              })
+                            }
                           />
                         );
                       })}
@@ -949,6 +1039,7 @@ export const Studio: React.FC = () => {
                       {shoes.map((item) => {
                         const resolved = resolveItemByGender(item, selectedGender);
                         const isSelected = selectedShoes === item.id;
+                        const colorSetting = itemColors[item.id];
                         return (
                           <ItemSelectCard
                             key={resolved.id}
@@ -962,6 +1053,16 @@ export const Studio: React.FC = () => {
                                 setPreviewCasual(item as CasualItem);
                               }
                             }}
+                            colorHex={colorSetting?.hex}
+                            colorIntensity={colorSetting?.intensity}
+                            onRecolor={() =>
+                              setColorCustomizerTarget({
+                                id: item.id,
+                                name: resolved.name,
+                                categoryName: 'Giày dép',
+                                imageUrl: getSafeImageUrl(resolved.resolvedImageUrl || resolved)
+                              })
+                            }
                           />
                         );
                       })}
@@ -1016,6 +1117,7 @@ export const Studio: React.FC = () => {
                       {headwears.map((item) => {
                         const resolved = resolveItemByGender(item, selectedGender);
                         const isSelected = selectedHeadwear === item.id;
+                        const colorSetting = itemColors[item.id];
                         return (
                           <ItemSelectCard
                             key={resolved.id}
@@ -1024,6 +1126,16 @@ export const Studio: React.FC = () => {
                             onSelect={() => handleSmartSelectAccessory(item)}
                             onViewDetail={() => setPreviewAccessory(item)}
                             subtitle={item.origin}
+                            colorHex={colorSetting?.hex}
+                            colorIntensity={colorSetting?.intensity}
+                            onRecolor={() =>
+                              setColorCustomizerTarget({
+                                id: item.id,
+                                name: resolved.name,
+                                categoryName: 'Mũ nón',
+                                imageUrl: getSafeImageUrl(resolved.resolvedImageUrl || resolved)
+                              })
+                            }
                           />
                         );
                       })}
@@ -1050,6 +1162,7 @@ export const Studio: React.FC = () => {
                       {jewelries.map((item) => {
                         const resolved = resolveItemByGender(item, selectedGender);
                         const isSelected = selectedJewelries.includes(item.id);
+                        const colorSetting = itemColors[item.id];
                         return (
                           <ItemSelectCard
                             key={resolved.id}
@@ -1058,6 +1171,16 @@ export const Studio: React.FC = () => {
                             onSelect={() => handleSmartSelectAccessory(item)}
                             onViewDetail={() => setPreviewAccessory(item)}
                             subtitle={item.origin}
+                            colorHex={colorSetting?.hex}
+                            colorIntensity={colorSetting?.intensity}
+                            onRecolor={() =>
+                              setColorCustomizerTarget({
+                                id: item.id,
+                                name: resolved.name,
+                                categoryName: 'Trang sức',
+                                imageUrl: getSafeImageUrl(resolved.resolvedImageUrl || resolved)
+                              })
+                            }
                           />
                         );
                       })}
@@ -1352,8 +1475,31 @@ export const Studio: React.FC = () => {
         <GarmentDetailModal
           garment={previewGarment}
           onClose={() => setPreviewGarment(null)}
-          onSelectForStudio={(id) => handleSelectGarment(id)}
+          onSelectForStudio={(id, forceSelect) => {
+            const g = GARMENTS.find((item) => item.id === id);
+            const isFootwear = g?.type === 'shoes' || g?.category === 'traditional_footwear';
+            if (isFootwear) {
+              if (forceSelect === true) setSelectedShoes(id);
+              else if (forceSelect === false) setSelectedShoes((prev) => (prev === id ? null : prev));
+              else setSelectedShoes((prev) => (prev === id ? null : id));
+            } else {
+              handleSelectGarment(id, forceSelect);
+            }
+          }}
           selectedGender={selectedGender === 'female' ? 'Female' : 'Male'}
+          isSelected={
+            previewGarment.type === 'shoes' || previewGarment.category === 'traditional_footwear'
+              ? selectedShoes === previewGarment.id
+              : selectedGarments.includes(previewGarment.id)
+          }
+          currentColorHex={itemColors[previewGarment.id]?.hex || null}
+          onApplyColor={(hex) => {
+            setItemColors((prev) => ({
+              ...prev,
+              [previewGarment.id]: { hex, intensity: 0.85 }
+            }));
+            autoSelectItem(previewGarment.id);
+          }}
         />
       )}
 
@@ -1361,11 +1507,24 @@ export const Studio: React.FC = () => {
         <CasualDetailModal
           item={previewCasual}
           onClose={() => setPreviewCasual(null)}
-          onSelectForStudio={(id) => {
-            const it = CASUAL_ITEMS.find((c) => c.id === id);
-            if (it) handleSmartSelectCasual(it);
+          onSelectForStudio={(id, forceSelect) => {
+            const it = CASUAL_ITEMS.find((c) => c.id === id) || GARMENTS.find((g) => g.id === id);
+            if (it) handleSmartSelectCasual(it, forceSelect);
           }}
           selectedGender={selectedGender === 'female' ? 'Female' : 'Male'}
+          isSelected={
+            selectedInner === previewCasual.id ||
+            selectedBottom === previewCasual.id ||
+            selectedShoes === previewCasual.id
+          }
+          currentColorHex={itemColors[previewCasual.id]?.hex || null}
+          onApplyColor={(hex) => {
+            setItemColors((prev) => ({
+              ...prev,
+              [previewCasual.id]: { hex, intensity: 0.85 }
+            }));
+            autoSelectItem(previewCasual.id);
+          }}
         />
       )}
 
@@ -1373,11 +1532,39 @@ export const Studio: React.FC = () => {
         <AccessoryDetailModal
           accessory={previewAccessory}
           onClose={() => setPreviewAccessory(null)}
-          onSelectHeadwear={(it) => handleSmartSelectAccessory(it)}
-          onToggleJewelry={(it) => handleSmartSelectAccessory(it)}
+          onSelectHeadwear={(it, forceSelect) => handleSmartSelectAccessory(it, forceSelect)}
+          onToggleJewelry={(it, forceSelect) => handleSmartSelectAccessory(it, forceSelect)}
           isSelectedHeadwear={previewAccessory.id === selectedHeadwear}
           isSelectedJewelry={selectedJewelries.includes(previewAccessory.id)}
           selectedGender={selectedGender === 'female' ? 'Female' : 'Male'}
+          currentColorHex={itemColors[previewAccessory.id]?.hex || null}
+          onApplyColor={(hex) => {
+            setItemColors((prev) => ({
+              ...prev,
+              [previewAccessory.id]: { hex, intensity: 0.85 }
+            }));
+            autoSelectItem(previewAccessory.id);
+          }}
+        />
+      )}
+
+      {/* MODAL ĐỔI MÀU NHANH TRỰC TIẾP TẠI STUDIO */}
+      {colorCustomizerTarget && (
+        <ColorCustomizerModal
+          isOpen={Boolean(colorCustomizerTarget)}
+          onClose={() => setColorCustomizerTarget(null)}
+          itemName={colorCustomizerTarget.name}
+          itemCategoryName={colorCustomizerTarget.categoryName}
+          originalImageUrl={colorCustomizerTarget.imageUrl}
+          currentColorHex={itemColors[colorCustomizerTarget.id]?.hex || null}
+          onApplyColor={(hex, intensity) => {
+            setItemColors((prev) => ({
+              ...prev,
+              [colorCustomizerTarget.id]: { hex, intensity }
+            }));
+            // Khi người dùng áp dụng màu mới cho một món đồ, tự động đảm bảo món đồ đó được chọn vào bản phối
+            autoSelectItem(colorCustomizerTarget.id);
+          }}
         />
       )}
     </div>

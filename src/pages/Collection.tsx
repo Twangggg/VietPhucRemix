@@ -25,6 +25,7 @@ import {
   SavedOutfit
 } from '../utils/storage';
 import { SafeImage } from '../components/SafeImage';
+import { TintedImage } from '../components/TintedImage';
 import { OutfitResultView } from '../components/OutfitResultView';
 import { CompareResult, compareOutfits } from '../utils/compareEngine';
 
@@ -224,12 +225,12 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio }) =>
   if (viewingOutfitId) {
     const viewingOutfit = savedList.find((o) => o.id === viewingOutfitId);
     if (viewingOutfit) {
-      const mainCostumeId = Array.isArray(viewingOutfit.costumeId)
+      const primaryCostumeId = Array.isArray(viewingOutfit.costumeId)
         ? viewingOutfit.costumeId[0]
         : viewingOutfit.costumeId;
-      const baseGarmentId = resolveGarmentBaseId(mainCostumeId);
+      const baseGarmentId = resolveGarmentBaseId(primaryCostumeId);
       const foundGarment = GARMENTS.find(
-        (g) => g.id === mainCostumeId || g.id === baseGarmentId
+        (g) => g.id === primaryCostumeId || g.id === baseGarmentId
       );
       const foundContext = CONTEXTS.find((c) => c.id === viewingOutfit.contextId);
       const foundInner = viewingOutfit.innerId
@@ -268,8 +269,8 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio }) =>
 
       // Fallback an toàn nếu garment trong catalog bị thay đổi ID
       const fallbackGarment = foundGarment || {
-        id: mainCostumeId,
-        name: mainCostumeId,
+        id: String(primaryCostumeId || 'garment_fallback'),
+        name: String(primaryCostumeId || 'Cổ phục'),
         origin: 'Dữ liệu di sản',
         characteristics: 'Món đồ có thể đã thay đổi trong danh mục hiện tại.',
         usage_context: '',
@@ -310,6 +311,7 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio }) =>
             backButtonText="Quay lại danh sách"
             isFromCollection={true}
             isOutdatedOrBlocked={isOutdatedOrBlocked}
+            initialItemColors={viewingOutfit.itemColors}
           />
         </div>
       );
@@ -501,12 +503,12 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio }) =>
         {!isCorrupted && savedList.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
             {savedList.map((outfit) => {
-              const mainCostumeId = Array.isArray(outfit.costumeId)
+              const primaryCostumeId = Array.isArray(outfit.costumeId)
                 ? outfit.costumeId[0]
                 : outfit.costumeId;
-              const baseGarmentId = resolveGarmentBaseId(mainCostumeId);
+              const baseGarmentId = resolveGarmentBaseId(primaryCostumeId);
               const garment = GARMENTS.find(
-                (g) => g.id === mainCostumeId || g.id === baseGarmentId
+                (g) => g.id === primaryCostumeId || g.id === baseGarmentId
               );
               const context = CONTEXTS.find((c) => c.id === outfit.contextId);
 
@@ -556,12 +558,14 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio }) =>
                   {/* Khung Ảnh đại diện Cổ phục */}
                   <div className="aspect-[4/3] w-full overflow-hidden bg-[#FAF7F2] relative flex items-center justify-center p-3">
                     {imageUrl ? (
-                      <SafeImage
+                      <TintedImage
                         src={imageUrl}
+                        colorHex={outfit.itemColors?.[primaryCostumeId]?.hex || null}
+                        intensity={outfit.itemColors?.[primaryCostumeId]?.intensity ?? 0.85}
                         alt={outfit.name}
                         fallbackText={outfit.name}
-                        expectedPath={imageUrl}
-                        className="w-full h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-500"
+                        className="w-full h-full flex items-center justify-center"
+                        imgClassName="w-full h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-500"
                       />
                     ) : (
                       <Sparkles className="w-10 h-10 text-stone-300" />

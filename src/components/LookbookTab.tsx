@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Info, ArrowLeft, Sparkles, Layers } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { CONTEXTS, OUTFIT_COMBINATIONS, GARMENTS, CASUAL_ITEMS, ACCESSORIES } from '../data';
 import { OutfitCombination, Gender, Garment, CasualItem, AccessoryItem } from '../types';
 import { resolveItemByGender } from '../utils/helpers';
@@ -8,6 +9,7 @@ import { CasualDetailModal } from './CasualDetailModal';
 import { AccessoryDetailModal } from './AccessoryDetailModal';
 
 export function LookbookTab() {
+  const navigate = useNavigate();
   const [selectedLookbookOutfit, setSelectedLookbookOutfit] = useState<OutfitCombination | null>(null);
 
   const [detailGarment, setDetailGarment] = useState<Garment | null>(null);

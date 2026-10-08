@@ -15,6 +15,7 @@ export interface SavedOutfit {
   shoesId: string | null;
   headwearId: string | null;
   jewelryIds: string[];
+  itemColors?: Record<string, { hex: string | null; intensity: number }>;
 }
 
 export interface GetSavedOutfitsResult {
@@ -33,6 +34,7 @@ export interface SaveOutfitInput {
   shoesId: string | null;
   headwearId: string | null;
   jewelryIds: string[];
+  itemColors?: Record<string, { hex: string | null; intensity: number }>;
 }
 
 export interface SaveOutfitResult {
@@ -239,7 +241,8 @@ export function saveOutfit(input: SaveOutfitInput): SaveOutfitResult {
     bottomId: input.bottomId || null,
     shoesId: input.shoesId || null,
     headwearId: input.headwearId || null,
-    jewelryIds: Array.isArray(input.jewelryIds) ? [...input.jewelryIds] : []
+    jewelryIds: Array.isArray(input.jewelryIds) ? [...input.jewelryIds] : [],
+    itemColors: input.itemColors || {}
   };
 
   // 5. Ghi vào localStorage có try/catch

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 interface SafeImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   fallbackText?: string;
@@ -17,6 +17,10 @@ export const SafeImage: React.FC<SafeImageProps> = ({
 }) => {
   const [hasError, setHasError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    setHasError(false);
+  }, [src]);
 
   // Fallback to light neutral placeholder conforming to Minimalist Editorial theme
   const encodedText = encodeURIComponent(fallbackText.replace(/\s+/g, '+'));
