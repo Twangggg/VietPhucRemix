@@ -80,37 +80,17 @@ export interface ContextItem {
   is_sacred?: boolean;
 }
 
-export interface OutfitComposition {
-  inner: string | null;
-  top: string | null;
-  outer_formal: string | null;
-  outer_traditional: string | null;
-  bottom_pants: string | null;
-  bottom_skirt: string | null;
-  shoes: string | null;
-  traditional_footwear: string | null;
-  headwear: string | null;
-  jewelry: string[];
-  other_accessories: string[];
-}
-
-export interface ColorPalette {
-  primary: string;
-  secondary: string;
-  accent: string;
-}
-
 export interface OutfitCombination {
   id: string;
   name: string;
-  gender: string;
-  applicable_events: string[];
-  style: string;
-  composition: OutfitComposition;
-  color_palette: ColorPalette;
-  styling_notes: string;
-  traditional_focus: string;
-  rule_check_status: string;
+  concept_tagline: string; // ví dụ: "Sự giao thoa giữa nét thanh lịch của áo dài tân thời và sự phóng khoáng đương đại"
+  garment_id: string; // Ánh xạ đến id của Garment/Costume
+  casual_item_ids: string[]; // Danh sách id của CasualItem phối cùng
+  style_notes: string;
+  occasion: string; // ví dụ: "Dạo phố cuối tuần, Cafe nghệ thuật, Triển lãm"
+  image_mockup: string; // Bắt buộc: đường dẫn ảnh, vd: "/assets/outfits/of_01.webp"
+  tags: string[];
+  vibe_rating?: number; // thang điểm phong cách (vd: 5 sao)
 }
 
 export interface AccessoryItem {
@@ -129,22 +109,4 @@ export interface AccessoryItem {
   gender?: 'male' | 'female' | 'unisex' | string;
   formality?: string;
   image_url?: string | string[]; // Chú ý: có thể là string hoặc mảng string
-}
-
-export interface SavedLookbook {
-  id: string;
-  title: string;
-  authorName?: string;
-  notes?: string;
-  createdAt: number;
-  gender: Gender;
-  contextId?: string | null;
-  garmentId: string;
-  innerId?: string | null;
-  bottomId?: string | null;
-  shoesId?: string | null;
-  headwearId?: string | null;
-  jewelryIds?: string[];
-  itemColors?: Record<string, { hex: string | null; intensity: number }>;
-  tags?: string[];
 }

@@ -3,14 +3,12 @@ import React, { useState } from 'react';
 interface SafeImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   fallbackText?: string;
   expectedPath?: string;
-  imgClassName?: string;
 }
 
 export const SafeImage: React.FC<SafeImageProps> = ({
   src,
   alt = 'Hình ảnh trang phục',
   className = '',
-  imgClassName = '',
   fallbackText = 'Đang tải hình ảnh',
   expectedPath,
   ...props
@@ -23,10 +21,9 @@ export const SafeImage: React.FC<SafeImageProps> = ({
   const placeholderUrl = `https://placehold.co/900x1200/F5F5F0/525252?text=${encodedText}`;
 
   const currentSrc = hasError || !src ? placeholderUrl : src;
-  const hasExplicitObjectFit = imgClassName.includes('object-contain') || imgClassName.includes('object-cover') || imgClassName.includes('object-scale-down');
 
   return (
-    <div className={`relative overflow-hidden group/img ${className.includes('bg-') ? '' : 'bg-transparent'} ${className}`}>
+    <div className={`relative overflow-hidden group/img bg-stone-100 ${className}`}>
       {/* Light editorial skeleton */}
       {isLoading && (
         <div className="absolute inset-0 bg-gradient-to-r from-stone-100 via-stone-200 to-stone-100 animate-pulse z-0" />
@@ -38,18 +35,13 @@ export const SafeImage: React.FC<SafeImageProps> = ({
         alt={alt}
         loading="lazy"
         onLoad={() => setIsLoading(false)}
-        ref={(node) => {
-          if (node && node.complete && isLoading) {
-            setIsLoading(false);
-          }
-        }}
         onError={() => {
           setHasError(true);
           setIsLoading(false);
         }}
-        className={`w-full h-full ${hasExplicitObjectFit ? '' : 'object-cover'} transition-opacity duration-300 ${
-          isLoading ? 'opacity-0' : 'opacity-100'
-        } ${imgClassName}`}
+        className={`w-full h-full object-cover transition-all duration-500 group-hover/img:scale-105 ${
+          isLoading ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
+        }`}
       />
 
       {/* Upload Helper Indicator badge if using fallback placeholder */}
