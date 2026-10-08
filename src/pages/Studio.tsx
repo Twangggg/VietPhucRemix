@@ -773,7 +773,7 @@ export const Studio: React.FC = () => {
                 THANH NAVIGATION TỐI GIẢN (STICKY TOP KHI CUỘN)
                ========================================== */}
             <div className="sticky top-0 z-30 bg-[#FBF9F5]/95 backdrop-blur-md pt-2 pb-1 border-b border-stone-200/80">
-              <div className="flex items-center justify-start sm:justify-center gap-3 sm:gap-7 overflow-x-auto scrollbar-hide px-1">
+              <div className="flex items-center justify-between sm:justify-center gap-1 sm:gap-6 px-1 sm:px-2 max-w-lg mx-auto">
                 {[
                   { id: 1, label: 'Bối cảnh', completed: Boolean(selectedContext) },
                   { id: 2, label: 'Cổ phục', completed: selectedGarments.length > 0 },
@@ -791,7 +791,7 @@ export const Studio: React.FC = () => {
                       key={tab.id}
                       type="button"
                       onClick={() => goToTab(tab.id)}
-                      className={`relative py-1.5 px-2.5 text-xs sm:text-sm tracking-wide transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 select-none rounded-lg ${
+                      className={`relative py-1.5 px-1.5 sm:px-2.5 text-[11px] sm:text-sm tracking-tight sm:tracking-wide transition-all whitespace-nowrap cursor-pointer flex items-center gap-1 sm:gap-1.5 select-none rounded-lg flex-1 sm:flex-none justify-center ${
                         isCurrent
                           ? 'text-stone-900 font-bold'
                           : isNextStep
@@ -802,9 +802,9 @@ export const Studio: React.FC = () => {
                       }`}
                     >
                       <span
-                        className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-mono font-bold transition-colors shrink-0 ${
+                        className={`w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center text-[9px] sm:text-[10px] font-mono font-bold transition-colors shrink-0 ${
                           isCurrent
-                            ? 'bg-stone-900 text-white'
+                            ? 'bg-stone-800 text-white'
                             : isNextStep
                               ? 'bg-red-700 text-white shadow-xs'
                               : tab.completed
@@ -812,9 +812,9 @@ export const Studio: React.FC = () => {
                                 : 'bg-stone-200 text-stone-500'
                         }`}
                       >
-                        {tab.completed ? <Check className="w-3 h-3 stroke-[3]" /> : tab.id}
+                        {tab.completed ? <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3 stroke-[3]" /> : tab.id}
                       </span>
-                      <span>{tab.label}</span>
+                      <span className="truncate">{tab.label}</span>
                       {isCurrent && (
                         <span className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-red-700 rounded-full" />
                       )}
@@ -1504,48 +1504,48 @@ export const Studio: React.FC = () => {
               )}
             </div>
           ) : (
-            /* TRẠNG THÁI 2: THANH TRỢ LÝ THU GỌN GỌN GÀNG */
-            <div className="pointer-events-auto bg-stone-900/95 backdrop-blur-md border border-stone-800 text-white rounded-full shadow-lg px-3 py-1.5 flex items-center gap-2 transition-all duration-200">
+            /* TRẠNG THÁI 2: THANH TRỢ LÝ THU GỌN HÀI HÒA & TINH TẾ */
+            <div className="pointer-events-auto bg-[#F7F4EE]/95 backdrop-blur-md border border-stone-300/80 text-stone-800 rounded-full shadow-md px-3 py-1.5 flex items-center gap-2 transition-all duration-200">
               {/* Nhấn vào để mở rộng chi tiết */}
               <button
                 type="button"
                 onClick={() => setIsBottomBarExpanded(true)}
-                className="flex items-center gap-2 hover:text-stone-300 transition-colors cursor-pointer select-none"
+                className="flex items-center gap-2 hover:text-stone-900 transition-colors cursor-pointer select-none"
                 title="Bấm để xem chi tiết tình trạng quy chuẩn"
               >
                 {/* Dots hiển thị tiến trình 4 bước */}
                 <div className="flex items-center gap-1.5 px-1">
                   <span
-                    className={`w-2 h-2 rounded-full transition-colors ${selectedContext ? 'bg-emerald-400' : 'bg-stone-600'}`}
+                    className={`w-2 h-2 rounded-full transition-colors ${selectedContext ? 'bg-emerald-600' : 'bg-stone-300'}`}
                     title="Bước 1: Bối cảnh"
                   />
                   <span
-                    className={`w-2 h-2 rounded-full transition-colors ${selectedGarments.length > 0 ? 'bg-emerald-400' : 'bg-stone-600'}`}
+                    className={`w-2 h-2 rounded-full transition-colors ${selectedGarments.length > 0 ? 'bg-emerald-600' : 'bg-stone-300'}`}
                     title="Bước 2: Cổ phục"
                   />
                   <span
-                    className={`w-2 h-2 rounded-full transition-colors ${selectedInner || selectedBottom || selectedShoes ? 'bg-emerald-400' : 'bg-stone-600'}`}
+                    className={`w-2 h-2 rounded-full transition-colors ${selectedInner || selectedBottom || selectedShoes ? 'bg-emerald-600' : 'bg-stone-300'}`}
                     title="Bước 3: Đồ mặc kèm"
                   />
                   <span
-                    className={`w-2 h-2 rounded-full transition-colors ${selectedHeadwear || selectedJewelries.length > 0 ? 'bg-emerald-400' : 'bg-stone-600'}`}
+                    className={`w-2 h-2 rounded-full transition-colors ${selectedHeadwear || selectedJewelries.length > 0 ? 'bg-emerald-600' : 'bg-stone-300'}`}
                     title="Bước 4: Phụ kiện"
                   />
                 </div>
 
-                <ChevronUp className="w-3.5 h-3.5 text-stone-400" />
+                <ChevronUp className="w-3.5 h-3.5 text-stone-500" />
               </button>
 
               {/* Nút Xem kết quả ngay khi đã sẵn sàng */}
               {isReadyToValidate && (
                 <>
-                  <div className="h-3.5 w-px bg-stone-700/80" />
+                  <div className="h-3.5 w-px bg-stone-300" />
                   <button
                     type="button"
                     onClick={handleValidateOutfit}
-                    className="px-3 py-1 rounded-full bg-red-600 hover:bg-red-700 text-white font-semibold text-[11px] sm:text-xs flex items-center gap-1.5 shadow-sm active:scale-95 transition-all"
+                    className="px-2.5 py-1 rounded-full bg-stone-900 hover:bg-stone-800 text-white font-semibold text-[11px] sm:text-xs flex items-center gap-1 shadow-xs active:scale-95 transition-all"
                   >
-                    <Sparkles className="w-3 h-3 text-amber-200" />
+                    <Sparkles className="w-3 h-3 text-amber-300" />
                     <span>Xem kết quả</span>
                   </button>
                 </>
