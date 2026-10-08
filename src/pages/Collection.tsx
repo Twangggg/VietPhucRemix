@@ -98,9 +98,12 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio }) =>
   if (viewingOutfitId) {
     const viewingOutfit = savedList.find((o) => o.id === viewingOutfitId);
     if (viewingOutfit) {
-      const baseGarmentId = resolveGarmentBaseId(viewingOutfit.costumeId);
+      const primaryCostumeId = Array.isArray(viewingOutfit.costumeId)
+        ? viewingOutfit.costumeId[0]
+        : viewingOutfit.costumeId;
+      const baseGarmentId = resolveGarmentBaseId(primaryCostumeId);
       const foundGarment = GARMENTS.find(
-        (g) => g.id === viewingOutfit.costumeId || g.id === baseGarmentId
+        (g) => g.id === primaryCostumeId || g.id === baseGarmentId
       );
       const foundContext = CONTEXTS.find((c) => c.id === viewingOutfit.contextId);
       const foundInner = viewingOutfit.innerId
@@ -139,8 +142,8 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio }) =>
 
       // Fallback an toàn nếu garment trong catalog bị thay đổi ID
       const fallbackGarment = foundGarment || {
-        id: viewingOutfit.costumeId,
-        name: viewingOutfit.costumeId,
+        id: String(primaryCostumeId || 'garment_fallback'),
+        name: String(primaryCostumeId || 'Cổ phục'),
         origin: 'Dữ liệu di sản',
         characteristics: 'Món đồ có thể đã thay đổi trong danh mục hiện tại.',
         usage_context: '',
@@ -322,9 +325,12 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio }) =>
         {!isCorrupted && savedList.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
             {savedList.map((outfit) => {
-              const baseGarmentId = resolveGarmentBaseId(outfit.costumeId);
+              const primaryCostumeId = Array.isArray(outfit.costumeId)
+                ? outfit.costumeId[0]
+                : outfit.costumeId;
+              const baseGarmentId = resolveGarmentBaseId(primaryCostumeId);
               const garment = GARMENTS.find(
-                (g) => g.id === outfit.costumeId || g.id === baseGarmentId
+                (g) => g.id === primaryCostumeId || g.id === baseGarmentId
               );
               const context = CONTEXTS.find((c) => c.id === outfit.contextId);
 

@@ -14,7 +14,8 @@ import {
   SlidersHorizontal,
   Clock,
   User,
-  Heart
+  Heart,
+  Code
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { CONTEXTS, OUTFIT_COMBINATIONS, GARMENTS, CASUAL_ITEMS, ACCESSORIES } from '../data';

@@ -5,7 +5,7 @@ import { TintedImage } from './TintedImage';
 import { getSafeImageUrl, resolveItemByGender } from '../utils/helpers';
 
 export interface AvatarMannequinViewProps {
-  selectedGender: Gender;
+  selectedGender: 'male' | 'female' | 'Male' | 'Female' | Gender;
   garmentItem: Garment;
   innerItem?: CasualItem | null;
   bottomItem?: CasualItem | null;
@@ -96,7 +96,7 @@ export const AvatarMannequinView: React.FC<AvatarMannequinViewProps> = ({
   );
 
   const currentPersona =
-    AVATAR_PERSONAS.find((p) => p.id === selectedPersonaId) || availablePersonas[0];
+    AVATAR_PERSONAS.find((p) => p.id === selectedPersonaId) || availablePersonas[0] || AVATAR_PERSONAS[0];
 
   const resolvedGarment = resolveItemByGender(garmentItem, selectedGender);
   const resolvedInner = innerItem ? resolveItemByGender(innerItem, selectedGender) : null;
@@ -115,7 +115,7 @@ export const AvatarMannequinView: React.FC<AvatarMannequinViewProps> = ({
         <div className="flex items-center justify-between pb-2 mb-2 border-b border-stone-100 px-1">
           <span className="text-[10px] font-mono uppercase tracking-wider text-stone-500 font-semibold flex items-center gap-1.5">
             <User className="w-3.5 h-3.5 text-red-700" />
-            Nhân vật thử đồ ({selectedGender === 'male' ? 'Nam' : 'Nữ'})
+            Nhân vật thử đồ ({selectedGender.toLowerCase() === 'male' ? 'Nam' : 'Nữ'})
           </span>
           <span className="text-[11px] text-stone-400 font-sans italic">
             {currentPersona.eraDescription}
@@ -201,7 +201,7 @@ export const AvatarMannequinView: React.FC<AvatarMannequinViewProps> = ({
             {/* Thân trên */}
             <div
               className={`w-28 sm:w-32 rounded-3xl -mt-1 opacity-70 z-10 transition-all ${
-                selectedGender === 'female' ? 'h-36 rounded-t-3xl' : 'h-40 rounded-t-2xl'
+                selectedGender.toLowerCase() === 'female' ? 'h-36 rounded-t-3xl' : 'h-40 rounded-t-2xl'
               }`}
               style={{ backgroundColor: currentPersona.skinTone }}
             />

@@ -6,6 +6,7 @@ import {
   Sparkles,
   ArrowLeft,
   ChevronUp,
+  ChevronDown,
   Palette,
   Bookmark,
   BookmarkCheck,
@@ -18,7 +19,7 @@ import {
   LayoutGrid
 } from 'lucide-react';
 import { toPng } from 'html-to-image';
-import { Garment, CasualItem, AccessoryItem, ContextItem, ValidationResult } from '../types';
+import { Garment, CasualItem, AccessoryItem, ContextItem, ValidationResult, Gender } from '../types';
 import { SafeImage } from './SafeImage';
 import { TintedImage } from './TintedImage';
 import { getSafeImageUrl, resolveItemByGender } from '../utils/helpers';
@@ -42,7 +43,7 @@ interface ItemColorSetting {
 }
 
 interface OutfitResultViewProps {
-  selectedGender: 'male' | 'female';
+  selectedGender: 'male' | 'female' | 'Male' | 'Female' | Gender;
   contextItem?: ContextItem | null;
   garmentItem: Garment;
   additionalGarments?: Garment[];
@@ -761,7 +762,7 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
         isOpen={showCulturalModal}
         onClose={() => setShowCulturalModal(false)}
         garment={garmentItem}
-        selectedGender={selectedGender}
+        selectedGender={selectedGender.toLowerCase() as 'male' | 'female'}
       />
 
       {/* Modal Lưu Lookbook & Chia Sẻ */}

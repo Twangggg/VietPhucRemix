@@ -56,7 +56,7 @@ export const Studio: React.FC = () => {
       if (state.presetGender) {
         setSelectedGender(state.presetGender);
       }
-      setSelectedGarment(state.presetGarmentId);
+      setSelectedGarments(Array.isArray(state.presetGarmentId) ? state.presetGarmentId : [state.presetGarmentId]);
       setSelectedContext(state.presetContextId || null);
       setSelectedInner(state.presetInnerId || null);
       setSelectedBottom(state.presetBottomId || null);
