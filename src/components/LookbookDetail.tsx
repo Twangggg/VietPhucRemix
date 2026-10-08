@@ -45,15 +45,16 @@ export function LookbookDetail({
     ].filter(Boolean) as string[];
 
     return itemIds.map(id => {
-      const baseId = id.replace(/_[12]$/, '');
+      const baseId = id.replace(/_[12]$/, '').toLowerCase();
+      const idLower = id.toLowerCase();
       let itemType: 'garment' | 'casual' | 'accessory' | null = null;
-      let item = GARMENTS.find(g => g.id === id || g.id === baseId);
+      let item = GARMENTS.find(g => g.id.toLowerCase() === idLower || g.id.toLowerCase() === baseId);
       if (item) itemType = 'garment';
       else {
-        item = CASUAL_ITEMS.find(c => c.id === id || c.id === baseId) as any;
+        item = CASUAL_ITEMS.find(c => c.id.toLowerCase() === idLower || c.id.toLowerCase() === baseId) as any;
         if (item) itemType = 'casual';
         else {
-          item = ACCESSORIES.find(a => a.id === id || a.id === baseId) as any;
+          item = ACCESSORIES.find(a => a.id.toLowerCase() === idLower || a.id.toLowerCase() === baseId) as any;
           if (item) itemType = 'accessory';
         }
       }
@@ -85,10 +86,11 @@ export function LookbookDetail({
     ].filter(Boolean) as string[];
 
     return itemIds.filter(id => {
-      const baseId = id.replace(/_[12]$/, '');
-      const isGarment = GARMENTS.some(g => g.id === id || g.id === baseId);
-      const isCasual = CASUAL_ITEMS.some(c => c.id === id || c.id === baseId);
-      const isAccessory = ACCESSORIES.some(a => a.id === id || a.id === baseId);
+      const baseId = id.replace(/_[12]$/, '').toLowerCase();
+      const idLower = id.toLowerCase();
+      const isGarment = GARMENTS.some(g => g.id.toLowerCase() === idLower || g.id.toLowerCase() === baseId);
+      const isCasual = CASUAL_ITEMS.some(c => c.id.toLowerCase() === idLower || c.id.toLowerCase() === baseId);
+      const isAccessory = ACCESSORIES.some(a => a.id.toLowerCase() === idLower || a.id.toLowerCase() === baseId);
       return !isGarment && !isCasual && !isAccessory;
     });
   };
@@ -125,7 +127,7 @@ export function LookbookDetail({
                   className="px-5 py-2.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-white text-sm font-semibold shadow-sm transition-all flex items-center justify-center gap-2 shrink-0 w-full sm:w-auto cursor-pointer"
                 >
                   <SlidersHorizontal className="w-4 h-4" />
-                  <span>Mang vào Studio để Phối lại</span>
+                  <span>Phối lại</span>
                 </button>
               </div>
 

@@ -131,12 +131,15 @@ export const Studio: React.FC = () => {
         
         const getValidId = (id: string | null | undefined, lists: any[][]) => {
           if (!id) return null;
+          const idLower = id.toLowerCase();
           for (const list of lists) {
-            if (list.some((i: any) => i.id === id)) return id;
+            const found = list.find((i: any) => i.id.toLowerCase() === idLower);
+            if (found) return found.id;
           }
-          const baseId = id.replace(/_[12]$/, '');
+          const baseId = id.replace(/_[12]$/, '').toLowerCase();
           for (const list of lists) {
-            if (list.some((i: any) => i.id === baseId)) return baseId;
+            const found = list.find((i: any) => i.id.toLowerCase() === baseId);
+            if (found) return found.id;
           }
           return null;
         };
@@ -156,8 +159,9 @@ export const Studio: React.FC = () => {
           .filter(Boolean) as string[];
         setSelectedJewelries(jewelries);
         
-        // Mở sẵn kết quả
-        setIsShowingResult(true);
+        // Giữ người dùng ở phần chọn items theo các bước
+        setIsShowingResult(false);
+        setActiveTab(2);
       } catch (e) {
         console.error("Failed to parse remix outfit", e);
       } finally {
