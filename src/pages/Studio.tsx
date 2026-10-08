@@ -112,9 +112,6 @@ export const Studio: React.FC = () => {
     setIsBottomBarExpanded(false);
     setQuickMatchNotice(null);
     setSelectedContext(ctxId);
-    setTimeout(() => {
-      goToTab(2); // Auto-advance sang Cổ phục
-    }, 250);
   };
 
   // ==========================================
@@ -823,17 +820,28 @@ export const Studio: React.FC = () => {
                   </div>
 
                   {/* Nút Chuyển Tab */}
-                  <div className="pt-3 flex justify-end">
+                  <div className="pt-4 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-stone-100">
+                    <div className="text-xs text-stone-500">
+                      {selectedContext ? (
+                        <span className="text-emerald-700 font-medium flex items-center gap-1.5">
+                          <Check className="w-3.5 h-3.5 text-emerald-600 stroke-[2.5]" />
+                          Đã chọn bối cảnh: <strong>{CONTEXTS.find(c => c.id === selectedContext)?.name}</strong>
+                        </span>
+                      ) : (
+                        <span>Vui lòng chọn 1 không gian / sự kiện phù hợp để bắt đầu</span>
+                      )}
+                    </div>
+
                     <button
                       type="button"
                       disabled={!selectedContext}
                       onClick={() => goToTab(2)}
-                      className={`px-5 py-2.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all ${selectedContext
-                          ? 'bg-stone-900 hover:bg-stone-800 text-white cursor-pointer active:scale-95 shadow-xs'
+                      className={`w-full sm:w-auto px-6 py-2.5 rounded-full text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${selectedContext
+                          ? 'bg-stone-900 hover:bg-stone-800 text-white cursor-pointer active:scale-95 shadow-sm'
                           : 'bg-stone-100 text-stone-400 cursor-not-allowed border border-stone-200/60'
                         }`}
                     >
-                      <span>Tiếp tục: Cổ phục</span>
+                      <span>Tiếp tục: Chọn Cổ phục</span>
                       <ChevronRight className="w-4 h-4" />
                     </button>
                   </div>
