@@ -745,8 +745,8 @@ export const Studio: React.FC = () => {
             {/* ==========================================
                 THANH NAVIGATION TỐI GIẢN (STICKY TOP KHI CUỘN)
                ========================================== */}
-            <div className="sticky top-0 z-30 bg-[#FBF9F5]/95 backdrop-blur-md pt-1.5 pb-0.5 border-b border-stone-200/80">
-              <div className="flex items-center justify-start sm:justify-center gap-6 sm:gap-10 overflow-x-auto scrollbar-hide">
+            <div className="sticky top-0 z-30 bg-[#FBF9F5]/95 backdrop-blur-md pt-2 pb-1 border-b border-stone-200/80">
+              <div className="flex items-center justify-start sm:justify-center gap-3 sm:gap-7 overflow-x-auto scrollbar-hide px-1">
                 {[
                   { id: 1, label: 'Bối cảnh', completed: Boolean(selectedContext) },
                   { id: 2, label: 'Cổ phục', completed: selectedGarments.length > 0 },
@@ -757,17 +757,26 @@ export const Studio: React.FC = () => {
                     key={tab.id}
                     type="button"
                     onClick={() => goToTab(tab.id)}
-                    className={`relative py-1.5 text-xs sm:text-sm tracking-wide transition-colors whitespace-nowrap cursor-pointer flex items-center gap-1.5 select-none ${activeTab === tab.id
-                        ? 'text-stone-900 font-semibold'
-                        : 'text-stone-400 hover:text-stone-700 font-normal'
+                    className={`relative py-1.5 px-1.5 text-xs sm:text-sm tracking-wide transition-all whitespace-nowrap cursor-pointer flex items-center gap-2 select-none ${activeTab === tab.id
+                        ? 'text-stone-900 font-bold'
+                        : tab.completed
+                          ? 'text-stone-700 hover:text-stone-900 font-medium'
+                          : 'text-stone-400 hover:text-stone-600 font-normal'
                       }`}
                   >
+                    <span
+                      className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-mono font-bold transition-colors shrink-0 ${activeTab === tab.id
+                          ? 'bg-stone-900 text-white'
+                          : tab.completed
+                            ? 'bg-emerald-600 text-white'
+                            : 'bg-stone-200 text-stone-500'
+                        }`}
+                    >
+                      {tab.completed ? <Check className="w-3 h-3 stroke-[3]" /> : tab.id}
+                    </span>
                     <span>{tab.label}</span>
-                    {tab.completed && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-stone-900 shrink-0" />
-                    )}
                     {activeTab === tab.id && (
-                      <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-stone-900 rounded-full" />
+                      <span className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-red-700 rounded-full" />
                     )}
                   </button>
                 ))}
@@ -866,6 +875,54 @@ export const Studio: React.FC = () => {
                     })}
                   </div>
 
+                  {/* Khối hướng dẫn bước tiếp theo rõ ràng khi đã chọn Cổ phục */}
+                  {selectedGarments.length > 0 && (
+                    <div className="p-4 sm:p-5 rounded-3xl bg-white border border-stone-200/90 shadow-sm space-y-3.5 animate-in slide-in-from-top-2 duration-300">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-stone-100 pb-3">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0">
+                            <Check className="w-4 h-4 stroke-[2.5]" />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-bold text-stone-900">
+                                Đã chọn: {currentGarmentItems.filter(Boolean).map(i => i.name).join(', ')}
+                              </span>
+                              <span className="text-[10px] font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                                Đủ điều kiện hoàn tất
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-stone-500 font-sans mt-0.5">
+                              Bạn có thể xem ngay kết quả outfit hoặc tiếp tục chọn đồ mặc kèm & phụ kiện.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 2 nút hành động lựa chọn bước tiếp theo */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        <button
+                          type="button"
+                          onClick={() => goToTab(3)}
+                          className="py-2.5 px-4 rounded-xl border border-stone-300 hover:border-stone-400 bg-stone-50 hover:bg-stone-100 text-stone-800 font-semibold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95 shadow-2xs"
+                        >
+                          <span>Tiếp tục phối: Đồ mặc kèm</span>
+                          <ChevronRight className="w-4 h-4 text-stone-500" />
+                        </button>
+
+                        <button
+                          type="button"
+                          disabled={!isReadyToValidate}
+                          onClick={handleValidateOutfit}
+                          className="py-2.5 px-4 rounded-xl bg-red-700 hover:bg-red-800 text-white font-semibold text-xs flex items-center justify-center gap-2 shadow-xs hover:shadow-md transition-all cursor-pointer active:scale-95"
+                        >
+                          <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                          <span>Xem kết quả outfit ngay ✦</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Banner Gợi ý phối nhanh 1-Click (EPIC 04 — QUICK MATCH) */}
                   {selectedGarments.length > 0 && (
                     <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-red-50/90 via-[#FAF7F2] to-stone-50 border border-red-200/80 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs animate-in slide-in-from-top-2 duration-300">
@@ -876,14 +933,14 @@ export const Studio: React.FC = () => {
                         <div>
                           <div className="flex items-center gap-1.5">
                             <span className="text-xs font-bold text-stone-900 truncate max-w-[200px]">
-                              Đã chọn: {currentGarmentItems.filter(Boolean).map(i => i.name).join(', ')}
+                              Tự động phối trọn bộ
                             </span>
                             <span className="text-[10px] uppercase px-1.5 py-0.5 bg-red-100 text-red-800 rounded-md font-semibold">
                               Chuẩn văn hóa
                             </span>
                           </div>
                           <span className="text-[11px] text-stone-500 leading-tight block mt-0.5">
-                            Tự động hoàn thiện toàn bộ set đồ (Áo trong, Quần/Váy, Giày, Phụ kiện) chỉ với 1 chạm.
+                            Tự động phối trọn bộ áo trong, quần/váy, giày & phụ kiện chỉ với 1 chạm.
                           </span>
                         </div>
                       </div>
@@ -903,21 +960,21 @@ export const Studio: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => goToTab(1)}
-                      className="px-4 py-2 rounded-full text-xs font-medium text-stone-500 hover:text-stone-900 hover:bg-stone-100 flex items-center gap-1 transition-colors"
+                      className="px-4 py-2 rounded-full text-xs font-medium text-stone-500 hover:text-stone-900 hover:bg-stone-100 flex items-center gap-1 transition-colors cursor-pointer"
                     >
                       <ChevronLeft className="w-4 h-4" />
                       <span>Bối cảnh</span>
                     </button>
 
-                    <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-                      {selectedGarments.length > 0 && (
+                    <div className="flex items-center gap-2 w-full sm:w-auto justify-end flex-wrap">
+                      {isReadyToValidate && (
                         <button
                           type="button"
-                          onClick={() => handleQuickMatch()}
-                          className="px-4 sm:px-5 py-2.5 rounded-full bg-gradient-to-r from-red-700 to-red-800 hover:from-red-800 hover:to-red-900 text-white font-semibold text-xs flex items-center gap-1.5 shadow-xs hover:shadow-md hover:scale-[1.02] active:scale-95 transition-all cursor-pointer whitespace-nowrap"
+                          onClick={handleValidateOutfit}
+                          className="px-4 sm:px-5 py-2.5 rounded-full bg-red-700 hover:bg-red-800 text-white font-semibold text-xs flex items-center gap-1.5 shadow-xs hover:shadow-md transition-all cursor-pointer active:scale-95"
                         >
                           <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                          <span>Gợi ý phối nhanh</span>
+                          <span>Xem kết quả ✦</span>
                         </button>
                       )}
 
@@ -930,7 +987,7 @@ export const Studio: React.FC = () => {
                             : 'bg-stone-100 text-stone-400 cursor-not-allowed border border-stone-200/60'
                           }`}
                       >
-                        <span>Tự phối: Mặc kèm</span>
+                        <span>Mặc kèm</span>
                         <ChevronRight className="w-4 h-4" />
                       </button>
                     </div>
@@ -1084,7 +1141,7 @@ export const Studio: React.FC = () => {
                   </div>
 
                   {/* Nút Chuyển Tab */}
-                  <div className="pt-3 flex items-center justify-between">
+                  <div className="pt-4 flex items-center justify-between gap-2 border-t border-stone-100">
                     <button
                       type="button"
                       onClick={() => goToTab(2)}
@@ -1094,14 +1151,26 @@ export const Studio: React.FC = () => {
                       <span>Cổ phục</span>
                     </button>
 
-                    <button
-                      type="button"
-                      onClick={() => goToTab(4)}
-                      className="px-5 py-2.5 rounded-full bg-stone-900 hover:bg-stone-800 text-white text-xs font-semibold flex items-center gap-1.5 transition-all shadow-xs active:scale-95"
-                    >
-                      <span>Tiếp tục: Phụ kiện</span>
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                      {isReadyToValidate && (
+                        <button
+                          type="button"
+                          onClick={handleValidateOutfit}
+                          className="px-4 py-2 rounded-full border border-stone-300 text-stone-700 hover:bg-stone-50 hover:text-stone-900 text-xs font-medium flex items-center gap-1.5 transition-all"
+                        >
+                          <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                          <span>Xem kết quả ngay</span>
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => goToTab(4)}
+                        className="px-5 py-2.5 rounded-full bg-stone-900 hover:bg-stone-800 text-white text-xs font-semibold flex items-center gap-1.5 transition-all shadow-xs active:scale-95"
+                      >
+                        <span>Tiếp tục: Phụ kiện</span>
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
@@ -1202,7 +1271,7 @@ export const Studio: React.FC = () => {
                   </div>
 
                   {/* Nút Hoàn Tất */}
-                  <div className="pt-3 flex items-center justify-between">
+                  <div className="pt-4 flex items-center justify-between gap-2 border-t border-stone-100">
                     <button
                       type="button"
                       onClick={() => goToTab(3)}
@@ -1216,7 +1285,7 @@ export const Studio: React.FC = () => {
                       type="button"
                       disabled={!isReadyToValidate}
                       onClick={handleValidateOutfit}
-                      className={`px-6 py-2.5 rounded-full text-xs font-semibold flex items-center gap-2 transition-all shadow-xs ${!isReadyToValidate
+                      className={`px-7 py-2.5 rounded-full text-xs font-semibold flex items-center gap-2 transition-all shadow-md active:scale-95 ${!isReadyToValidate
                           ? 'bg-stone-100 text-stone-400 cursor-not-allowed border border-stone-200/60 shadow-none'
                           : hasRuleViolation
                             ? 'bg-red-600 hover:bg-red-700 text-white cursor-pointer'
@@ -1224,10 +1293,10 @@ export const Studio: React.FC = () => {
                               ? 'bg-rose-600 hover:bg-rose-700 text-white cursor-pointer'
                               : hasBlockError
                                 ? 'bg-red-600 hover:bg-red-700 text-white cursor-pointer'
-                                : 'bg-stone-900 hover:bg-stone-800 text-white cursor-pointer active:scale-95'
+                                : 'bg-red-600 hover:bg-red-700 text-white cursor-pointer shadow-red-600/30 ring-2 ring-red-600/20'
                         }`}
                     >
-                      <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                      <Sparkles className="w-4 h-4 text-amber-200" />
                       <span>
                         {hasRuleViolation
                           ? 'Xem vi phạm quy chuẩn'
@@ -1235,7 +1304,7 @@ export const Studio: React.FC = () => {
                             ? 'Xem lỗi dữ liệu'
                             : hasBlockError
                               ? 'Xem điều kiện bắt buộc'
-                              : 'Chiêm ngưỡng bản phối ✨'}
+                              : 'Hoàn tất & Xem kết quả phối đồ ✦'}
                       </span>
                     </button>
                   </div>
@@ -1429,57 +1498,116 @@ export const Studio: React.FC = () => {
               )}
             </div>
           ) : (
-            /* TRẠNG THÁI 2: THU GỌN THÀNH NÚT PILL ĐƠN GIẢN, TINH TẾ */
-            <button
-              type="button"
-              onClick={() => setIsBottomBarExpanded(true)}
-              className={`pointer-events-auto px-4 py-2 rounded-full backdrop-blur-md border shadow-md text-xs font-medium flex items-center gap-2 transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer select-none ${hasRuleViolation
-                  ? 'bg-red-600 border-red-700 text-white shadow-red-600/20'
-                  : hasDataError
-                    ? 'bg-rose-600 border-rose-700 text-white shadow-rose-600/20'
-                    : hasInputError
-                      ? 'bg-stone-800 border-stone-700 text-white shadow-stone-800/20'
-                      : hasWarnNotice || quickMatchNotice
-                        ? 'bg-amber-600 border-amber-700 text-white shadow-amber-600/20'
-                        : isReadyToValidate
-                          ? 'bg-stone-900 border-stone-800 text-white shadow-stone-900/20'
-                          : 'bg-white/95 border-stone-200 text-stone-700 hover:bg-white shadow-stone-200/50'
-                }`}
-            >
-              {hasRuleViolation ? (
-                <>
-                  <AlertTriangle className="w-3.5 h-3.5 text-amber-300" />
-                  <span>Xung đột quy chuẩn</span>
-                </>
-              ) : hasDataError ? (
-                <>
-                  <AlertTriangle className="w-3.5 h-3.5 text-rose-200" />
-                  <span>Lỗi dữ liệu outfit</span>
-                </>
-              ) : hasInputError ? (
-                <>
-                  <Info className="w-3.5 h-3.5 text-stone-300" />
-                  <span>Chưa đủ điều kiện</span>
-                </>
-              ) : hasWarnNotice || quickMatchNotice ? (
-                <>
-                  <AlertTriangle className="w-3.5 h-3.5 text-amber-100" />
-                  <span>Có lưu ý phối đồ</span>
-                </>
-              ) : isReadyToValidate ? (
-                <>
-                  <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                  <span>Kiểm tra bản phối</span>
-                </>
-              ) : (
-                <>
-                  <ShieldCheck className="w-3.5 h-3.5 text-stone-400" />
-                  <span>Tiến trình phối đồ</span>
-                </>
-              )}
+            /* TRẠNG THÁI 2: THANH TRỢ LÝ THÔNG MINH - HƯỚNG DẪN BƯỚC TIẾP THEO */
+            <div className="pointer-events-auto bg-stone-900/95 backdrop-blur-md border border-stone-800 text-white rounded-full shadow-xl px-3.5 py-1.5 sm:px-4 sm:py-2 flex items-center gap-2 sm:gap-3 transition-all duration-200">
+              {/* Nhấn vào để xem chi tiết / kiểm tra quy chuẩn */}
+              <button
+                type="button"
+                onClick={() => setIsBottomBarExpanded(true)}
+                className="flex items-center gap-2 text-xs hover:text-stone-300 transition-colors cursor-pointer select-none"
+                title="Bấm để xem chi tiết tình trạng quy chuẩn"
+              >
+                {/* Dots hiển thị tiến trình 4 bước */}
+                <div className="flex items-center gap-1">
+                  <span
+                    className={`w-2 h-2 rounded-full ${selectedContext ? 'bg-emerald-400' : 'bg-stone-600'}`}
+                    title="Bước 1: Bối cảnh"
+                  />
+                  <span
+                    className={`w-2 h-2 rounded-full ${selectedGarments.length > 0 ? 'bg-emerald-400' : 'bg-stone-600'}`}
+                    title="Bước 2: Cổ phục"
+                  />
+                  <span
+                    className={`w-2 h-2 rounded-full ${selectedInner || selectedBottom || selectedShoes ? 'bg-emerald-400' : 'bg-stone-600'}`}
+                    title="Bước 3: Đồ mặc kèm"
+                  />
+                  <span
+                    className={`w-2 h-2 rounded-full ${selectedHeadwear || selectedJewelries.length > 0 ? 'bg-emerald-400' : 'bg-stone-600'}`}
+                    title="Bước 4: Phụ kiện"
+                  />
+                </div>
 
-              <ChevronUp className="w-3.5 h-3.5 opacity-60" />
-            </button>
+                {/* Trạng thái tóm tắt ngắn gọn */}
+                <div className="hidden xs:flex items-center gap-1.5 font-medium text-[11px] sm:text-xs">
+                  {hasBlockError ? (
+                    <span className="text-red-400 flex items-center gap-1">
+                      <AlertTriangle className="w-3.5 h-3.5 text-red-400" />
+                      Xung đột quy chuẩn
+                    </span>
+                  ) : hasWarnNotice ? (
+                    <span className="text-amber-300 flex items-center gap-1">
+                      <AlertTriangle className="w-3.5 h-3.5 text-amber-300" />
+                      Có lưu ý
+                    </span>
+                  ) : currentGarmentItems.filter(Boolean).length > 0 ? (
+                    <span className="text-stone-300 max-w-[120px] sm:max-w-[160px] truncate">
+                      {currentGarmentItems.filter(Boolean)[0].name}
+                    </span>
+                  ) : selectedContext ? (
+                    <span className="text-stone-300">Đã chọn bối cảnh</span>
+                  ) : (
+                    <span className="text-stone-400">Bước {activeTab}/4</span>
+                  )}
+                </div>
+
+                <ChevronUp className="w-3.5 h-3.5 text-stone-400" />
+              </button>
+
+              <div className="h-4 w-px bg-stone-700/80 mx-0.5" />
+
+              {/* Các nút hành động ngữ cảnh tùy theo trạng thái */}
+              <div className="flex items-center gap-1.5">
+                {isReadyToValidate ? (
+                  <button
+                    type="button"
+                    onClick={handleValidateOutfit}
+                    className="px-3 sm:px-3.5 py-1 rounded-full bg-red-600 hover:bg-red-700 text-white font-semibold text-[11px] sm:text-xs flex items-center gap-1.5 shadow-sm active:scale-95 transition-all"
+                  >
+                    <Sparkles className="w-3 h-3 text-amber-200" />
+                    <span>Xem kết quả ✦</span>
+                  </button>
+                ) : null}
+
+                {/* Nút điều hướng nhanh đến bước tiếp theo nếu chưa ở tab cuối */}
+                {activeTab === 1 && (
+                  <button
+                    type="button"
+                    disabled={!selectedContext}
+                    onClick={() => goToTab(2)}
+                    className={`px-3 py-1 rounded-full text-[11px] sm:text-xs font-medium flex items-center gap-1 transition-all ${
+                      selectedContext
+                        ? 'bg-stone-800 hover:bg-stone-700 text-white'
+                        : 'bg-stone-800/50 text-stone-500 cursor-not-allowed'
+                    }`}
+                  >
+                    <span>Cổ phục</span>
+                    <ChevronRight className="w-3 h-3" />
+                  </button>
+                )}
+
+                {activeTab === 2 && (
+                  <button
+                    type="button"
+                    onClick={() => goToTab(3)}
+                    className="px-3 py-1 rounded-full bg-stone-800 hover:bg-stone-700 text-white text-[11px] sm:text-xs font-medium flex items-center gap-1 transition-all"
+                  >
+                    <span>Mặc kèm</span>
+                    <ChevronRight className="w-3 h-3" />
+                  </button>
+                )}
+
+                {activeTab === 3 && (
+                  <button
+                    type="button"
+                    onClick={() => goToTab(4)}
+                    className="px-3 py-1 rounded-full bg-stone-800 hover:bg-stone-700 text-white text-[11px] sm:text-xs font-medium flex items-center gap-1 transition-all"
+                  >
+                    <span>Phụ kiện</span>
+                    <ChevronRight className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+            </div>
           )}
         </div>
       )}
