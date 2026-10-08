@@ -14,7 +14,9 @@ import {
   Download,
   Loader2,
   Check,
-  Info
+  Info,
+  SlidersHorizontal,
+  X
 } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import { Garment, CasualItem, AccessoryItem, ContextItem, ValidationResult, Gender } from '../types';
@@ -84,7 +86,7 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
   isOutdatedOrBlocked = false
 }) => {
   const [showCulturalModal, setShowCulturalModal] = useState<boolean>(false);
-  const [isActionsExpanded, setIsActionsExpanded] = useState<boolean>(true);
+  const [isActionsExpanded, setIsActionsExpanded] = useState<boolean>(false);
 
   // State mở Modal chi tiết từng món đồ khi người dùng click vào thẻ
   const [detailGarment, setDetailGarment] = useState<Garment | null>(null);
@@ -686,11 +688,9 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
             aria-label="Tùy chọn bản phối"
           >
             {isActionsExpanded ? (
-              <ChevronDown className="w-5 h-5 stroke-[2.5]" />
-            ) : warnings.length > 0 ? (
-              <AlertTriangle className="w-5 h-5 text-amber-100" />
+              <X className="w-5 h-5 stroke-[2.5]" />
             ) : (
-              <Sparkles className="w-5 h-5 text-amber-300" />
+              <SlidersHorizontal className="w-4 h-4 text-white" />
             )}
           </button>
 
