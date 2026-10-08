@@ -781,10 +781,13 @@ export const Studio: React.FC = () => {
                   { id: 4, label: 'Phụ kiện', completed: Boolean(selectedHeadwear || selectedJewelries.length > 0) }
                 ].map((tab) => {
                   const isCurrent = activeTab === tab.id;
+                  
+                  // Tab 2 là bước bắt buộc quan trọng nhất: khi đã chọn bối cảnh mà chưa chọn Cổ phục,
+                  // Tab 2 LUÔN LUÔN được highlight để nhắc nhở người dùng dù họ đang ở bất kỳ tab nào.
                   const isNextStep =
-                    (activeTab === 1 && tab.id === 2 && Boolean(selectedContext)) ||
-                    (activeTab === 2 && tab.id === 3 && selectedGarments.length > 0) ||
-                    (activeTab === 3 && tab.id === 4 && Boolean(selectedInner || selectedBottom || selectedShoes));
+                    (tab.id === 2 && Boolean(selectedContext) && selectedGarments.length === 0) ||
+                    (tab.id === 3 && activeTab === 2 && selectedGarments.length > 0) ||
+                    (tab.id === 4 && activeTab === 3 && Boolean(selectedInner || selectedBottom || selectedShoes));
 
                   return (
                     <button
