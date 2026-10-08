@@ -339,7 +339,7 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
               }`}
             >
               <User className="w-3.5 h-3.5 text-red-400" />
-              <span>Nhân vật Thử đồ</span>
+              <span>Ma-nơ-canh May Đo</span>
             </button>
           </div>
         </div>
@@ -625,7 +625,7 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
                   ) : (
                     <LayoutGrid className="w-3.5 h-3.5 text-stone-700" />
                   )}
-                  <span>{presentationMode === 'moodboard' ? 'Thử trên Nhân vật' : 'Bảng Tạp chí Flatlay'}</span>
+                  <span>{presentationMode === 'moodboard' ? 'Thử trên Ma-nơ-canh' : 'Bảng Tạp chí Flatlay'}</span>
                 </div>
                 <span className="text-[10px] text-stone-400 font-mono">Đổi</span>
               </button>
