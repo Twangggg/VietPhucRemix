@@ -13,7 +13,9 @@ import {
   Download,
   Loader2,
   Check,
-  Info
+  Info,
+  User,
+  LayoutGrid
 } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import { Garment, CasualItem, AccessoryItem, ContextItem, ValidationResult } from '../types';
@@ -26,6 +28,7 @@ import { CasualDetailModal } from './CasualDetailModal';
 import { AccessoryDetailModal } from './AccessoryDetailModal';
 import { ColorCustomizerModal } from './ColorCustomizerModal';
 import { SaveLookbookModal } from './SaveLookbookModal';
+import { AvatarMannequinView } from './AvatarMannequinView';
 import { saveLookbook, encodeOutfitToShareUrl } from '../utils/lookbookStore';
 
 export interface SaveNotice {
@@ -80,6 +83,8 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
 }) => {
   const [showCulturalModal, setShowCulturalModal] = useState<boolean>(false);
   const [isActionsExpanded, setIsActionsExpanded] = useState<boolean>(true);
+  // Chế độ hiển thị: 'moodboard' (tạp chí flatlay) hoặc 'mannequin' (nhân vật đại diện thử đồ)
+  const [presentationMode, setPresentationMode] = useState<'moodboard' | 'mannequin'>('moodboard');
 
   // State mở Modal chi tiết từng món đồ khi người dùng click vào thẻ
   const [detailGarment, setDetailGarment] = useState<Garment | null>(null);
@@ -307,6 +312,36 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
         <p className="text-[10px] font-mono tracking-[0.2em] uppercase text-stone-400">
           EDITORIAL COLLAGE • CHẠM ĐỂ XEM CHI TIẾT TỪNG MÓN
         </p>
+
+        {/* Nút chuyển đổi góc nhìn: Bảng Flatlay / Thử trên Mannequin */}
+        <div className="pt-2 flex justify-center">
+          <div className="inline-flex p-1 bg-stone-100 rounded-2xl border border-stone-200/80 shadow-2xs">
+            <button
+              type="button"
+              onClick={() => setPresentationMode('moodboard')}
+              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-sans font-medium transition-all cursor-pointer ${
+                presentationMode === 'moodboard'
+                  ? 'bg-white text-stone-900 shadow-xs font-semibold'
+                  : 'text-stone-500 hover:text-stone-800'
+              }`}
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+              <span>Tạp chí Flatlay</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setPresentationMode('mannequin')}
+              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-sans font-medium transition-all cursor-pointer ${
+                presentationMode === 'mannequin'
+                  ? 'bg-stone-900 text-white shadow-xs font-semibold'
+                  : 'text-stone-500 hover:text-stone-800'
+              }`}
+            >
+              <User className="w-3.5 h-3.5 text-red-400" />
+              <span>Nhân vật Thử đồ</span>
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* LỖI XUNG ĐỘT QUY CHUẨN NẾU CÓ (KHI XEM LẠI BỘ LƯU CŨ) */}
@@ -340,12 +375,31 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
       )}
 
       {/* ==========================================
-          2. FASHION MOODBOARD CANVAS (COLLAGE / FLAT-LAY NGHỆ THUẬT)
+          2. KHU VỰC HIỂN THỊ (MANNEQUIN HOẶC MOODBOARD FLATLAY)
          ========================================== */}
-      <div
-        ref={moodboardRef}
-        className="relative w-full rounded-3xl p-5 sm:p-8 md:p-10 bg-[#FAF7F2] border border-stone-200/80 shadow-xs overflow-hidden"
-      >
+      {presentationMode === 'mannequin' ? (
+        <div ref={moodboardRef} className="w-full flex justify-center">
+          <AvatarMannequinView
+            selectedGender={selectedGender}
+            garmentItem={garmentItem}
+            innerItem={innerItem}
+            bottomItem={bottomItem}
+            shoesItem={shoesItem}
+            headwearItem={headwearItem}
+            jewelryItems={jewelryItems}
+            itemColors={itemColors}
+            onSelectItem={(type, item) => {
+              if (type === 'garment') setDetailGarment(item);
+              else if (type === 'inner' || type === 'bottom' || type === 'shoes') setDetailCasual(item);
+              else if (type === 'headwear' || type === 'jewelry') setDetailAccessory(item);
+            }}
+          />
+        </div>
+      ) : (
+        <div
+          ref={moodboardRef}
+          className="relative w-full rounded-3xl p-5 sm:p-8 md:p-10 bg-[#FAF7F2] border border-stone-200/80 shadow-xs overflow-hidden"
+        >
         {/* Watermark di sản */}
         <div className="absolute top-4 right-6 pointer-events-none select-none opacity-15">
           <span className="font-serif text-2xl sm:text-3xl font-bold tracking-widest text-stone-400">
@@ -465,6 +519,7 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
 
         </div>
       </div>
+      )}
 
       {/* ==========================================
           3. NÚT TRÒN THAO TÁC NỔI BÊN HÔNG PHẢI DƯỚI (FLOATING ACTION BUTTON)
@@ -554,6 +609,25 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
                   )}
                 </button>
               )}
+
+              <button
+                type="button"
+                onClick={() => {
+                  setPresentationMode(presentationMode === 'moodboard' ? 'mannequin' : 'moodboard');
+                  setIsActionsExpanded(false);
+                }}
+                className="w-full px-3.5 py-2 rounded-xl border border-stone-200 hover:border-stone-300 bg-stone-50 hover:bg-stone-100 text-stone-800 font-medium text-xs flex items-center justify-between transition-all cursor-pointer active:scale-95"
+              >
+                <div className="flex items-center gap-2">
+                  {presentationMode === 'moodboard' ? (
+                    <User className="w-3.5 h-3.5 text-red-700" />
+                  ) : (
+                    <LayoutGrid className="w-3.5 h-3.5 text-stone-700" />
+                  )}
+                  <span>{presentationMode === 'moodboard' ? 'Thử trên Nhân vật' : 'Bảng Tạp chí Flatlay'}</span>
+                </div>
+                <span className="text-[10px] text-stone-400 font-mono">Đổi</span>
+              </button>
 
               <button
                 type="button"
