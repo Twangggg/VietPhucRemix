@@ -471,10 +471,11 @@ export const Studio: React.FC = () => {
   ]);
 
   // Xử lý lưu bộ phối vào Bộ sưu tập
-  const handleSaveOutfit = (colors?: Record<string, { hex: string | null; intensity: number }>) => {
+  const handleSaveOutfit = (colors?: Record<string, { hex: string | null; intensity: number }>, name?: string) => {
     if (selectedGarments.length === 0 || !selectedContext) return;
     const finalColors = colors && Object.keys(colors).length > 0 ? colors : itemColors;
     const res = saveOutfit({
+      name: name?.trim() || undefined,
       costumeId: selectedGarments,
       contextId: selectedContext,
       gender: selectedGender,
@@ -493,7 +494,7 @@ export const Studio: React.FC = () => {
       setIsCurrentOutfitSaved(true);
       setSaveNotice({
         type: 'success',
-        message: res.isUpdated ? 'Đã cập nhật màu sắc trong bộ sưu tập.' : 'Đã thêm vào bộ sưu tập.'
+        message: res.isUpdated ? 'Đã cập nhật bộ phối trong bộ sưu tập.' : 'Đã thêm vào bộ sưu tập.'
       });
     } else if (res.isDuplicate) {
       setIsCurrentOutfitSaved(true);

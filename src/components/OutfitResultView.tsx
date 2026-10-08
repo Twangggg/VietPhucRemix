@@ -52,7 +52,7 @@ interface OutfitResultViewProps {
   validationResults: ValidationResult[];
   onBackToStudio: () => void;
   onResetOutfit?: () => void;
-  onSaveOutfit?: (colors: Record<string, ItemColorSetting>) => void;
+  onSaveOutfit?: (colors: Record<string, ItemColorSetting>, name?: string) => void;
   initialItemColors?: Record<string, ItemColorSetting>;
   onColorsChange?: (colors: Record<string, ItemColorSetting>) => void;
   isSaved?: boolean;
@@ -200,6 +200,11 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
   const resolvedBottom = bottomItem ? resolveItemByGender(bottomItem, selectedGender) : null;
   const resolvedShoes = shoesItem ? resolveItemByGender(shoesItem, selectedGender) : null;
   const resolvedHeadwear = headwearItem ? resolveItemByGender(headwearItem, selectedGender) : null;
+  const [customOutfitName, setCustomOutfitName] = useState<string>(`Phối đồ ${resolvedGarment.name}`);
+
+  useEffect(() => {
+    setCustomOutfitName(`Phối đồ ${resolvedGarment.name}`);
+  }, [resolvedGarment.name]);
 
   // Lọc các thông báo cảnh báo mức WARN
   const warnings = validationResults.filter((r) => r.severity === 'WARN');
@@ -598,7 +603,7 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
               {!isFromCollection && onSaveOutfit && (
                 <button
                   type="button"
-                  onClick={() => onSaveOutfit(itemColors)}
+                  onClick={() => onSaveOutfit(itemColors, customOutfitName)}
                   className={`w-full px-3.5 py-2 rounded-xl font-semibold text-xs flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-xs ${
                     isSaved
                       ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 hover:bg-emerald-200/70'
@@ -755,12 +760,17 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
         selectedGender={selectedGender.toLowerCase() as 'male' | 'female'}
       />
 
-      {/* Modal Lưu Lookbook & Chia Sẻ */}
+      {/* Modal Xuất Thẻ Ảnh & Chia Sẻ */}
       <SaveLookbookModal
         isOpen={showSaveModal}
         onClose={() => setShowSaveModal(false)}
-        defaultTitle={`Phối đồ ${resolvedGarment.name}`}
-        onSave={handleSaveToLookbook}
+        defaultTitle={customOutfitName}
+        onUpdateName={(newName) => {
+          setCustomOutfitName(newName);
+          if (isSaved && onSaveOutfit) {
+            onSaveOutfit(itemColors, newName);
+          }
+        }}
         onExportImage={handleExportLookbookImage}
         isExporting={isExporting}
         sharePayload={{

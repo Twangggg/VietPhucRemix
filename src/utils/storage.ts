@@ -239,14 +239,15 @@ export function saveOutfit(input: SaveOutfitInput): SaveOutfitResult {
   if (existingIndex !== -1) {
     const existing = current.outfits[existingIndex];
     const colorsIdentical = areColorsEqual(existing.itemColors, input.itemColors);
+    const nameChanged = Boolean(input.name && input.name.trim() !== existing.name);
 
-    if (!colorsIdentical) {
-      // Người dùng lưu lại cùng bộ phối nhưng đã đổi màu sắc -> cập nhật màu mới cho bộ phối này
+    if (!colorsIdentical || nameChanged) {
+      // Người dùng lưu lại cùng bộ phối nhưng đã đổi màu sắc hoặc đổi tên -> cập nhật cho bộ phối này
       const updatedOutfit: SavedOutfit = {
         ...existing,
         name: input.name?.trim() || existing.name,
         createdAt: new Date().toISOString(),
-        itemColors: input.itemColors || {}
+        itemColors: input.itemColors || existing.itemColors || {}
       };
       const updatedList = [...current.outfits];
       updatedList[existingIndex] = updatedOutfit;
