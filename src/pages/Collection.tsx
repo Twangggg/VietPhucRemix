@@ -23,6 +23,8 @@ import {
 } from '../utils/storage';
 import { SafeImage } from '../components/SafeImage';
 import { OutfitResultView } from '../components/OutfitResultView';
+import { CompareResultModal } from '../components/CompareResultModal';
+import { CompareResult, compareOutfits } from '../utils/compareEngine';
 
 interface CollectionProps {
   onNavigateToStudio: () => void;
@@ -36,6 +38,11 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio }) =>
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [showClearConfirm, setShowClearConfirm] = useState<boolean>(false);
   const [actionError, setActionError] = useState<string | null>(null);
+
+  // Compare mode states
+  const [isCompareMode, setIsCompareMode] = useState<boolean>(false);
+  const [selectedForCompare, setSelectedForCompare] = useState<SavedOutfit[]>([]);
+  const [compareResult, setCompareResult] = useState<CompareResult | null>(null);
 
   // Tải danh sách bộ phối đã lưu
   const loadOutfits = () => {
@@ -94,13 +101,66 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio }) =>
     }
   };
 
+  const toggleCompareSelection = (outfit: SavedOutfit) => {
+    if (selectedForCompare.find((o) => o.id === outfit.id)) {
+      setSelectedForCompare(selectedForCompare.filter((o) => o.id !== outfit.id));
+    } else {
+      if (selectedForCompare.length < 2) {
+        setSelectedForCompare([...selectedForCompare, outfit]);
+      }
+    }
+  };
+
+  const handleRunCompare = () => {
+    if (selectedForCompare.length !== 2) return;
+    const outfitA = selectedForCompare[0];
+    const outfitB = selectedForCompare[1];
+    
+    // Tạo cấu trúc đầu vào cho compare engine (giả định validation được tạo lại)
+    const inputA = {
+      itemIds: [outfitA.costumeId, outfitA.innerId, outfitA.bottomId, outfitA.shoesId, outfitA.headwearId, ...outfitA.jewelryIds].flat().filter(Boolean) as string[],
+      contextId: outfitA.contextId,
+      validationResults: validateOutfit({
+        costumeId: outfitA.costumeId,
+        contextId: outfitA.contextId,
+        gender: outfitA.gender,
+        innerId: outfitA.innerId,
+        bottomId: outfitA.bottomId,
+        shoesId: outfitA.shoesId,
+        headwearId: outfitA.headwearId,
+        jewelryIds: outfitA.jewelryIds
+      })
+    };
+    
+    const inputB = {
+      itemIds: [outfitB.costumeId, outfitB.innerId, outfitB.bottomId, outfitB.shoesId, outfitB.headwearId, ...outfitB.jewelryIds].flat().filter(Boolean) as string[],
+      contextId: outfitB.contextId,
+      validationResults: validateOutfit({
+        costumeId: outfitB.costumeId,
+        contextId: outfitB.contextId,
+        gender: outfitB.gender,
+        innerId: outfitB.innerId,
+        bottomId: outfitB.bottomId,
+        shoesId: outfitB.shoesId,
+        headwearId: outfitB.headwearId,
+        jewelryIds: outfitB.jewelryIds
+      })
+    };
+
+    const result = compareOutfits(inputA, inputB);
+    setCompareResult(result);
+  };
+
   // 1. MÀN HÌNH XEM CHI TIẾT BỘ PHỐI ĐÃ LƯU
   if (viewingOutfitId) {
     const viewingOutfit = savedList.find((o) => o.id === viewingOutfitId);
     if (viewingOutfit) {
-      const baseGarmentId = resolveGarmentBaseId(viewingOutfit.costumeId);
+      const mainCostumeId = Array.isArray(viewingOutfit.costumeId) 
+        ? viewingOutfit.costumeId[0] 
+        : viewingOutfit.costumeId;
+      const baseGarmentId = resolveGarmentBaseId(mainCostumeId);
       const foundGarment = GARMENTS.find(
-        (g) => g.id === viewingOutfit.costumeId || g.id === baseGarmentId
+        (g) => g.id === mainCostumeId || g.id === baseGarmentId
       );
       const foundContext = CONTEXTS.find((c) => c.id === viewingOutfit.contextId);
       const foundInner = viewingOutfit.innerId
@@ -139,8 +199,8 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio }) =>
 
       // Fallback an toàn nếu garment trong catalog bị thay đổi ID
       const fallbackGarment = foundGarment || {
-        id: viewingOutfit.costumeId,
-        name: viewingOutfit.costumeId,
+        id: mainCostumeId,
+        name: mainCostumeId,
         origin: 'Dữ liệu di sản',
         characteristics: 'Món đồ có thể đã thay đổi trong danh mục hiện tại.',
         usage_context: '',
@@ -206,11 +266,49 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio }) =>
               </p>
             </div>
 
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-stone-100 border border-stone-200/70 text-[11px] text-stone-500 font-sans self-start sm:self-auto">
-              <Info className="w-3.5 h-3.5 text-stone-400 shrink-0" />
-              <span>Lưu trên trình duyệt này, chưa đồng bộ tài khoản.</span>
+            <div className="flex flex-col gap-2 self-start sm:self-auto">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-stone-100 border border-stone-200/70 text-[11px] text-stone-500 font-sans">
+                <Info className="w-3.5 h-3.5 text-stone-400 shrink-0" />
+                <span>Lưu trên trình duyệt này, chưa đồng bộ tài khoản.</span>
+              </div>
+              
+              {!isCorrupted && savedList.length > 1 && (
+                <button
+                  onClick={() => {
+                    setIsCompareMode(!isCompareMode);
+                    setSelectedForCompare([]);
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold shadow-xs transition-colors cursor-pointer border ${
+                    isCompareMode 
+                      ? 'bg-stone-900 text-white border-stone-900' 
+                      : 'bg-white text-stone-700 border-stone-200 hover:bg-stone-50'
+                  }`}
+                >
+                  {isCompareMode ? 'Hủy so sánh' : 'So sánh Outfit'}
+                </button>
+              )}
             </div>
           </div>
+          
+          {isCompareMode && (
+            <div className="mt-4 p-3 bg-indigo-50 border border-indigo-100 rounded-xl flex items-center justify-between animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="flex items-center gap-2 text-indigo-900 text-sm font-medium">
+                <Scale className="w-5 h-5 text-indigo-600" />
+                <span>Chọn 2 bộ phối để so sánh ({selectedForCompare.length}/2)</span>
+              </div>
+              <button
+                onClick={handleRunCompare}
+                disabled={selectedForCompare.length !== 2}
+                className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-colors ${
+                  selectedForCompare.length === 2 
+                    ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm' 
+                    : 'bg-indigo-100 text-indigo-400 cursor-not-allowed'
+                }`}
+              >
+                So sánh ngay
+              </button>
+            </div>
+          )}
         </div>
 
         {/* CẢNH BÁO LỖI THAO TÁC XÓA HOẶC ĐẶT LẠI */}
@@ -322,9 +420,12 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio }) =>
         {!isCorrupted && savedList.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
             {savedList.map((outfit) => {
-              const baseGarmentId = resolveGarmentBaseId(outfit.costumeId);
+              const mainCostumeId = Array.isArray(outfit.costumeId)
+                ? outfit.costumeId[0]
+                : outfit.costumeId;
+              const baseGarmentId = resolveGarmentBaseId(mainCostumeId);
               const garment = GARMENTS.find(
-                (g) => g.id === outfit.costumeId || g.id === baseGarmentId
+                (g) => g.id === mainCostumeId || g.id === baseGarmentId
               );
               const context = CONTEXTS.find((c) => c.id === outfit.contextId);
 
@@ -350,11 +451,29 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio }) =>
               const cardWarnings = cardValidation.filter((r) => r.severity === 'WARN');
               const cardBlocks = cardValidation.filter((r) => r.severity === 'BLOCK');
 
+              const isSelected = selectedForCompare.find((o) => o.id === outfit.id);
+
               return (
                 <div
                   key={outfit.id}
-                  className="bg-white rounded-3xl overflow-hidden border border-stone-200/80 shadow-xs flex flex-col group hover:shadow-md hover:border-stone-300 transition-all duration-300 relative"
+                  onClick={() => {
+                    if (isCompareMode) {
+                      toggleCompareSelection(outfit);
+                    }
+                  }}
+                  className={`bg-white rounded-3xl overflow-hidden shadow-xs flex flex-col group transition-all duration-300 relative ${
+                    isCompareMode ? 'cursor-pointer' : ''
+                  } ${
+                    isSelected 
+                      ? 'border-2 border-indigo-500 ring-4 ring-indigo-500/10' 
+                      : 'border border-stone-200/80 hover:shadow-md hover:border-stone-300'
+                  }`}
                 >
+                  {isSelected && (
+                    <div className="absolute top-2 right-2 z-10 bg-indigo-600 text-white rounded-full p-1 shadow-md">
+                      <CheckCircle2 className="w-5 h-5" />
+                    </div>
+                  )}
                   {/* Khung Ảnh đại diện Cổ phục */}
                   <div className="aspect-[4/3] w-full overflow-hidden bg-[#FAF7F2] relative flex items-center justify-center p-3">
                     {imageUrl ? (
@@ -448,7 +567,10 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio }) =>
 
                           <button
                             type="button"
-                            onClick={() => setViewingOutfitId(outfit.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setViewingOutfitId(outfit.id);
+                            }}
                             className="px-4 py-2 rounded-xl bg-stone-900 hover:bg-stone-800 text-white text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition-all active:scale-95 cursor-pointer ml-auto"
                           >
                             <Eye className="w-3.5 h-3.5" />
@@ -464,6 +586,13 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio }) =>
           </div>
         )}
       </div>
+
+      <CompareResultModal 
+        result={compareResult}
+        outfitAName={selectedForCompare[0]?.name || 'Outfit A'}
+        outfitBName={selectedForCompare[1]?.name || 'Outfit B'}
+        onClose={() => setCompareResult(null)}
+      />
     </div>
   );
 };

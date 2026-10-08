@@ -612,6 +612,59 @@ export function validateOutfit(
     });
   }
 
+  // RULE 10: GUARD_FOOTWEAR_CASUAL_MISMATCH
+  if (isMatchingGarment(['V06', 'V07', 'V09_1', 'V09_2'], cId) && isIn(['cs_14', 'cs_18', 'cs_38'], shId)) {
+    results.push({
+      isValid: true,
+      severity: 'WARN',
+      message: 'Cảnh báo phối đồ: Sneaker hoặc dép sandal làm giảm tính tôn nghiêm của Đại lễ phục (Áo Tấc, Nhật Bình, Viên Lĩnh). Khuyên dùng hài cung đình (v12), hài nhung (v11) hoặc giày tây da (cs_37, cs_15).',
+      ruleId: 'GUARD_FOOTWEAR_CASUAL_MISMATCH'
+    });
+  }
+
+  // RULE 11: ACCESSORY_OVERLOAD_WARNING
+  if (jIds && jIds.length > 3) {
+    results.push({
+      isValid: true,
+      severity: 'WARN',
+      message: 'Cảnh báo thẩm mỹ: Phối quá nhiều phụ kiện trang sức cùng lúc (hơn 3 món) dễ gây rối mắt, làm phân tán sự tập trung vào phom dáng chính của cổ phục.',
+      ruleId: 'ACCESSORY_OVERLOAD_WARNING'
+    });
+  }
+
+  // RULE 12: INFO_AODAI_FOOTWEAR_HEELS
+  if (isMatchingGarment(['V01_2'], cId) && shId && !isIn(['cs_17', 'cs_34', 'cs_35'], shId)) {
+    results.push({
+      isValid: true,
+      severity: 'INFO',
+      message: 'Gợi ý tôn dáng: Áo dài tân thời nữ sẽ tôn dáng và thướt tha nhất khi phối cùng giày cao gót quai mảnh (cs_17), mule gót nhọn (cs_34) hoặc guốc mộc cao gót (cs_35).',
+      ruleId: 'INFO_AODAI_FOOTWEAR_HEELS'
+    });
+  }
+
+  // RULE 13: INFO_BABA_REGIONAL_IDENTITY
+  if (isMatchingGarment(['V04_1', 'V04_2'], cId) && !isIn(['h02'], hId)) {
+    results.push({
+      isValid: true,
+      severity: 'INFO',
+      message: 'Gợi ý nhận diện: Áo bà ba đạt hiệu quả thẩm mỹ văn hóa miền Tây Nam Bộ cao nhất khi đi kèm khăn rằn (h02) và guốc mộc (v13/cs_35).',
+      ruleId: 'INFO_BABA_REGIONAL_IDENTITY'
+    });
+  }
+
+  // RULE 14: INFO_HISTORICAL_CROSSOVER
+  if (isMatchingGarment(['V01_1', 'V01_2', 'V05_1', 'V05_2'], cId)) {
+    const hasCrossoverJewelry = jIds && jIds.some(jId => ['j08', 'j09'].includes(jId));
+    if (hasCrossoverJewelry) {
+      results.push({
+        isValid: true,
+        severity: 'INFO',
+        message: 'Thông tin xuất xứ: Bộ diêu (j08) và lưu tô (j09) là phụ kiện đặc trưng phong cách cổ trang Đông Á nói chung, cần cân nhắc nếu mong muốn outfit tái hiện chính xác lịch sử Việt phục.',
+        ruleId: 'INFO_HISTORICAL_CROSSOVER'
+      });
+    }
+  }
+
   // Nếu không có bất kỳ BLOCK hay WARN nào:
   if (results.length === 0) {
     return [
