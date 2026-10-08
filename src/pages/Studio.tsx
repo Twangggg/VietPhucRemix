@@ -761,11 +761,11 @@ export const Studio: React.FC = () => {
                       key={tab.id}
                       type="button"
                       onClick={() => goToTab(tab.id)}
-                      className={`relative py-1.5 px-2.5 text-xs sm:text-sm tracking-wide transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 select-none rounded-full ${
+                      className={`relative py-1.5 px-2.5 text-xs sm:text-sm tracking-wide transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 select-none rounded-lg ${
                         isCurrent
                           ? 'text-stone-900 font-bold'
                           : isNextStep
-                            ? 'text-red-700 font-bold bg-red-100/90 ring-2 ring-red-500/50 shadow-sm animate-pulse'
+                            ? 'text-red-700 font-bold bg-red-100/90 ring-1.5 ring-red-500/60 shadow-xs animate-pulse'
                             : tab.completed
                               ? 'text-stone-700 hover:text-stone-900 font-medium'
                               : 'text-stone-400 hover:text-stone-600 font-normal'
