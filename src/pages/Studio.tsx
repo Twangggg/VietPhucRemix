@@ -339,7 +339,7 @@ export const Studio: React.FC = () => {
     (r) => r.ruleId?.startsWith('MISSING_')
   );
   const dataErrors = realtimeErrors.filter(
-    (r) => r.ruleId?.startsWith('INVALID_') || r.ruleId === 'GENDER_INCOMPATIBLE'
+    (r) => (r.ruleId?.startsWith('INVALID_') || r.ruleId === 'GENDER_INCOMPATIBLE') && r.severity === 'BLOCK'
   );
   const ruleViolations = realtimeErrors.filter(
     (r) =>
@@ -667,10 +667,10 @@ export const Studio: React.FC = () => {
                ========================================== */}
             <div className="flex items-center justify-between gap-3 py-0.5">
               <div>
-                <span className="text-[9px] tracking-[0.2em] uppercase font-mono text-stone-400 font-semibold block">
+                <span className="text-[9px] tracking-[0.2em] uppercase text-stone-400 font-semibold block">
                   VIETPHUC STUDIO
                 </span>
-                <h1 className="text-lg sm:text-xl font-serif font-bold text-stone-900 tracking-tight leading-none">
+                <h1 className="text-lg sm:text-xl font-bold text-stone-900 tracking-tight leading-none">
                   Phòng Phối Đồ
                 </h1>
               </div>
@@ -782,7 +782,7 @@ export const Studio: React.FC = () => {
                             }`}
                         >
                           <div className="flex items-center justify-between">
-                            <h3 className="text-sm font-serif font-bold text-stone-900 leading-snug">
+                            <h3 className="text-sm font-bold text-stone-900 leading-snug">
                               {ctx.name}
                             </h3>
                             {isSelected && (
@@ -791,7 +791,7 @@ export const Studio: React.FC = () => {
                               </div>
                             )}
                           </div>
-                          <p className="text-xs text-stone-500 leading-relaxed font-sans font-normal">
+                          <p className="text-xs text-stone-500 leading-relaxed font-normal">
                             {ctx.description}
                           </p>
                         </div>
@@ -864,7 +864,7 @@ export const Studio: React.FC = () => {
                             <span className="text-xs font-bold text-stone-900 truncate max-w-[200px]">
                               Đã chọn: {currentGarmentItems.filter(Boolean).map(i => i.name).join(', ')}
                             </span>
-                            <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 bg-red-100 text-red-800 rounded-md font-semibold">
+                            <span className="text-[10px] uppercase px-1.5 py-0.5 bg-red-100 text-red-800 rounded-md font-semibold">
                               Chuẩn văn hóa
                             </span>
                           </div>
@@ -1279,7 +1279,7 @@ export const Studio: React.FC = () => {
                       title="Phụ kiện"
                     />
                   </div>
-                  <div className="text-xs font-sans">
+                  <div className="text-xs ">
                     {hasRuleViolation ? (
                       <span className="text-red-700 font-medium flex items-center gap-1.5 animate-in fade-in duration-200">
                         Phát hiện xung đột quy chuẩn văn hóa / phom dáng (Không thể hoàn tất)
@@ -1351,7 +1351,7 @@ export const Studio: React.FC = () => {
                       <AlertTriangle className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
                       <div className="space-y-0.5">
                         <span className="font-bold block text-amber-900">Thông báo gợi ý phối nhanh:</span>
-                        <p className="leading-relaxed font-sans">{quickMatchNotice.message}</p>
+                        <p className="leading-relaxed ">{quickMatchNotice.message}</p>
                       </div>
                     </div>
                   )}
@@ -1365,7 +1365,7 @@ export const Studio: React.FC = () => {
                       <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
                       <div className="space-y-0.5">
                         <span className="font-bold block text-red-900">Xung đột quy chuẩn văn hóa / phom dáng:</span>
-                        <p className="leading-relaxed font-sans">{err.message}</p>
+                        <p className="leading-relaxed ">{err.message}</p>
                       </div>
                     </div>
                   ))}
@@ -1379,7 +1379,7 @@ export const Studio: React.FC = () => {
                       <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
                       <div className="space-y-0.5">
                         <span className="font-bold block text-rose-900">Lỗi dữ liệu / Không hợp lệ (Không thể hoàn tất):</span>
-                        <p className="leading-relaxed font-sans">{err.message}</p>
+                        <p className="leading-relaxed ">{err.message}</p>
                       </div>
                     </div>
                   ))}
@@ -1393,7 +1393,7 @@ export const Studio: React.FC = () => {
                       <Info className="w-4 h-4 text-stone-600 shrink-0 mt-0.5" />
                       <div className="space-y-0.5">
                         <span className="font-bold block text-stone-800">Chưa đủ điều kiện kiểm tra:</span>
-                        <p className="leading-relaxed font-sans">{err.message}</p>
+                        <p className="leading-relaxed ">{err.message}</p>
                       </div>
                     </div>
                   ))}
@@ -1407,7 +1407,7 @@ export const Studio: React.FC = () => {
                       <Info className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                       <div className="space-y-0.5">
                         <span className="font-bold block text-amber-900">Lưu ý phối đồ (Vẫn cho phép tiếp tục):</span>
-                        <p className="leading-relaxed font-sans">{warn.message}</p>
+                        <p className="leading-relaxed ">{warn.message}</p>
                       </div>
                     </div>
                   ))}

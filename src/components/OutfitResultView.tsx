@@ -290,7 +290,7 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
          ========================================== */}
       <div className="text-center space-y-2 pt-1">
         {isOutdatedOrBlocked ? (
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-100/90 text-red-900 text-xs font-sans font-medium border border-red-200">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-100/90 text-red-900 text-xs font-medium border border-red-200">
             <AlertTriangle className="w-3.5 h-3.5 text-red-600" />
             <span>Cần kiểm tra lại quy chuẩn</span>
             {contextItem && (
@@ -301,7 +301,7 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
             )}
           </div>
         ) : warnings.length > 0 ? (
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100/90 text-amber-900 text-xs font-sans font-medium border border-amber-200">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100/90 text-amber-900 text-xs font-medium border border-amber-200">
             <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
             <span>Có lưu ý quy chuẩn / phom dáng</span>
             {contextItem && (
@@ -312,7 +312,7 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
             )}
           </div>
         ) : (
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-stone-100/90 text-stone-700 text-xs font-sans font-medium">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-stone-100/90 text-stone-700 text-xs font-medium">
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
             <span>Phù hợp quy chuẩn kiểm tra</span>
             {contextItem && (
@@ -324,10 +324,10 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
           </div>
         )}
 
-        <h1 className="text-3xl sm:text-4xl font-serif font-bold text-stone-900 tracking-tight">
+        <h1 className="text-3xl sm:text-4xl font-bold text-stone-900 tracking-tight">
           Bảng Phối Đồ
         </h1>
-        <p className="text-[10px] font-mono tracking-[0.2em] uppercase text-stone-400">
+        <p className="text-[10px] tracking-[0.2em] uppercase text-stone-400">
           EDITORIAL COLLAGE • CHẠM ĐỂ XEM CHI TIẾT TỪNG MÓN
         </p>
       </div>
@@ -338,7 +338,7 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
           {validationResults.filter(r => r.severity === 'BLOCK').map((err, index) => (
             <div
               key={index}
-              className="p-3.5 rounded-2xl bg-red-50/90 border border-red-200/80 text-red-950 flex items-start gap-2.5 text-xs font-sans"
+              className="p-3.5 rounded-2xl bg-red-50/90 border border-red-200/80 text-red-950 flex items-start gap-2.5 text-xs "
             >
               <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
               <p className="leading-relaxed font-medium">{err.message}</p>
@@ -353,7 +353,7 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
           {warnings.map((warn, index) => (
             <div
               key={index}
-              className="p-3.5 rounded-2xl bg-amber-50/90 border border-amber-200/80 text-amber-950 flex items-start gap-2.5 text-xs font-sans"
+              className="p-3.5 rounded-2xl bg-amber-50/90 border border-amber-200/80 text-amber-950 flex items-start gap-2.5 text-xs "
             >
               <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
               <p className="leading-relaxed font-medium">{warn.message}</p>
@@ -371,7 +371,7 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
       >
         {/* Watermark di sản */}
         <div className="absolute top-4 right-6 pointer-events-none select-none opacity-15">
-          <span className="font-serif text-2xl sm:text-3xl font-bold tracking-widest text-stone-400">
+          <span className="text-2xl sm:text-3xl font-bold tracking-widest text-stone-400">
             VIETPHUC
           </span>
         </div>
@@ -400,12 +400,12 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
 
             {/* Thông tin Cổ phục sang trọng & Nút Đổi Màu */}
             <div className="text-center space-y-2 mt-2 sm:mt-3 px-4 max-w-lg">
-              <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-red-800 font-bold block">
+              <span className="text-[10px] uppercase tracking-[0.25em] text-red-800 font-bold block">
                 CỔ PHỤC DI SẢN
               </span>
               <h2
                 onClick={() => setDetailGarment(garmentItem)}
-                className="text-2xl sm:text-3xl font-serif font-bold text-stone-900 tracking-tight hover:text-red-900 transition-colors cursor-pointer"
+                className="text-2xl sm:text-3xl font-bold text-stone-900 tracking-tight hover:text-red-900 transition-colors cursor-pointer"
               >
                 {resolvedGarment.name}
               </h2>
@@ -423,7 +423,7 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
                       imageUrl: garmentImageUrl
                     });
                   }}
-                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-stone-100 hover:bg-stone-200/80 text-stone-700 hover:text-stone-900 text-[11px] font-sans font-medium transition-all shadow-2xs cursor-pointer border border-stone-200"
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-stone-100 hover:bg-stone-200/80 text-stone-700 hover:text-stone-900 text-[11px] font-medium transition-all shadow-2xs cursor-pointer border border-stone-200"
                   title={`Đổi sắc màu cho ${resolvedGarment.name}`}
                 >
                   <Palette className="w-3.5 h-3.5 text-red-700" />
@@ -438,11 +438,11 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
               </div>
 
               {resolvedGarment.origin ? (
-                <p className="text-xs text-stone-500 font-sans leading-relaxed pt-1">
+                <p className="text-xs text-stone-500 leading-relaxed pt-1">
                   {resolvedGarment.origin}
                 </p>
               ) : resolvedGarment.description ? (
-                <p className="text-xs text-stone-500 font-sans leading-relaxed pt-1">
+                <p className="text-xs text-stone-500 leading-relaxed pt-1">
                   {resolvedGarment.description}
                 </p>
               ) : null}
@@ -453,7 +453,7 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
           {companionItems.length > 0 && (
             <div className="w-full pt-4 sm:pt-6 border-t border-stone-200/50">
               <div className="text-center mb-3">
-                <span className="text-[9px] font-mono uppercase tracking-[0.2em] text-stone-400 font-semibold">
+                <span className="text-[9px] uppercase tracking-[0.2em] text-stone-400 font-semibold">
                   TRANG PHỤC & PHỤ KIỆN PHỐI KÈM
                 </span>
               </div>
@@ -484,7 +484,7 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
                     <div className="flex items-center gap-1 mt-1">
                       <span
                         onClick={c.onClick}
-                        className="text-[9px] sm:text-[10px] font-mono uppercase tracking-wider text-stone-500 max-w-[90px] sm:max-w-[120px] truncate text-center group-hover:text-red-800 transition-colors cursor-pointer"
+                        className="text-[9px] sm:text-[10px] uppercase tracking-wider text-stone-500 max-w-[90px] sm:max-w-[120px] truncate text-center group-hover:text-red-800 transition-colors cursor-pointer"
                       >
                         {c.name}
                       </span>
@@ -523,7 +523,7 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
           /* MENU POPUP NỔI TRÊN NÚT TRÒN */
           <div className="pointer-events-auto mb-3 w-64 p-3 bg-white/95 backdrop-blur-md border border-stone-200/90 rounded-2xl shadow-2xl flex flex-col gap-2 transition-all duration-300 animate-in slide-in-from-bottom-3 zoom-in-95">
             <div className="flex items-center justify-between pb-1.5 border-b border-stone-100 px-1">
-              <span className="text-[10px] font-mono uppercase tracking-wider text-stone-400 font-semibold">
+              <span className="text-[10px] uppercase tracking-wider text-stone-400 font-semibold">
                 TÙY CHỌN BẢN PHỐI
               </span>
               <button
@@ -539,7 +539,7 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
             {/* THÔNG BÁO LƯU BỘ PHỐI NẾU CÓ */}
             {saveNotice && (
               <div
-                className={`p-2.5 px-3 rounded-xl text-xs font-sans font-medium flex items-center gap-2 border shadow-2xs ${
+                className={`p-2.5 px-3 rounded-xl text-xs font-medium flex items-center gap-2 border shadow-2xs ${
                   saveNotice.type === 'success'
                     ? 'bg-emerald-50 text-emerald-950 border-emerald-200'
                     : saveNotice.type === 'warn'
