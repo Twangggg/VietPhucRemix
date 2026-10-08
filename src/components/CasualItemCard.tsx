@@ -16,11 +16,11 @@ export const CasualItemCard: React.FC<CasualItemCardProps> = ({
   selected,
   selectedGender = 'Female'
 }) => {
-  // Lấy URL sạch đã được chuẩn hóa và gắn /
-  const safeBaseUrl = getSafeImageUrl(item);
+  // Ưu tiên resolvedImageUrl nếu đã có sẵn từ resolveItemByGender
+  const safeBaseUrl = (item as any).resolvedImageUrl || getSafeImageUrl(item);
 
   // Phân giải URL theo biến thể giới tính (_1 cho Nam, _2 cho Nữ)
-  const resolvedThumbnailUrl = resolveImageUrl(
+  const resolvedThumbnailUrl = (item as any).resolvedImageUrl || resolveImageUrl(
     safeBaseUrl,
     item.has_gender_variants,
     selectedGender

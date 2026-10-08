@@ -134,8 +134,8 @@ export const CasualDetailModal: React.FC<CasualDetailModalProps> = ({
 }) => {
   if (!item) return null;
 
-  const safeBaseUrl = getSafeImageUrl(item);
-  const resolvedThumbnailUrl = resolveImageUrl(
+  const safeBaseUrl = (item as any).resolvedImageUrl || getSafeImageUrl(item);
+  const resolvedThumbnailUrl = (item as any).resolvedImageUrl || resolveImageUrl(
     safeBaseUrl,
     item.has_gender_variants,
     selectedGender

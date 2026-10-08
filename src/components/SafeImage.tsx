@@ -23,7 +23,6 @@ export const SafeImage: React.FC<SafeImageProps> = ({
   const placeholderUrl = `https://placehold.co/900x1200/F5F5F0/525252?text=${encodedText}`;
 
   const currentSrc = hasError || !src ? placeholderUrl : src;
-
   const hasExplicitObjectFit = imgClassName.includes('object-contain') || imgClassName.includes('object-cover') || imgClassName.includes('object-scale-down');
 
   return (
@@ -39,12 +38,17 @@ export const SafeImage: React.FC<SafeImageProps> = ({
         alt={alt}
         loading="lazy"
         onLoad={() => setIsLoading(false)}
+        ref={(node) => {
+          if (node && node.complete && isLoading) {
+            setIsLoading(false);
+          }
+        }}
         onError={() => {
           setHasError(true);
           setIsLoading(false);
         }}
-        className={`w-full h-full ${hasExplicitObjectFit ? '' : 'object-cover'} transition-all duration-300 ${
-          isLoading ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
+        className={`w-full h-full ${hasExplicitObjectFit ? '' : 'object-cover'} transition-opacity duration-300 ${
+          isLoading ? 'opacity-0' : 'opacity-100'
         } ${imgClassName}`}
       />
 
