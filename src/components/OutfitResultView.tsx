@@ -293,51 +293,51 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
   }>;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in-50 duration-300 pb-36 px-2 sm:px-4">
+    <div className="max-w-4xl mx-auto space-y-3 animate-in fade-in-50 duration-300 pb-36 px-2 sm:px-4">
       {/* ==========================================
           1. HEADER TỐI GIẢN (EDITORIAL LOOKBOOK HEADER)
          ========================================== */}
-      <div className="text-center space-y-2 pt-1">
+      <div className="text-center space-y-1 pt-0.5">
         {isOutdatedOrBlocked ? (
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-100/90 text-red-900 text-xs font-medium border border-red-200">
-            <AlertTriangle className="w-3.5 h-3.5 text-red-600" />
-            <span>Cần kiểm tra lại quy chuẩn</span>
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-red-100/90 text-red-900 text-[11px] font-medium border border-red-200">
+            <AlertTriangle className="w-3 h-3 text-red-600 shrink-0" />
+            <span>Cần kiểm tra lại</span>
             {contextItem && (
               <>
                 <span className="text-red-300">•</span>
-                <span className="text-red-800">{contextItem.name}</span>
+                <span className="text-red-800 truncate max-w-[150px]">{contextItem.name}</span>
               </>
             )}
           </div>
         ) : warnings.length > 0 ? (
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100/90 text-amber-900 text-xs font-medium border border-amber-200">
-            <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
-            <span>Có lưu ý quy chuẩn / phom dáng</span>
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-100/90 text-amber-900 text-[11px] font-medium border border-amber-200">
+            <AlertTriangle className="w-3 h-3 text-amber-600 shrink-0" />
+            <span>Có lưu ý</span>
             {contextItem && (
               <>
                 <span className="text-amber-300">•</span>
-                <span className="text-amber-800">{contextItem.name}</span>
+                <span className="text-amber-800 truncate max-w-[150px]">{contextItem.name}</span>
               </>
             )}
           </div>
         ) : (
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-stone-100/90 text-stone-700 text-xs font-medium">
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Phù hợp quy chuẩn kiểm tra</span>
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-stone-100/90 text-stone-600 text-[11px] font-medium">
+            <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
+            <span>Đạt chuẩn</span>
             {contextItem && (
               <>
                 <span className="text-stone-300">•</span>
-                <span className="text-stone-600">{contextItem.name}</span>
+                <span className="text-stone-600 truncate max-w-[150px]">{contextItem.name}</span>
               </>
             )}
           </div>
         )}
 
-        <h1 className="text-3xl sm:text-4xl font-bold text-stone-900 tracking-tight">
+        <h1 className="text-xl sm:text-2xl font-bold text-stone-900 tracking-tight leading-tight">
           Bảng Phối Đồ
         </h1>
-        <p className="text-[10px] tracking-[0.2em] uppercase text-stone-400">
-          CHẠM ĐỂ XEM CHI TIẾT TỪNG MÓN
+        <p className="text-[9px] tracking-widest uppercase text-stone-400">
+          Chạm để xem chi tiết
         </p>
       </div>
 
