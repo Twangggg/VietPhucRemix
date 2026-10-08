@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import {
   Sparkles,
   ShieldCheck,
@@ -30,6 +31,8 @@ import { CasualDetailModal } from '../components/CasualDetailModal';
 import { AccessoryDetailModal } from '../components/AccessoryDetailModal';
 
 export const Studio: React.FC = () => {
+  const location = useLocation();
+
   // ==========================================
   // STATE MANAGEMENT CHO STUDIO
   // ==========================================
@@ -44,6 +47,25 @@ export const Studio: React.FC = () => {
   const [selectedShoes, setSelectedShoes] = useState<string | null>(null);
   const [selectedHeadwear, setSelectedHeadwear] = useState<string | null>(null);
   const [selectedJewelries, setSelectedJewelries] = useState<string[]>([]);
+
+  // Tự động load bản phối từ Lookbook nếu được truyền qua navigate(state)
+  useEffect(() => {
+    const state = location.state as any;
+    if (state && state.presetGarmentId) {
+      if (state.presetGender) {
+        setSelectedGender(state.presetGender);
+      }
+      setSelectedGarment(state.presetGarmentId);
+      setSelectedContext(state.presetContextId || null);
+      setSelectedInner(state.presetInnerId || null);
+      setSelectedBottom(state.presetBottomId || null);
+      setSelectedShoes(state.presetShoesId || null);
+      setSelectedHeadwear(state.presetHeadwearId || null);
+      setSelectedJewelries(state.presetJewelryIds || []);
+      // Mở ngay tab phù hợp hoặc trực tiếp kết quả nếu người dùng muốn
+      setActiveTab(3);
+    }
+  }, [location.state]);
 
   // State mở Modal chi tiết xem trước từng món đồ
   const [previewGarment, setPreviewGarment] = useState<Garment | null>(null);

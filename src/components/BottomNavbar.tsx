@@ -30,7 +30,7 @@ export const BottomNavbar: React.FC<BottomNavbarProps> = ({
     },
     {
       id: 'lookbook' as NavTab,
-      label: 'Bộ sưu tập',
+      label: 'Lookbook',
       icon: Sparkles
     }
   ];
