@@ -8,7 +8,7 @@ interface TopHeaderProps {
 
 export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenStudio, activeTabTitle }) => {
   return (
-    <header className="sticky top-0 left-0 w-full z-40 bg-white border-b border-stone-200 shadow-2xs transition-all">
+    <header className="sticky top-0 left-0 w-full z-50 bg-white border-b border-stone-200 shadow-2xs transition-all">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-12 sm:h-14 flex items-center">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-lg bg-red-700 text-white flex items-center justify-center font-bold text-xs shadow-xs tracking-tight">

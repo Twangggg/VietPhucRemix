@@ -1,12 +1,57 @@
 import React, { useState } from 'react';
 import { Info, ArrowLeft, Sparkles, Layers } from 'lucide-react';
 import { CONTEXTS, OUTFIT_COMBINATIONS, GARMENTS, CASUAL_ITEMS, ACCESSORIES } from '../data';
-import { OutfitCombination, Gender } from '../types';
+import { OutfitCombination, Gender, Garment, CasualItem, AccessoryItem } from '../types';
 import { resolveItemByGender } from '../utils/helpers';
-import { SafeImage } from './SafeImage';
+import { GarmentDetailModal } from './GarmentDetailModal';
+import { CasualDetailModal } from './CasualDetailModal';
+import { AccessoryDetailModal } from './AccessoryDetailModal';
 
 export function LookbookTab() {
   const [selectedLookbookOutfit, setSelectedLookbookOutfit] = useState<OutfitCombination | null>(null);
+  
+  const [detailGarment, setDetailGarment] = useState<Garment | null>(null);
+  const [detailCasual, setDetailCasual] = useState<CasualItem | null>(null);
+  const [detailAccessory, setDetailAccessory] = useState<AccessoryItem | null>(null);
+
+  const getOutfitItems = (outfit: OutfitCombination) => {
+    const comp = outfit.composition;
+    const itemIds = [
+      comp.inner,
+      comp.top,
+      comp.outer_traditional,
+      comp.outer_formal,
+      comp.bottom_pants,
+      comp.bottom_skirt,
+      comp.shoes,
+      comp.traditional_footwear,
+      comp.headwear,
+      ...(comp.jewelry || []),
+      ...(comp.other_accessories || [])
+    ].filter(Boolean) as string[];
+
+    return itemIds.map(id => {
+      let itemType: 'garment' | 'casual' | 'accessory' | null = null;
+      let item = GARMENTS.find(g => g.id === id);
+      if (item) itemType = 'garment';
+      else {
+        item = CASUAL_ITEMS.find(c => c.id === id) as any;
+        if (item) itemType = 'casual';
+        else {
+          item = ACCESSORIES.find(a => a.id === id) as any;
+          if (item) itemType = 'accessory';
+        }
+      }
+      
+      if (!item || !itemType) return null;
+      const genderStr = outfit.gender.toLowerCase() === 'female' ? 'Female' : 'Male';
+      return {
+        type: itemType,
+        originalItem: item,
+        resolvedItem: resolveItemByGender(item as any, genderStr as Gender)
+      };
+    }).filter(Boolean) as { type: 'garment'|'casual'|'accessory', originalItem: any, resolvedItem: any }[];
+  };
 
   const translateGender = (gender: string) => {
     const g = gender.toLowerCase();
@@ -81,14 +126,25 @@ export function LookbookTab() {
                   key={outfit.id}
                   className="bg-white rounded-3xl overflow-hidden border border-stone-200/80 shadow-sm flex flex-col group hover:shadow-md transition-all duration-300"
                 >
-                  <div className="aspect-[4/3] sm:aspect-[16/10] w-full overflow-hidden bg-stone-100 relative">
-                    <SafeImage
-                      src={`/assets/outfits/${outfit.id.toLowerCase()}.png`}
-                      alt={outfit.name}
-                      fallbackText={outfit.name}
-                      expectedPath={`/assets/outfits/${outfit.id.toLowerCase()}.png`}
-                      className="w-full h-full"
-                    />
+                  <div className="w-full bg-stone-50 border-b border-stone-200/80 p-4 flex flex-wrap gap-3 justify-center items-center min-h-[200px]">
+                    {getOutfitItems(outfit).slice(0, 5).map(({ resolvedItem }, idx) => (
+                      <div key={`${resolvedItem.id}-${idx}`} className="w-16 h-16 sm:w-20 sm:h-20 bg-white rounded-xl shadow-sm border border-stone-200 p-1.5 flex items-center justify-center">
+                        {resolvedItem.resolvedImageUrl ? (
+                          <img
+                            src={resolvedItem.resolvedImageUrl}
+                            alt={resolvedItem.name}
+                            className="max-w-full max-h-full object-contain mix-blend-multiply"
+                          />
+                        ) : (
+                          <Sparkles className="w-6 h-6 text-stone-300" />
+                        )}
+                      </div>
+                    ))}
+                    {getOutfitItems(outfit).length > 5 && (
+                      <div className="w-16 h-16 sm:w-20 sm:h-20 bg-stone-100 rounded-xl border border-stone-200 flex items-center justify-center">
+                        <span className="text-stone-500 font-medium text-sm">+{getOutfitItems(outfit).length - 5}</span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="p-6 sm:p-8 flex-1 flex flex-col justify-between space-y-5">
@@ -142,22 +198,9 @@ export function LookbookTab() {
           </button>
 
           <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-stone-200">
-            <div className="flex flex-col md:flex-row gap-8 lg:gap-12">
-              {/* Hình ảnh */}
-              <div className="w-full md:w-1/2 lg:w-5/12">
-                <div className="aspect-[3/4] rounded-2xl overflow-hidden bg-stone-100 shadow-inner relative">
-                  <SafeImage
-                    src={`/assets/outfits/${selectedLookbookOutfit.id.toLowerCase()}.png`}
-                    alt={selectedLookbookOutfit.name}
-                    fallbackText={selectedLookbookOutfit.name}
-                    expectedPath={`/assets/outfits/${selectedLookbookOutfit.id.toLowerCase()}.png`}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              </div>
-
+            <div className="flex flex-col gap-8">
               {/* Thông tin */}
-              <div className="w-full md:w-1/2 lg:w-7/12 flex flex-col">
+              <div className="w-full flex flex-col">
                 <div className="space-y-4">
                   <span className="text-xs font-sans text-red-700 font-semibold tracking-wider uppercase block">
                     Bản phối tiêu biểu
@@ -218,59 +261,65 @@ export function LookbookTab() {
                 Chi tiết các món đồ trong bản phối
               </h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                {(() => {
-                  const comp = selectedLookbookOutfit.composition;
-                  const itemIds = [
-                    comp.inner,
-                    comp.top,
-                    comp.outer_traditional,
-                    comp.outer_formal,
-                    comp.bottom_pants,
-                    comp.bottom_skirt,
-                    comp.shoes,
-                    comp.traditional_footwear,
-                    comp.headwear,
-                    ...(comp.jewelry || []),
-                    ...(comp.other_accessories || [])
-                  ].filter(Boolean) as string[];
-
-                  return itemIds.map((id, index) => {
-                    const item = GARMENTS.find(g => g.id === id) || CASUAL_ITEMS.find(c => c.id === id) || ACCESSORIES.find(a => a.id === id);
-                    if (!item) return null;
-
-                    // Giải quyết hình ảnh dựa vào giới tính của outfit hoặc giới tính item
-                    const genderStr = selectedLookbookOutfit.gender.toLowerCase() === 'female' ? 'Female' : 'Male';
-                    const resolvedItem = resolveItemByGender(item as any, genderStr as Gender);
-
-                    return (
-                      <div key={`${id}-${index}`} className="bg-stone-50 rounded-xl overflow-hidden border border-stone-200 flex flex-col">
-                        <div className="aspect-square bg-white relative p-2 flex items-center justify-center">
-                          {resolvedItem.resolvedImageUrl ? (
-                            <img
-                              src={resolvedItem.resolvedImageUrl}
-                              alt={resolvedItem.name}
-                              className="max-w-full max-h-full object-contain mix-blend-multiply"
-                            />
-                          ) : (
-                            <Sparkles className="w-8 h-8 text-stone-300" />
-                          )}
-                        </div>
-                        <div className="p-3 border-t border-stone-200 flex-1 flex flex-col justify-center text-center">
-                          <h5 className="text-[11px] font-bold text-gray-900 leading-tight line-clamp-2">
-                            {resolvedItem.name}
-                          </h5>
-                          <span className="text-[9px] text-stone-500 uppercase tracking-wide mt-1 block">
-                            {translateCategory(resolvedItem.category || resolvedItem.type)}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  });
-                })()}
+                {getOutfitItems(selectedLookbookOutfit).map(({ type, originalItem, resolvedItem }, index) => (
+                  <div 
+                    key={`${resolvedItem.id}-${index}`} 
+                    className="bg-stone-50 rounded-xl overflow-hidden border border-stone-200 flex flex-col hover:border-red-200 hover:shadow-sm transition-all cursor-pointer"
+                    onClick={() => {
+                      if (type === 'garment') setDetailGarment(originalItem);
+                      else if (type === 'casual') setDetailCasual(originalItem);
+                      else if (type === 'accessory') setDetailAccessory(originalItem);
+                    }}
+                  >
+                    <div className="aspect-square bg-white relative p-2 flex items-center justify-center">
+                      {resolvedItem.resolvedImageUrl ? (
+                        <img
+                          src={resolvedItem.resolvedImageUrl}
+                          alt={resolvedItem.name}
+                          className="max-w-full max-h-full object-contain mix-blend-multiply"
+                        />
+                      ) : (
+                        <Sparkles className="w-8 h-8 text-stone-300" />
+                      )}
+                    </div>
+                    <div className="p-3 border-t border-stone-200 flex-1 flex flex-col justify-center text-center">
+                      <h5 className="text-[11px] font-bold text-gray-900 leading-tight line-clamp-2">
+                        {resolvedItem.name}
+                      </h5>
+                      <span className="text-[9px] text-stone-500 uppercase tracking-wide mt-1 block">
+                        {translateCategory(resolvedItem.category || resolvedItem.type)}
+                      </span>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
         </div>
+      )}
+
+      {detailGarment && (
+        <GarmentDetailModal
+          garment={detailGarment}
+          onClose={() => setDetailGarment(null)}
+          selectedGender={selectedLookbookOutfit?.gender.toLowerCase() === 'female' ? 'Female' : 'Male'}
+        />
+      )}
+
+      {detailCasual && (
+        <CasualDetailModal
+          item={detailCasual}
+          onClose={() => setDetailCasual(null)}
+          selectedGender={selectedLookbookOutfit?.gender.toLowerCase() === 'female' ? 'Female' : 'Male'}
+        />
+      )}
+
+      {detailAccessory && (
+        <AccessoryDetailModal
+          accessory={detailAccessory}
+          onClose={() => setDetailAccessory(null)}
+          selectedGender={selectedLookbookOutfit?.gender.toLowerCase() === 'female' ? 'Female' : 'Male'}
+        />
       )}
     </div>
   );
