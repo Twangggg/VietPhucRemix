@@ -130,3 +130,21 @@ export interface AccessoryItem {
   formality?: string;
   image_url?: string | string[]; // Chú ý: có thể là string hoặc mảng string
 }
+
+export interface SavedLookbook {
+  id: string;
+  title: string;
+  authorName?: string;
+  notes?: string;
+  createdAt: number;
+  gender: Gender;
+  contextId?: string | null;
+  garmentId: string;
+  innerId?: string | null;
+  bottomId?: string | null;
+  shoesId?: string | null;
+  headwearId?: string | null;
+  jewelryIds?: string[];
+  itemColors?: Record<string, { hex: string | null; intensity: number }>;
+  tags?: string[];
+}

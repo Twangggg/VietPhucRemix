@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   BookOpen,
   CheckCircle2,
@@ -6,13 +6,16 @@ import {
   Sparkles,
   ArrowLeft,
   ChevronUp,
-  ChevronDown,
+  Palette,
   Bookmark,
   BookmarkCheck,
+  Share2,
+  Download,
+  Loader2,
   Check,
-  Info,
-  Palette
+  Info
 } from 'lucide-react';
+import { toPng } from 'html-to-image';
 import { Garment, CasualItem, AccessoryItem, ContextItem, ValidationResult } from '../types';
 import { SafeImage } from './SafeImage';
 import { TintedImage } from './TintedImage';
@@ -22,6 +25,8 @@ import { GarmentDetailModal } from './GarmentDetailModal';
 import { CasualDetailModal } from './CasualDetailModal';
 import { AccessoryDetailModal } from './AccessoryDetailModal';
 import { ColorCustomizerModal } from './ColorCustomizerModal';
+import { SaveLookbookModal } from './SaveLookbookModal';
+import { saveLookbook, encodeOutfitToShareUrl } from '../utils/lookbookStore';
 
 export interface SaveNotice {
   type: 'success' | 'warn' | 'error' | 'info';
@@ -91,6 +96,76 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
     categoryName: string;
     imageUrl: string;
   } | null>(null);
+
+  // Lookbook Saving & Sharing State
+  const [showSaveModal, setShowSaveModal] = useState<boolean>(false);
+  const [isExporting, setIsExporting] = useState<boolean>(false);
+  const [justCopiedLink, setJustCopiedLink] = useState<boolean>(false);
+  const moodboardRef = useRef<HTMLDivElement>(null);
+
+  // Xử lý xuất ảnh Lookbook (PNG card) chất lượng cao
+  const handleExportLookbookImage = async () => {
+    if (!moodboardRef.current) return;
+    try {
+      setIsExporting(true);
+      const dataUrl = await toPng(moodboardRef.current, {
+        cacheBust: true,
+        pixelRatio: 2,
+        backgroundColor: '#FAF7F2'
+      });
+      const link = document.createElement('a');
+      link.download = `vietphuc-lookbook-${resolvedGarment.name.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (err) {
+      console.error('Lỗi khi xuất ảnh lookbook:', err);
+      alert('Không thể tạo file ảnh lúc này. Bạn có thể sử dụng tính năng Chia sẻ liên kết!');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  // Xử lý sao chép link chia sẻ trực tiếp
+  const handleCopyDirectShareLink = async () => {
+    const shareUrl = encodeOutfitToShareUrl({
+      g: garmentItem.id,
+      ctx: contextItem?.id,
+      inn: innerItem?.id,
+      bot: bottomItem?.id,
+      sh: shoesItem?.id,
+      hw: headwearItem?.id,
+      jw: jewelryItems?.map((j) => j.id),
+      gen: selectedGender,
+      col: itemColors
+    });
+
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setJustCopiedLink(true);
+      setTimeout(() => setJustCopiedLink(false), 2500);
+    } catch {
+      setJustCopiedLink(true);
+      setTimeout(() => setJustCopiedLink(false), 2500);
+    }
+  };
+
+  // Xử lý lưu Lookbook vào localStorage
+  const handleSaveToLookbook = (title: string, notes: string, authorName: string) => {
+    saveLookbook({
+      title,
+      notes,
+      authorName,
+      gender: selectedGender === 'male' ? 'Male' : 'Female',
+      contextId: contextItem?.id || null,
+      garmentId: garmentItem.id,
+      innerId: innerItem?.id || null,
+      bottomId: bottomItem?.id || null,
+      shoesId: shoesItem?.id || null,
+      headwearId: headwearItem?.id || null,
+      jewelryIds: jewelryItems?.map((j) => j.id) || [],
+      itemColors: itemColors
+    });
+  };
 
   // Phân giải các món đồ theo giới tính để lấy ảnh chính xác
   const resolvedGarment = resolveItemByGender(garmentItem, selectedGender);
@@ -267,7 +342,10 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
       {/* ==========================================
           2. FASHION MOODBOARD CANVAS (COLLAGE / FLAT-LAY NGHỆ THUẬT)
          ========================================== */}
-      <div className="relative w-full rounded-3xl p-5 sm:p-8 md:p-10 bg-[#FAF7F2] border border-stone-200/80 shadow-xs overflow-hidden">
+      <div
+        ref={moodboardRef}
+        className="relative w-full rounded-3xl p-5 sm:p-8 md:p-10 bg-[#FAF7F2] border border-stone-200/80 shadow-xs overflow-hidden"
+      >
         {/* Watermark di sản */}
         <div className="absolute top-4 right-6 pointer-events-none select-none opacity-15">
           <span className="font-serif text-2xl sm:text-3xl font-bold tracking-widest text-stone-400">
@@ -309,31 +387,6 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
                 {resolvedGarment.name}
               </h2>
 
-              {/* Nút Đổi màu trực quan cho Cổ phục */}
-              <div className="flex items-center justify-center gap-2 pt-0.5">
-                <button
-                  type="button"
-                  onClick={() =>
-                    setColorTargetItem({
-                      id: garmentItem.id,
-                      name: resolvedGarment.name,
-                      categoryName: 'Cổ phục',
-                      imageUrl: garmentImageUrl
-                    })
-                  }
-                  className="px-3.5 py-1 rounded-full bg-white hover:bg-stone-50 border border-stone-300 text-stone-800 text-xs font-medium flex items-center gap-1.5 shadow-2xs hover:border-stone-400 transition-all cursor-pointer active:scale-95"
-                  title="Đổi màu áo bằng bảng màu di sản hoặc màu tùy chỉnh"
-                >
-                  <Palette className="w-3.5 h-3.5 text-red-700" />
-                  <span>{garmentColorSetting.hex ? 'Đổi màu khác' : 'Đổi màu áo'}</span>
-                  {garmentColorSetting.hex && (
-                    <span
-                      className="w-2.5 h-2.5 rounded-full border border-black/20 inline-block ml-0.5"
-                      style={{ backgroundColor: garmentColorSetting.hex }}
-                    />
-                  )}
-                </button>
-              </div>
 
               {resolvedGarment.origin ? (
                 <p className="text-xs text-stone-500 font-sans leading-relaxed pt-1">
@@ -414,13 +467,13 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
       </div>
 
       {/* ==========================================
-          3. NÚT CALL-TO-ACTION DÍNH Ở ĐÁY (THU MỞ LINH HOẠT, NỔI TRÊN NAVBAR)
+          3. NÚT TRÒN THAO TÁC NỔI BÊN HÔNG PHẢI DƯỚI (FLOATING ACTION BUTTON)
          ========================================== */}
-      <div className="fixed bottom-20 inset-x-4 max-w-md mx-auto z-40 flex flex-col items-center pointer-events-none">
-        {isActionsExpanded ? (
-          /* TRẠNG THÁI MỞ RỘNG */
-          <div className="w-full pointer-events-auto p-3 sm:p-3.5 bg-white/95 backdrop-blur-md border border-stone-200/90 rounded-2xl shadow-2xl flex flex-col gap-2.5 transition-all duration-300 animate-in slide-in-from-bottom-3">
-            <div className="flex items-center justify-between pb-1.5 border-b border-stone-100">
+      <div className="fixed bottom-24 sm:bottom-28 right-4 sm:right-6 z-[60] flex flex-col items-end pointer-events-none">
+        {isActionsExpanded && (
+          /* MENU POPUP NỔI TRÊN NÚT TRÒN */
+          <div className="pointer-events-auto mb-3 w-64 p-3 bg-white/95 backdrop-blur-md border border-stone-200/90 rounded-2xl shadow-2xl flex flex-col gap-2 transition-all duration-300 animate-in slide-in-from-bottom-3 zoom-in-95">
+            <div className="flex items-center justify-between pb-1.5 border-b border-stone-100 px-1">
               <span className="text-[10px] font-mono uppercase tracking-wider text-stone-400 font-semibold">
                 TÙY CHỌN BẢN PHỐI
               </span>
@@ -428,7 +481,7 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
                 type="button"
                 onClick={() => setIsActionsExpanded(false)}
                 className="p-1 rounded-full text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors cursor-pointer"
-                title="Thu nhỏ thanh thao tác"
+                title="Đóng menu"
               >
                 <ChevronDown className="w-4 h-4" />
               </button>
@@ -462,21 +515,27 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
               </div>
             )}
 
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
+            <div className="flex flex-col gap-1.5">
               <button
                 type="button"
-                onClick={onBackToStudio}
-                className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-stone-200 hover:border-stone-300 bg-stone-50 hover:bg-stone-100 text-stone-800 font-semibold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95"
+                onClick={() => {
+                  setIsActionsExpanded(false);
+                  setShowSaveModal(true);
+                }}
+                className="w-full px-3.5 py-2.5 rounded-xl bg-red-700 hover:bg-red-800 text-white font-semibold text-xs flex items-center justify-between shadow-xs transition-all active:scale-95 cursor-pointer"
               >
-                <ArrowLeft className="w-3.5 h-3.5 text-stone-600" />
-                <span>{backButtonText || 'Quay lại phối đồ'}</span>
+                <div className="flex items-center gap-2">
+                  <Bookmark className="w-4 h-4" />
+                  <span>Lưu Lookbook & Chia sẻ</span>
+                </div>
+                <Share2 className="w-3.5 h-3.5 opacity-80" />
               </button>
 
               {!isFromCollection && onSaveOutfit && (
                 <button
                   type="button"
                   onClick={onSaveOutfit}
-                  className={`w-full sm:w-auto px-4 py-2.5 rounded-xl font-semibold text-xs flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-xs ${
+                  className={`w-full px-3.5 py-2 rounded-xl font-semibold text-xs flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-xs ${
                     isSaved
                       ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 hover:bg-emerald-200/70'
                       : 'bg-stone-900 hover:bg-stone-800 text-white'
@@ -498,15 +557,16 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
 
               <button
                 type="button"
-                onClick={() =>
+                onClick={() => {
+                  setIsActionsExpanded(false);
                   setColorTargetItem({
                     id: garmentItem.id,
                     name: resolvedGarment.name,
                     categoryName: 'Cổ phục',
                     imageUrl: garmentImageUrl
-                  })
-                }
-                className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-stone-200 hover:border-stone-300 bg-stone-50 hover:bg-stone-100 text-stone-800 font-semibold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95"
+                  });
+                }}
+                className="w-full px-3.5 py-2 rounded-xl border border-stone-200 hover:border-stone-300 bg-stone-50 hover:bg-stone-100 text-stone-800 font-medium text-xs flex items-center gap-2 transition-all cursor-pointer active:scale-95"
               >
                 <Palette className="w-3.5 h-3.5 text-red-700" />
                 <span>Đổi sắc màu áo</span>
@@ -514,26 +574,67 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
 
               <button
                 type="button"
-                onClick={() => setShowCulturalModal(true)}
-                className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-red-700 hover:bg-red-800 text-white font-semibold text-xs flex items-center justify-center gap-1.5 shadow-xs transition-all active:scale-95 cursor-pointer"
+                onClick={() => {
+                  setIsActionsExpanded(false);
+                  setShowCulturalModal(true);
+                }}
+                className="w-full px-3.5 py-2 rounded-xl border border-stone-200 hover:border-stone-300 bg-stone-50 hover:bg-stone-100 text-stone-800 font-medium text-xs flex items-center gap-2 transition-all cursor-pointer active:scale-95"
               >
-                <BookOpen className="w-3.5 h-3.5" />
+                <BookOpen className="w-3.5 h-3.5 text-stone-600" />
                 <span>Câu chuyện di sản</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIsActionsExpanded(false);
+                  onBackToStudio();
+                }}
+                className="w-full px-3.5 py-2 rounded-xl border border-stone-200 hover:border-stone-300 bg-stone-50 hover:bg-stone-100 text-stone-600 hover:text-stone-900 font-medium text-xs flex items-center gap-2 transition-all cursor-pointer active:scale-95"
+              >
+                <ArrowLeft className="w-3.5 h-3.5 text-stone-500" />
+                <span>Quay lại phối đồ</span>
               </button>
             </div>
           </div>
-        ) : (
-          /* TRẠNG THÁI THU GỌN */
+        )}
+
+        {/* NÚT TRÒN FLOATING BUTTON (FAB) BÊN HÔNG PHẢI DƯỚI - GỌN HƠN & ĐỔI MÀU KHI CÓ CẢNH BÁO */}
+        <div className="relative pointer-events-auto">
           <button
             type="button"
-            onClick={() => setIsActionsExpanded(true)}
-            className="pointer-events-auto px-4 py-2 rounded-full backdrop-blur-md bg-stone-900/95 border border-stone-800 text-white shadow-lg text-xs font-medium flex items-center gap-2 transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer select-none"
+            onClick={() => setIsActionsExpanded((prev) => !prev)}
+            className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer select-none ${
+              isActionsExpanded
+                ? 'bg-stone-900 text-white ring-4 ring-stone-900/20'
+                : warnings.length > 0
+                ? 'bg-amber-600 hover:bg-amber-700 text-white ring-4 ring-amber-500/25'
+                : 'bg-red-700 hover:bg-red-800 text-white ring-4 ring-red-700/20'
+            }`}
+            title={
+              warnings.length > 0
+                ? `Có ${warnings.length} lưu ý quy chuẩn văn hóa - Bấm để xem tùy chọn`
+                : 'Bản phối hợp lệ - Bấm để xem tùy chọn'
+            }
+            aria-label="Tùy chọn bản phối"
           >
-            <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-            <span>Tùy chọn bản phối & Đổi màu</span>
-            <ChevronUp className="w-3.5 h-3.5 opacity-60" />
+            {isActionsExpanded ? (
+              <ChevronDown className="w-5 h-5 stroke-[2.5]" />
+            ) : warnings.length > 0 ? (
+              <AlertTriangle className="w-5 h-5 text-amber-100" />
+            ) : (
+              <Sparkles className="w-5 h-5 text-amber-300" />
+            )}
           </button>
-        )}
+
+          {/* Dấu chấm thông báo cảnh báo nếu có warnings */}
+          {warnings.length > 0 && !isActionsExpanded && (
+            <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-amber-500 border-2 border-white" />
+            </span>
+          )}
+        </div>
       </div>
 
       {/* ==========================================
@@ -587,6 +688,27 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
         onClose={() => setShowCulturalModal(false)}
         garment={garmentItem}
         selectedGender={selectedGender}
+      />
+
+      {/* Modal Lưu Lookbook & Chia Sẻ */}
+      <SaveLookbookModal
+        isOpen={showSaveModal}
+        onClose={() => setShowSaveModal(false)}
+        defaultTitle={`Phối đồ ${resolvedGarment.name}`}
+        onSave={handleSaveToLookbook}
+        onExportImage={handleExportLookbookImage}
+        isExporting={isExporting}
+        sharePayload={{
+          g: garmentItem.id,
+          ctx: contextItem?.id,
+          inn: innerItem?.id,
+          bot: bottomItem?.id,
+          sh: shoesItem?.id,
+          hw: headwearItem?.id,
+          jw: jewelryItems?.map((j) => j.id),
+          gen: selectedGender,
+          col: itemColors
+        }}
       />
     </div>
   );
