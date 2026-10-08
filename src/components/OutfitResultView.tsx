@@ -111,7 +111,7 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
       return next;
     });
   };
-  
+
   // State mở Color Customizer Modal cho món đồ cụ thể
   const [colorTargetItem, setColorTargetItem] = useState<{
     id: string;
@@ -290,7 +290,7 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
          ========================================== */}
       <div className="text-center space-y-2 pt-1">
         {isOutdatedOrBlocked ? (
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-100/90 text-red-900 text-xs font-sans font-medium border border-red-200">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-100/90 text-red-900 text-xs font-medium border border-red-200">
             <AlertTriangle className="w-3.5 h-3.5 text-red-600" />
             <span>Cần kiểm tra lại quy chuẩn</span>
             {contextItem && (
@@ -301,7 +301,7 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
             )}
           </div>
         ) : warnings.length > 0 ? (
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100/90 text-amber-900 text-xs font-sans font-medium border border-amber-200">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100/90 text-amber-900 text-xs font-medium border border-amber-200">
             <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
             <span>Có lưu ý quy chuẩn / phom dáng</span>
             {contextItem && (
@@ -312,7 +312,7 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
             )}
           </div>
         ) : (
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-stone-100/90 text-stone-700 text-xs font-sans font-medium">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-stone-100/90 text-stone-700 text-xs font-medium">
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
             <span>Phù hợp quy chuẩn kiểm tra</span>
             {contextItem && (
@@ -324,11 +324,11 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
           </div>
         )}
 
-        <h1 className="text-3xl sm:text-4xl font-serif font-bold text-stone-900 tracking-tight">
+        <h1 className="text-3xl sm:text-4xl font-bold text-stone-900 tracking-tight">
           Bảng Phối Đồ
         </h1>
-        <p className="text-[10px] font-mono tracking-[0.2em] uppercase text-stone-400">
-          EDITORIAL COLLAGE • CHẠM ĐỂ XEM CHI TIẾT TỪNG MÓN
+        <p className="text-[10px] tracking-[0.2em] uppercase text-stone-400">
+          CHẠM ĐỂ XEM CHI TIẾT TỪNG MÓN
         </p>
       </div>
 
@@ -338,7 +338,7 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
           {validationResults.filter(r => r.severity === 'BLOCK').map((err, index) => (
             <div
               key={index}
-              className="p-3.5 rounded-2xl bg-red-50/90 border border-red-200/80 text-red-950 flex items-start gap-2.5 text-xs font-sans"
+              className="p-3.5 rounded-2xl bg-red-50/90 border border-red-200/80 text-red-950 flex items-start gap-2.5 text-xs "
             >
               <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
               <p className="leading-relaxed font-medium">{err.message}</p>
@@ -353,7 +353,7 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
           {warnings.map((warn, index) => (
             <div
               key={index}
-              className="p-3.5 rounded-2xl bg-amber-50/90 border border-amber-200/80 text-amber-950 flex items-start gap-2.5 text-xs font-sans"
+              className="p-3.5 rounded-2xl bg-amber-50/90 border border-amber-200/80 text-amber-950 flex items-start gap-2.5 text-xs "
             >
               <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
               <p className="leading-relaxed font-medium">{warn.message}</p>
@@ -367,108 +367,110 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
          ========================================== */}
       <div
         ref={moodboardRef}
-        className="relative w-full rounded-3xl p-5 sm:p-8 md:p-10 bg-[#FAF7F2] border border-stone-200/80 shadow-xs overflow-hidden"
+        className="relative w-full rounded-sm p-4 sm:p-8 md:p-10 bg-[#fcf9f2] border border-stone-300 shadow-md overflow-hidden font-sans"
+        style={{
+          backgroundImage: 'repeating-linear-gradient(transparent, transparent 27px, #e2e2e2 27px, #e2e2e2 28px)',
+          backgroundSize: '100% 28px',
+          backgroundPositionY: '14px' // căn lề
+        }}
       >
-        {/* Watermark di sản */}
-        <div className="absolute top-4 right-6 pointer-events-none select-none opacity-15">
-          <span className="font-serif text-2xl sm:text-3xl font-bold tracking-widest text-stone-400">
-            VIETPHUC
-          </span>
+        {/* Binder holes effect (Trang vở đục lỗ) */}
+        <div className="absolute left-1 sm:left-4 top-0 bottom-0 w-4 sm:w-8 border-r sm:border-r-2 border-red-800/20 flex flex-col justify-around py-4 sm:py-8 z-0">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="w-2.5 h-2.5 sm:w-4 sm:h-4 rounded-full bg-stone-200 shadow-inner border border-stone-300/50 -ml-0.5 sm:ml-0" />
+          ))}
         </div>
 
         {/* Khung Moodboard chính */}
-        <div className="flex flex-col items-center justify-center relative z-10 space-y-6 sm:space-y-8">
+        <div className="flex flex-row flex-wrap items-start justify-between sm:justify-center relative z-10 pl-5 sm:pl-8 pt-2 pb-4 gap-x-1 sm:gap-x-6 gap-y-4 w-full">
 
           {/* VỊ TRÍ TRUNG TÂM: CỔ PHỤC DI SẢN (KEY PIECE) */}
-          <div className="flex flex-col items-center select-none w-full max-w-sm sm:max-w-md pt-2">
-            {/* Ảnh Cổ phục với khoảng cách trên thoáng đãng, không bị cắt cổ áo */}
-            <div
-              onClick={() => setDetailGarment(garmentItem)}
-              className="group cursor-pointer w-full aspect-[3/4] sm:aspect-[4/5] relative max-h-[380px] sm:max-h-[440px] flex items-center justify-center p-2"
-              title="Xem chi tiết Cổ phục di sản"
-            >
-              <TintedImage
-                src={garmentImageUrl}
-                colorHex={garmentColorSetting.hex}
-                intensity={garmentColorSetting.intensity}
-                alt={resolvedGarment.name}
-                fallbackText={resolvedGarment.name}
-                className="bg-transparent w-full h-full flex items-center justify-center"
-                imgClassName="mix-blend-multiply object-contain object-center drop-shadow-md group-hover:scale-102 transition-transform duration-500"
-              />
-            </div>
+          <div className={`flex flex-col items-center shrink-0 w-[42%] ${companionItems.length >= 4 ? 'sm:w-[48%] md:w-[45%]' : 'sm:w-[55%] md:w-[45%]'} max-w-[260px]`}>
+            {/* Scrapbook Style cho món đồ chính (Dán trực tiếp lên giấy) */}
+            <div className="relative w-full group -rotate-1">
 
-            {/* Thông tin Cổ phục sang trọng & Nút Đổi Màu */}
-            <div className="text-center space-y-2 mt-2 sm:mt-3 px-4 max-w-lg">
-              <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-red-800 font-bold block">
-                CỔ PHỤC DI SẢN
-              </span>
-              <h2
+              {/* Ảnh */}
+              <div
                 onClick={() => setDetailGarment(garmentItem)}
-                className="text-2xl sm:text-3xl font-serif font-bold text-stone-900 tracking-tight hover:text-red-900 transition-colors cursor-pointer"
+                className="cursor-pointer w-full aspect-[3/4] relative flex items-center justify-center"
+                title="Xem chi tiết Cổ phục di sản"
               >
-                {resolvedGarment.name}
-              </h2>
-
-              {/* Nút đổi màu trực quan ngay trên thẻ Cổ phục chính */}
-              <div className="pt-0.5 pb-1 flex items-center justify-center">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setColorTargetItem({
-                      id: garmentItem.id,
-                      name: resolvedGarment.name,
-                      categoryName: 'Cổ phục',
-                      imageUrl: garmentImageUrl
-                    });
-                  }}
-                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-stone-100 hover:bg-stone-200/80 text-stone-700 hover:text-stone-900 text-[11px] font-sans font-medium transition-all shadow-2xs cursor-pointer border border-stone-200"
-                  title={`Đổi sắc màu cho ${resolvedGarment.name}`}
-                >
-                  <Palette className="w-3.5 h-3.5 text-red-700" />
-                  <span>Đổi màu áo</span>
-                  {garmentColorSetting.hex && (
-                    <span
-                      className="w-2.5 h-2.5 rounded-full border border-stone-300 shadow-2xs inline-block ml-0.5"
-                      style={{ backgroundColor: garmentColorSetting.hex }}
-                    />
-                  )}
-                </button>
+                <TintedImage
+                  src={garmentImageUrl}
+                  colorHex={garmentColorSetting.hex}
+                  intensity={garmentColorSetting.intensity}
+                  alt={resolvedGarment.name}
+                  fallbackText={resolvedGarment.name}
+                  className="bg-transparent w-full h-full flex items-center justify-center p-0.5 sm:p-1"
+                  imgClassName="mix-blend-multiply object-contain object-center drop-shadow-xl group-hover:scale-105 transition-transform duration-500"
+                />
               </div>
 
-              {resolvedGarment.origin ? (
-                <p className="text-xs text-stone-500 font-sans leading-relaxed pt-1">
-                  {resolvedGarment.origin}
-                </p>
-              ) : resolvedGarment.description ? (
-                <p className="text-xs text-stone-500 font-sans leading-relaxed pt-1">
-                  {resolvedGarment.description}
-                </p>
-              ) : null}
+              {/* Thông tin Text dạng ghi chú tay */}
+              <div className="text-center space-y-0.5 sm:space-y-1.5 mt-1 sm:mt-2 px-0.5 sm:px-1 relative z-10 flex flex-col items-center">
+                <span className="text-[7px] sm:text-[9px] uppercase tracking-[0.1em] text-red-800 font-bold block bg-stone-100/50 backdrop-blur-sm py-0.5 sm:py-0.5 rounded-sm w-max mx-auto px-1 sm:px-1.5 border border-red-800/10 shadow-xs">
+                  Key Piece
+                </span>
+                <h2
+                  onClick={() => setDetailGarment(garmentItem)}
+                  className="text-sm sm:text-2xl font-bold text-stone-800 tracking-tight hover:text-red-900 transition-colors cursor-pointer leading-tight line-clamp-2"
+                >
+                  {resolvedGarment.name}
+                </h2>
+
+                <div className="pt-0.5 sm:pt-1 flex items-center justify-center">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setColorTargetItem({
+                        id: garmentItem.id,
+                        name: resolvedGarment.name,
+                        categoryName: 'Cổ phục',
+                        imageUrl: garmentImageUrl
+                      });
+                    }}
+                    className="inline-flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2.5 py-1 sm:py-1.5 rounded-md bg-stone-900/90 backdrop-blur hover:bg-stone-800 text-white text-[8px] sm:text-[11px] font-semibold transition-all shadow-md cursor-pointer"
+                  >
+                    <Palette className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                    <span>Sắc màu</span>
+                    {garmentColorSetting.hex && (
+                      <span
+                        className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full border border-white/50 shadow-inner inline-block ml-0.5"
+                        style={{ backgroundColor: garmentColorSetting.hex }}
+                      />
+                    )}
+                  </button>
+                </div>
+
+                {resolvedGarment.origin && (
+                  <p className="text-[7px] sm:text-[9px] text-stone-600 font-medium leading-tight pt-0.5 sm:pt-1 px-0.5 sm:px-1 italic line-clamp-2">
+                    "{resolvedGarment.origin}"
+                  </p>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* DÀN TRANG CÁC MÓN PHỐI KÈM (FLEX WRAP TỰ CO GIÃN - KHÔNG TRÀN LỀ) */}
+          {/* DÀN TRANG CÁC MÓN PHỐI KÈM (MIX & MATCH CLUSTER) */}
           {companionItems.length > 0 && (
-            <div className="w-full pt-4 sm:pt-6 border-t border-stone-200/50">
-              <div className="text-center mb-3">
-                <span className="text-[9px] font-mono uppercase tracking-[0.2em] text-stone-400 font-semibold">
-                  TRANG PHỤC & PHỤ KIỆN PHỐI KÈM
+            <div className={`shrink-0 w-[55%] ${companionItems.length >= 4 ? 'sm:w-[48%] md:w-[50%]' : 'sm:w-[40%] md:w-[45%]'} max-w-[320px] pt-1 sm:pt-2`}>
+              <div className="w-full text-center mb-0.5 sm:mb-1">
+                <span className="text-[7px] sm:text-[9px] uppercase tracking-[0.15em] text-red-900/70 font-bold bg-stone-100/30 backdrop-blur-sm px-1.5 sm:px-2 py-0.5 rounded border border-red-800/5">
+                  Mix & Match
                 </span>
               </div>
 
-              {/* Lưới co giãn đều, luôn nằm gọn trong khung màn hình */}
-              <div className="flex flex-wrap items-end justify-center gap-3 sm:gap-6 px-1">
-                {companionItems.map((c) => (
+              <div className="grid grid-cols-2 sm:flex sm:flex-row sm:flex-wrap sm:items-start sm:justify-center gap-1.5 sm:gap-x-2 sm:gap-y-4">
+                {companionItems.map((c, i) => (
                   <div
                     key={c.id}
-                    className={`group ${c.rotation} hover:rotate-0 hover:scale-105 transition-all duration-300 flex flex-col items-center select-none p-1 relative`}
+                    className={`relative flex flex-col items-center group transition-all duration-300 ${c.rotation} hover:z-20 w-full sm:w-[45%] sm:min-w-[65px] sm:max-w-[110px]`}
                   >
+                    {/* Image Area */}
                     <div
                       onClick={c.onClick}
-                      className={`${c.sizeClass} relative flex items-center justify-center cursor-pointer`}
-                      title={`Xem chi tiết ${c.name}`}
+                      className="w-full aspect-[3/4] flex items-center justify-center cursor-pointer relative"
                     >
                       <TintedImage
                         src={c.imageUrl}
@@ -476,19 +478,24 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
                         intensity={c.colorSetting.intensity}
                         alt={c.name}
                         fallbackText={c.name}
-                        className="bg-transparent w-full h-full flex items-center justify-center"
-                        imgClassName="mix-blend-multiply object-contain object-center drop-shadow-sm"
+                        className="bg-transparent w-full h-full flex items-center justify-center p-0 sm:p-0.5"
+                        imgClassName="mix-blend-multiply object-contain object-center drop-shadow-md group-hover:scale-110 transition-transform duration-300"
                       />
                     </div>
 
-                    <div className="flex items-center gap-1 mt-1">
+                    {/* Info Area (Compact for grid) */}
+                    <div className="flex flex-col items-center justify-center gap-0 sm:gap-0.5 mt-0.5 sm:mt-1 text-center w-full">
+                      <span className="text-[6px] sm:text-[7px] uppercase tracking-wider text-red-800 font-bold bg-stone-100/50 backdrop-blur-sm px-1 py-0.5 rounded shadow-xs max-w-[95%] sm:max-w-[90%] truncate mb-0.5 sm:mb-0">
+                        {c.categoryName}
+                      </span>
                       <span
                         onClick={c.onClick}
-                        className="text-[9px] sm:text-[10px] font-mono uppercase tracking-wider text-stone-500 max-w-[90px] sm:max-w-[120px] truncate text-center group-hover:text-red-800 transition-colors cursor-pointer"
+                        className="text-[7px] sm:text-[10px] font-bold text-stone-800 leading-tight group-hover:text-red-700 transition-colors cursor-pointer line-clamp-1 w-full px-0.5 sm:px-1"
+                        title={c.name}
                       >
                         {c.name}
                       </span>
-                      {/* Nút đổi màu nhanh cho món phụ */}
+
                       <button
                         type="button"
                         onClick={(e) => {
@@ -500,10 +507,17 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
                             imageUrl: c.imageUrl
                           });
                         }}
-                        className="p-1 rounded-full text-stone-400 hover:text-red-800 hover:bg-stone-200/60 transition-colors cursor-pointer opacity-70 group-hover:opacity-100"
+                        className="mt-0.5 p-0.5 sm:p-1 rounded-full bg-stone-100/70 backdrop-blur hover:bg-stone-200 text-stone-600 hover:text-red-700 transition-colors cursor-pointer shadow-sm border border-stone-300/50"
                         title={`Đổi màu ${c.name}`}
                       >
-                        <Palette className="w-2.5 h-2.5" />
+                        {c.colorSetting.hex ? (
+                          <span
+                            className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full border border-stone-300 block shadow-inner"
+                            style={{ backgroundColor: c.colorSetting.hex }}
+                          />
+                        ) : (
+                          <Palette className="w-2.5 h-2.5" />
+                        )}
                       </button>
                     </div>
                   </div>
@@ -511,7 +525,6 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
               </div>
             </div>
           )}
-
         </div>
       </div>
 
@@ -523,7 +536,7 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
           /* MENU POPUP NỔI TRÊN NÚT TRÒN */
           <div className="pointer-events-auto mb-3 w-64 p-3 bg-white/95 backdrop-blur-md border border-stone-200/90 rounded-2xl shadow-2xl flex flex-col gap-2 transition-all duration-300 animate-in slide-in-from-bottom-3 zoom-in-95">
             <div className="flex items-center justify-between pb-1.5 border-b border-stone-100 px-1">
-              <span className="text-[10px] font-mono uppercase tracking-wider text-stone-400 font-semibold">
+              <span className="text-[10px] uppercase tracking-wider text-stone-400 font-semibold">
                 TÙY CHỌN BẢN PHỐI
               </span>
               <button
@@ -539,15 +552,14 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
             {/* THÔNG BÁO LƯU BỘ PHỐI NẾU CÓ */}
             {saveNotice && (
               <div
-                className={`p-2.5 px-3 rounded-xl text-xs font-sans font-medium flex items-center gap-2 border shadow-2xs ${
-                  saveNotice.type === 'success'
-                    ? 'bg-emerald-50 text-emerald-950 border-emerald-200'
-                    : saveNotice.type === 'warn'
+                className={`p-2.5 px-3 rounded-xl text-xs font-medium flex items-center gap-2 border shadow-2xs ${saveNotice.type === 'success'
+                  ? 'bg-emerald-50 text-emerald-950 border-emerald-200'
+                  : saveNotice.type === 'warn'
                     ? 'bg-amber-50 text-amber-950 border-amber-200'
                     : saveNotice.type === 'info'
-                    ? 'bg-stone-100 text-stone-800 border-stone-200/90'
-                    : 'bg-red-50 text-red-950 border-red-200'
-                }`}
+                      ? 'bg-stone-100 text-stone-800 border-stone-200/90'
+                      : 'bg-red-50 text-red-950 border-red-200'
+                  }`}
               >
                 {saveNotice.type === 'success' ? (
                   <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
@@ -555,9 +567,8 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
                   <Info className="w-3.5 h-3.5 text-stone-600 shrink-0" />
                 ) : (
                   <AlertTriangle
-                    className={`w-3.5 h-3.5 shrink-0 ${
-                      saveNotice.type === 'warn' ? 'text-amber-600' : 'text-red-600'
-                    }`}
+                    className={`w-3.5 h-3.5 shrink-0 ${saveNotice.type === 'warn' ? 'text-amber-600' : 'text-red-600'
+                      }`}
                   />
                 )}
                 <span>{saveNotice.message}</span>
@@ -579,30 +590,6 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
                 </div>
                 <Share2 className="w-3.5 h-3.5 opacity-80" />
               </button>
-
-              {!isFromCollection && onSaveOutfit && (
-                <button
-                  type="button"
-                  onClick={() => onSaveOutfit(itemColors)}
-                  className={`w-full px-3.5 py-2 rounded-xl font-semibold text-xs flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-xs ${
-                    isSaved
-                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 hover:bg-emerald-200/70'
-                      : 'bg-stone-900 hover:bg-stone-800 text-white'
-                  }`}
-                >
-                  {isSaved ? (
-                    <>
-                      <BookmarkCheck className="w-3.5 h-3.5 text-emerald-700" />
-                      <span>Đã có trong bộ sưu tập</span>
-                    </>
-                  ) : (
-                    <>
-                      <Bookmark className="w-3.5 h-3.5 text-stone-300" />
-                      <span>Thêm vào bộ sưu tập</span>
-                    </>
-                  )}
-                </button>
-              )}
 
               <button
                 type="button"
@@ -653,13 +640,12 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
           <button
             type="button"
             onClick={() => setIsActionsExpanded((prev) => !prev)}
-            className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer select-none ${
-              isActionsExpanded
-                ? 'bg-stone-900 text-white ring-4 ring-stone-900/20'
-                : warnings.length > 0
+            className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer select-none ${isActionsExpanded
+              ? 'bg-stone-900 text-white ring-4 ring-stone-900/20'
+              : warnings.length > 0
                 ? 'bg-amber-600 hover:bg-amber-700 text-white ring-4 ring-amber-500/25'
                 : 'bg-red-700 hover:bg-red-800 text-white ring-4 ring-red-700/20'
-            }`}
+              }`}
             title={
               warnings.length > 0
                 ? `Có ${warnings.length} lưu ý quy chuẩn văn hóa - Bấm để xem tùy chọn`
