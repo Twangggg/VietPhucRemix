@@ -103,7 +103,7 @@ export const GARMENTS: Garment[] = [
     references: "Đại Nam hội điển sự lệ (Nội các triều Nguyễn); Tài liệu nghiên cứu của Trung tâm Bảo tồn Di tích Cố đô Huế.",
     type: "outer",
     category: "outer_traditional",
-    gender: "female",
+    gender: "unisex",
     formality: "formal",
     image_url: "assets/outer_traditional/v06.png"
   },
@@ -282,7 +282,7 @@ export const GARMENTS: Garment[] = [
 
 // DỮ LIỆU ĐỒ HIỆN ĐẠI (CASUAL ITEMS)
 export const CASUAL_ITEMS: CasualItem[] = [
-  { id: "cs_01", name: "Quần Jeans ống rộng", type: "bottom", category: "bottom_pants", gender: "male", formality: "casual", silhouette: "Rộng", image_url: "assets/bottom_pants/cs_01.png" },
+  { id: "cs_01", name: "Quần Jeans ống rộng", type: "bottom", category: "bottom_pants", gender: "unisex", formality: "casual", silhouette: "Rộng", image_url: "assets/bottom_pants/cs_01.png" },
   { id: "cs_02", name: "Quần Skinny Jeans", type: "bottom", category: "bottom_pants", gender: "female", formality: "casual", silhouette: "Ôm", image_url: "assets/bottom_pants/cs_02.png" },
   { id: "cs_03", name: "Quần Tây ống suông", type: "bottom", category: "bottom_pants", gender: "unisex", formality: "smart-casual", silhouette: "Rộng", image_url: "assets/bottom_pants/cs_03.png" },
   { id: "cs_04", name: "Quần Culottes lụa/đũi", type: "bottom", category: "bottom_pants", gender: "unisex", formality: "smart-casual", silhouette: "Rộng", image_url: "assets/bottom_pants/cs_04.png" },

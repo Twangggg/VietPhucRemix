@@ -78,8 +78,16 @@ export function isItemGenderCompatible(itemGender: string | undefined | null, ta
   if (!itemGender || !targetGender) return true;
   const ig = itemGender.toLowerCase().trim();
   const tg = targetGender.toLowerCase().trim();
-  if (ig === 'unisex' || ig === '') return true;
+  if (ig === 'unisex' || ig === '' || tg === 'unisex') return true;
   return ig === tg;
+}
+
+export function getDisplayGender(gender: string | null | undefined): string {
+  if (!gender) return 'Không xác định';
+  const g = gender.toLowerCase().trim();
+  if (g === 'female') return 'Nữ';
+  if (g === 'male') return 'Nam';
+  return 'Phi giới tính (Unisex)';
 }
 
 /**
@@ -239,7 +247,7 @@ export function validateOutfit(
           results.push({
             isValid: false,
             severity: 'BLOCK',
-            message: `Món cổ phục '${foundGarment.name}' được thiết kế dành riêng cho ${effectiveGender === 'female' ? 'Nữ' : 'Nam'}, không tương thích với giới tính ${userGender === 'female' ? 'Nữ' : 'Nam'} đang chọn.`,
+            message: `Món cổ phục '${foundGarment.name}' được thiết kế dành riêng cho ${getDisplayGender(effectiveGender)}, không tương thích với giới tính ${getDisplayGender(userGender)} đang chọn.`,
             ruleId: 'GENDER_INCOMPATIBLE'
           });
         }
@@ -301,9 +309,9 @@ export function validateOutfit(
     const foundInnerItem = findCatalogItem(inId);
     if (!foundInnerItem) {
       results.push({
-        isValid: false,
-        severity: 'BLOCK',
-        message: `Dữ liệu không hợp lệ: Áo mặc trong đã chọn ('${inId}') không tồn tại trong danh mục.`,
+        isValid: true,
+        severity: 'INFO',
+        message: `Gợi ý: Áo mặc trong đã chọn ('${inId}') không tồn tại trong danh mục hiện tại.`,
         ruleId: 'INVALID_INNER_ID'
       });
     } else {
@@ -320,7 +328,7 @@ export function validateOutfit(
         results.push({
           isValid: false,
           severity: 'BLOCK',
-          message: `Món áo mặc trong '${foundInnerItem.item.name}' không tương thích với giới tính ${userGender === 'female' ? 'Nữ' : 'Nam'} đang chọn.`,
+          message: `Món áo mặc trong '${foundInnerItem.item.name}' không tương thích với giới tính ${getDisplayGender(userGender)} đang chọn.`,
           ruleId: 'GENDER_INCOMPATIBLE'
         });
       }
@@ -331,9 +339,9 @@ export function validateOutfit(
     const foundBottomItem = findCatalogItem(botId);
     if (!foundBottomItem) {
       results.push({
-        isValid: false,
-        severity: 'BLOCK',
-        message: `Dữ liệu không hợp lệ: Trang phục nửa dưới đã chọn ('${botId}') không tồn tại trong danh mục.`,
+        isValid: true,
+        severity: 'INFO',
+        message: `Gợi ý: Trang phục nửa dưới đã chọn ('${botId}') không tồn tại trong danh mục.`,
         ruleId: 'INVALID_BOTTOM_ID'
       });
     } else {
@@ -350,7 +358,7 @@ export function validateOutfit(
         results.push({
           isValid: false,
           severity: 'BLOCK',
-          message: `Món đồ nửa dưới '${foundBottomItem.item.name}' không tương thích với giới tính ${userGender === 'female' ? 'Nữ' : 'Nam'} đang chọn.`,
+          message: `Món đồ nửa dưới '${foundBottomItem.item.name}' không tương thích với giới tính ${getDisplayGender(userGender)} đang chọn.`,
           ruleId: 'GENDER_INCOMPATIBLE'
         });
       }
@@ -361,9 +369,9 @@ export function validateOutfit(
     const foundShoesItem = findCatalogItem(shId);
     if (!foundShoesItem) {
       results.push({
-        isValid: false,
-        severity: 'BLOCK',
-        message: `Dữ liệu không hợp lệ: Giày dép đã chọn ('${shId}') không tồn tại trong danh mục.`,
+        isValid: true,
+        severity: 'INFO',
+        message: `Gợi ý: Giày dép đã chọn ('${shId}') không tồn tại trong danh mục.`,
         ruleId: 'INVALID_SHOES_ID'
       });
     } else {
@@ -380,7 +388,7 @@ export function validateOutfit(
         results.push({
           isValid: false,
           severity: 'BLOCK',
-          message: `Giày dép '${foundShoesItem.item.name}' không tương thích với giới tính ${userGender === 'female' ? 'Nữ' : 'Nam'} đang chọn.`,
+          message: `Giày dép '${foundShoesItem.item.name}' không tương thích với giới tính ${getDisplayGender(userGender)} đang chọn.`,
           ruleId: 'GENDER_INCOMPATIBLE'
         });
       }
@@ -391,9 +399,9 @@ export function validateOutfit(
     const foundHeadwearItem = findCatalogItem(hId);
     if (!foundHeadwearItem) {
       results.push({
-        isValid: false,
-        severity: 'BLOCK',
-        message: `Dữ liệu không hợp lệ: Phụ kiện mũ nón đã chọn ('${hId}') không tồn tại trong danh mục.`,
+        isValid: true,
+        severity: 'INFO',
+        message: `Gợi ý: Phụ kiện mũ nón đã chọn ('${hId}') không tồn tại trong danh mục.`,
         ruleId: 'INVALID_HEADWEAR_ID'
       });
     } else {
@@ -410,7 +418,7 @@ export function validateOutfit(
         results.push({
           isValid: false,
           severity: 'BLOCK',
-          message: `Mũ nón '${foundHeadwearItem.item.name}' không tương thích với giới tính ${userGender === 'female' ? 'Nữ' : 'Nam'} đang chọn.`,
+          message: `Mũ nón '${foundHeadwearItem.item.name}' không tương thích với giới tính ${getDisplayGender(userGender)} đang chọn.`,
           ruleId: 'GENDER_INCOMPATIBLE'
         });
       }
@@ -422,9 +430,9 @@ export function validateOutfit(
       const foundJItem = findCatalogItem(jId);
       if (!foundJItem) {
         results.push({
-          isValid: false,
-          severity: 'BLOCK',
-          message: `Dữ liệu không hợp lệ: Trang sức đã chọn ('${jId}') không tồn tại trong danh mục.`,
+          isValid: true,
+          severity: 'INFO',
+          message: `Gợi ý: Trang sức đã chọn ('${jId}') không tồn tại trong danh mục.`,
           ruleId: 'INVALID_JEWELRY_ID'
         });
       } else {
@@ -441,7 +449,7 @@ export function validateOutfit(
           results.push({
             isValid: false,
             severity: 'BLOCK',
-            message: `Trang sức '${foundJItem.item.name}' không tương thích với giới tính ${userGender === 'female' ? 'Nữ' : 'Nam'} đang chọn.`,
+            message: `Trang sức '${foundJItem.item.name}' không tương thích với giới tính ${getDisplayGender(userGender)} đang chọn.`,
             ruleId: 'GENDER_INCOMPATIBLE'
           });
         }
@@ -610,6 +618,59 @@ export function validateOutfit(
       message: 'Lưu ý phom dáng: Áo Đối Khâm khoác buông vạt phối cùng áo thun rộng hoặc sơ mi cổ bẻ dày dễ làm cộm cổ áo; nên ưu tiên áo ôm sát như áo hai dây lụa (cs_12), áo quây (cs_27) hoặc áo cổ lọ (cs_11_1, cs_11_2).',
       ruleId: 'SILHOUETTE_INNER_REDUCTION'
     });
+  }
+
+  // RULE 10: GUARD_FOOTWEAR_CASUAL_MISMATCH
+  if (isMatchingGarment(['V06', 'V07', 'V09_1', 'V09_2'], cId) && isIn(['cs_14', 'cs_18', 'cs_38'], shId)) {
+    results.push({
+      isValid: true,
+      severity: 'WARN',
+      message: 'Cảnh báo phối đồ: Sneaker hoặc dép sandal làm giảm tính tôn nghiêm của Đại lễ phục (Áo Tấc, Nhật Bình, Viên Lĩnh). Khuyên dùng hài cung đình (v12), hài nhung (v11) hoặc giày tây da (cs_37, cs_15).',
+      ruleId: 'GUARD_FOOTWEAR_CASUAL_MISMATCH'
+    });
+  }
+
+  // RULE 11: ACCESSORY_OVERLOAD_WARNING
+  if (jIds && jIds.length > 3) {
+    results.push({
+      isValid: true,
+      severity: 'WARN',
+      message: 'Cảnh báo thẩm mỹ: Phối quá nhiều phụ kiện trang sức cùng lúc (hơn 3 món) dễ gây rối mắt, làm phân tán sự tập trung vào phom dáng chính của cổ phục.',
+      ruleId: 'ACCESSORY_OVERLOAD_WARNING'
+    });
+  }
+
+  // RULE 12: INFO_AODAI_FOOTWEAR_HEELS
+  if (isMatchingGarment(['V01_2'], cId) && shId && !isIn(['cs_17', 'cs_34', 'cs_35'], shId)) {
+    results.push({
+      isValid: true,
+      severity: 'INFO',
+      message: 'Gợi ý tôn dáng: Áo dài tân thời nữ sẽ tôn dáng và thướt tha nhất khi phối cùng giày cao gót quai mảnh (cs_17), mule gót nhọn (cs_34) hoặc guốc mộc cao gót (cs_35).',
+      ruleId: 'INFO_AODAI_FOOTWEAR_HEELS'
+    });
+  }
+
+  // RULE 13: INFO_BABA_REGIONAL_IDENTITY
+  if (isMatchingGarment(['V04_1', 'V04_2'], cId) && !isIn(['h02'], hId)) {
+    results.push({
+      isValid: true,
+      severity: 'INFO',
+      message: 'Gợi ý nhận diện: Áo bà ba đạt hiệu quả thẩm mỹ văn hóa miền Tây Nam Bộ cao nhất khi đi kèm khăn rằn (h02) và guốc mộc (v13/cs_35).',
+      ruleId: 'INFO_BABA_REGIONAL_IDENTITY'
+    });
+  }
+
+  // RULE 14: INFO_HISTORICAL_CROSSOVER
+  if (isMatchingGarment(['V01_1', 'V01_2', 'V05_1', 'V05_2'], cId)) {
+    const hasCrossoverJewelry = jIds && jIds.some(jId => ['j08', 'j09'].includes(jId));
+    if (hasCrossoverJewelry) {
+      results.push({
+        isValid: true,
+        severity: 'INFO',
+        message: 'Thông tin xuất xứ: Bộ diêu (j08) và lưu tô (j09) là phụ kiện đặc trưng phong cách cổ trang Đông Á nói chung, cần cân nhắc nếu mong muốn outfit tái hiện chính xác lịch sử Việt phục.',
+        ruleId: 'INFO_HISTORICAL_CROSSOVER'
+      });
+    }
   }
 
   // Nếu không có bất kỳ BLOCK hay WARN nào:
