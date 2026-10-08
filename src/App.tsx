@@ -36,6 +36,7 @@ import { AccessoryDetailModal } from './components/AccessoryDetailModal';
 import { GenderToggle } from './components/GenderToggle';
 import { SafeImage } from './components/SafeImage';
 import { Studio } from './pages/Studio';
+import { Collection } from './pages/Collection';
 import { LookbookTab } from './components/LookbookTab';
 
 export type CategoryFilterKey =
@@ -83,6 +84,7 @@ export default function App() {
     if (pathname === '/studio') return 'studio';
     if (pathname === '/explore') return 'explore';
     if (pathname === '/lookbook') return 'lookbook';
+    if (pathname === '/collection') return 'collection';
     return 'home';
   };
 
@@ -98,6 +100,9 @@ export default function App() {
         break;
       case 'lookbook':
         navigate('/lookbook');
+        break;
+      case 'collection':
+        navigate('/collection');
         break;
       case 'home':
       default:
@@ -296,7 +301,9 @@ export default function App() {
       case 'studio':
         return 'Phòng phối đồ & Thử nghiệm';
       case 'lookbook':
-        return 'Bộ sưu tập phối mẫu';
+        return 'Bộ phối mẫu tiêu biểu';
+      case 'collection':
+        return 'Bộ sưu tập cá nhân';
     }
   };
 
@@ -455,7 +462,7 @@ export default function App() {
           return (
             <div className="space-y-6 sm:space-y-8">
               {/* TAB CHỌN KHO */}
-              <div className="flex items-center overflow-x-auto whitespace-nowrap scrollbar-hide snap-x gap-5 sm:gap-8 pt-2 pb-0 border-b border-stone-200 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 mb-2">
+              <div className="sticky top-12 sm:top-14 z-40 bg-stone-50 flex items-center overflow-x-auto whitespace-nowrap scrollbar-hide snap-x gap-5 sm:gap-8 pt-4 pb-2 border-b border-stone-200 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8">
                 <button
                   onClick={() => {
                     setRepositoryType('traditional');
@@ -476,8 +483,8 @@ export default function App() {
                 </button>
               </div>
 
-              {/* STICKY HEADER: THANH TÌM KIẾM, GIỚI TÍNH & BỘ LỌC DANH MỤC (ĐI THEO KHI CUỘN) */}
-              <div className="sticky top-12 sm:top-14 z-30 bg-[#F9F8F6]/95 backdrop-blur-md pt-3 pb-0 border-b border-stone-200 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 space-y-3 shadow-2xs transition-all">
+              {/* STICKY HEADER: GỘP SEARCH + GENDER TOGGLE VÀ TAB CUỘN NGANG (MINIMALIST E-COMMERCE) */}
+              <div className="sticky top-[101px] sm:top-[113px] z-30 bg-[#F9F8F6] pt-3 pb-0 border-b border-stone-200 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 space-y-3 shadow-2xs">
                 {/* Hàng 1: Search Bar Tàng Hình & Gender Toggle Tinh Gọn */}
                 <div className="flex items-center justify-between gap-4">
                   {/* Search Bar tối giản chỉ có border-b */}
@@ -693,6 +700,11 @@ export default function App() {
         {activeTab === 'studio' && <Studio />}
         {/* 4. TAB BỘ SƯU TẬP (LOOKBOOK) */}
         {activeTab === 'lookbook' && <LookbookTab />}
+
+        {/* 5. TAB BỘ SƯU TẬP CÁ NHÂN */}
+        {activeTab === 'collection' && (
+          <Collection onNavigateToStudio={() => handleTabChange('studio')} />
+        )}
       </main>
 
       {/* 5. CÁC HỘP THOẠI CHI TIẾT */}

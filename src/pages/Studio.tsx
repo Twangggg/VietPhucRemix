@@ -25,10 +25,11 @@ import { findQuickMatchOutfit, getQuickMatchSuggestion } from '../utils/recommen
 import { ValidationResult, Garment, CasualItem, AccessoryItem } from '../types';
 import { ItemSelectCard } from '../components/ItemSelectCard';
 import { SafeImage } from '../components/SafeImage';
-import { OutfitResultView } from '../components/OutfitResultView';
+import { OutfitResultView, SaveNotice } from '../components/OutfitResultView';
 import { GarmentDetailModal } from '../components/GarmentDetailModal';
 import { CasualDetailModal } from '../components/CasualDetailModal';
 import { AccessoryDetailModal } from '../components/AccessoryDetailModal';
+import { saveOutfit, getSavedOutfits, isSameOutfit } from '../utils/storage';
 
 export const Studio: React.FC = () => {
   const location = useLocation();
@@ -41,7 +42,7 @@ export const Studio: React.FC = () => {
 
   // Các state lưu ID item đã chọn
   const [selectedContext, setSelectedContext] = useState<string | null>(null);
-  const [selectedGarment, setSelectedGarment] = useState<string | null>(null);
+  const [selectedGarments, setSelectedGarments] = useState<string[]>([]);
   const [selectedInner, setSelectedInner] = useState<string | null>(null);
   const [selectedBottom, setSelectedBottom] = useState<string | null>(null);
   const [selectedShoes, setSelectedShoes] = useState<string | null>(null);
@@ -83,6 +84,10 @@ export const Studio: React.FC = () => {
     message: string;
   } | null>(null);
 
+  // State quản lý lưu bộ phối vào Bộ sưu tập
+  const [saveNotice, setSaveNotice] = useState<SaveNotice | null>(null);
+  const [isCurrentOutfitSaved, setIsCurrentOutfitSaved] = useState<boolean>(false);
+
   // State ẩn/hiện thanh validation dưới cùng (mặc định ẩn gọn, chỉ mở khi bấm, tự ẩn khi chọn món khác)
   const [isBottomBarExpanded, setIsBottomBarExpanded] = useState<boolean>(false);
 
@@ -107,14 +112,13 @@ export const Studio: React.FC = () => {
   const handleSelectGarment = (garmentId: string) => {
     setIsBottomBarExpanded(false);
     setQuickMatchNotice(null);
-    if (selectedGarment === garmentId) {
-      setSelectedGarment(null);
-    } else {
-      setSelectedGarment(garmentId);
-      setTimeout(() => {
-        goToTab(3); // Auto-advance sang Mặc kèm
-      }, 250);
-    }
+    setSelectedGarments((prev) => {
+      if (prev.includes(garmentId)) {
+        return prev.filter((id) => id !== garmentId);
+      } else {
+        return [...prev, garmentId];
+      }
+    });
   };
 
   // 3. SMART ASSIGNMENT cho đồ Mặc kèm (Tab 3)
@@ -155,7 +159,7 @@ export const Studio: React.FC = () => {
     setIsBottomBarExpanded(false);
     setQuickMatchNotice(null);
     setSelectedGender(gender);
-    setSelectedGarment(null);
+    setSelectedGarments([]);
     setSelectedInner(null);
     setSelectedBottom(null);
     setSelectedShoes(null);
@@ -168,7 +172,7 @@ export const Studio: React.FC = () => {
     setIsBottomBarExpanded(false);
     setQuickMatchNotice(null);
     setSelectedContext(null);
-    setSelectedGarment(null);
+    setSelectedGarments([]);
     setSelectedInner(null);
     setSelectedBottom(null);
     setSelectedShoes(null);
@@ -183,9 +187,11 @@ export const Studio: React.FC = () => {
 
   // Helper tìm item theo ID
   const currentContextItem = CONTEXTS.find((c) => c.id === selectedContext);
-  const currentGarmentItem = GARMENTS.find((g) => g.id === selectedGarment);
-  const currentInnerItem = CASUAL_ITEMS.find((c) => c.id === selectedInner);
-  const currentBottomItem = CASUAL_ITEMS.find((c) => c.id === selectedBottom);
+  const currentGarmentItems = GARMENTS.filter((g) => selectedGarments.includes(g.id));
+  const currentGarmentItem = currentGarmentItems[0];
+  const additionalGarmentItems = currentGarmentItems.slice(1);
+  const currentInnerItem = CASUAL_ITEMS.find((c) => c.id === selectedInner) || GARMENTS.find((g) => g.id === selectedInner);
+  const currentBottomItem = CASUAL_ITEMS.find((c) => c.id === selectedBottom) || GARMENTS.find((g) => g.id === selectedBottom);
   const currentShoesItem =
     CASUAL_ITEMS.find((c) => c.id === selectedShoes) ||
     GARMENTS.find((g) => g.id === selectedShoes);
@@ -194,7 +200,7 @@ export const Studio: React.FC = () => {
 
   const totalSelectedCount =
     (selectedContext ? 1 : 0) +
-    (selectedGarment ? 1 : 0) +
+    selectedGarments.length +
     (selectedInner ? 1 : 0) +
     (selectedBottom ? 1 : 0) +
     (selectedShoes ? 1 : 0) +
@@ -203,7 +209,7 @@ export const Studio: React.FC = () => {
 
   // Helper chuẩn bị payload validation dùng chung 100% giữa Real-time, Validate thủ công và Quick Match
   const buildValidationPayload = (
-    garmentId: string | null,
+    garmentIds: string[],
     contextId: string | null,
     innerId: string | null,
     bottomId: string | null,
@@ -213,7 +219,7 @@ export const Studio: React.FC = () => {
     gender: string
   ) => {
     return {
-      costumeId: garmentId,
+      costumeId: garmentIds,
       contextId: contextId,
       innerId: innerId,
       bottomId: bottomId,
@@ -227,7 +233,7 @@ export const Studio: React.FC = () => {
 
   // Phân loại các thông điệp kiểm tra để hiển thị chính xác theo từng nhóm
   const inputErrors = realtimeErrors.filter(
-    (r) => r.ruleId === 'MISSING_CONTEXT' || r.ruleId === 'MISSING_KEY_PIECE'
+    (r) => r.ruleId?.startsWith('MISSING_')
   );
   const dataErrors = realtimeErrors.filter(
     (r) => r.ruleId?.startsWith('INVALID_') || r.ruleId === 'GENDER_INCOMPATIBLE'
@@ -235,8 +241,7 @@ export const Studio: React.FC = () => {
   const ruleViolations = realtimeErrors.filter(
     (r) =>
       r.severity === 'BLOCK' &&
-      r.ruleId !== 'MISSING_CONTEXT' &&
-      r.ruleId !== 'MISSING_KEY_PIECE' &&
+      !r.ruleId?.startsWith('MISSING_') &&
       !r.ruleId?.startsWith('INVALID_') &&
       r.ruleId !== 'GENDER_INCOMPATIBLE'
   );
@@ -247,14 +252,14 @@ export const Studio: React.FC = () => {
   const hasInputError = inputErrors.length > 0;
   const hasBlockError = realtimeErrors.some((r) => r.severity === 'BLOCK');
   const hasWarnNotice = warningNotices.length > 0;
-  const isReadyToValidate = Boolean(selectedContext && selectedGarment && !hasBlockError);
+  const isReadyToValidate = Boolean(selectedContext && selectedGarments.length > 0 && !hasBlockError);
 
   // ==========================================
   // REAL-TIME VALIDATION EFFECT
   // ==========================================
   useEffect(() => {
     if (
-      !selectedGarment &&
+      selectedGarments.length === 0 &&
       !selectedContext &&
       !selectedBottom &&
       !selectedHeadwear &&
@@ -268,7 +273,7 @@ export const Studio: React.FC = () => {
     }
 
     const payload = buildValidationPayload(
-      selectedGarment,
+      selectedGarments,
       selectedContext,
       selectedInner,
       selectedBottom,
@@ -282,7 +287,7 @@ export const Studio: React.FC = () => {
     setRealtimeErrors(results);
     setValidationResults(results);
   }, [
-    selectedGarment,
+    selectedGarments,
     selectedInner,
     selectedBottom,
     selectedShoes,
@@ -297,7 +302,7 @@ export const Studio: React.FC = () => {
   // ==========================================
   const handleValidateOutfit = () => {
     const payload = buildValidationPayload(
-      selectedGarment,
+      selectedGarments,
       selectedContext,
       selectedInner,
       selectedBottom,
@@ -312,7 +317,7 @@ export const Studio: React.FC = () => {
     setRealtimeErrors(results);
 
     const hasBlock = results.some((r) => r.severity === 'BLOCK');
-    if (hasBlock || !selectedContext || !selectedGarment) {
+    if (hasBlock || !selectedContext || selectedGarments.length === 0) {
       setIsBottomBarExpanded(true); // Mở rộng thanh cảnh báo trực tiếp ở dưới, không dùng popup
       setIsShowingResult(false);
     } else {
@@ -322,11 +327,76 @@ export const Studio: React.FC = () => {
     }
   };
 
+  // Đồng bộ trạng thái đã lưu khi mở màn hình kết quả
+  useEffect(() => {
+    if (isShowingResult && selectedGarments.length > 0 && selectedContext) {
+      const { outfits } = getSavedOutfits();
+      const isAlreadySaved = outfits.some((o) =>
+        isSameOutfit(o, {
+          costumeId: selectedGarments,
+          contextId: selectedContext,
+          gender: selectedGender,
+          innerId: selectedInner,
+          bottomId: selectedBottom,
+          shoesId: selectedShoes,
+          headwearId: selectedHeadwear,
+          jewelryIds: selectedJewelries
+        })
+      );
+      setIsCurrentOutfitSaved(isAlreadySaved);
+      setSaveNotice(null);
+    }
+  }, [
+    isShowingResult,
+    selectedGarments,
+    selectedContext,
+    selectedGender,
+    selectedInner,
+    selectedBottom,
+    selectedShoes,
+    selectedHeadwear,
+    selectedJewelries
+  ]);
+
+  // Xử lý lưu bộ phối vào Bộ sưu tập
+  const handleSaveOutfit = () => {
+    if (selectedGarments.length === 0 || !selectedContext) return;
+    const res = saveOutfit({
+      costumeId: selectedGarments,
+      contextId: selectedContext,
+      gender: selectedGender,
+      innerId: selectedInner,
+      bottomId: selectedBottom,
+      shoesId: selectedShoes,
+      headwearId: selectedHeadwear,
+      jewelryIds: selectedJewelries
+    });
+
+    if (res.success) {
+      setIsCurrentOutfitSaved(true);
+      setSaveNotice({
+        type: 'success',
+        message: 'Đã thêm vào bộ sưu tập.'
+      });
+    } else if (res.isDuplicate) {
+      setIsCurrentOutfitSaved(true);
+      setSaveNotice({
+        type: 'info',
+        message: 'Đã có trong bộ sưu tập.'
+      });
+    } else {
+      setSaveNotice({
+        type: 'error',
+        message: res.error || 'Không thể lưu bộ phối.'
+      });
+    }
+  };
+
   // ==========================================
   // HÀM GỢI Ý PHỐI NHANH 1-CLICK (EPIC 04 — QUICK MATCH: KIỂM TRA TRƯỚC, ÁP DỤNG SAU)
   // ==========================================
   const handleQuickMatch = (targetGarmentId?: string) => {
-    const garmentToUse = targetGarmentId || selectedGarment;
+    const garmentToUse = targetGarmentId || (selectedGarments.length > 0 ? selectedGarments[0] : undefined);
     setQuickMatchNotice(null);
 
     const result = findQuickMatchOutfit({
@@ -336,8 +406,8 @@ export const Studio: React.FC = () => {
     });
 
     if (result.status === 'PRESET_APPLIED') {
-      if (!selectedGarment || selectedGarment !== garmentToUse) {
-        setSelectedGarment(garmentToUse);
+      if (garmentToUse && !selectedGarments.includes(garmentToUse)) {
+        setSelectedGarments([garmentToUse]);
       }
       setSelectedInner(result.suggestion.innerId);
       setSelectedBottom(result.suggestion.bottomId);
@@ -364,8 +434,8 @@ export const Studio: React.FC = () => {
     }
 
     if (result.status === 'FALLBACK_APPLIED') {
-      if (!selectedGarment || selectedGarment !== garmentToUse) {
-        setSelectedGarment(garmentToUse);
+      if (garmentToUse && !selectedGarments.includes(garmentToUse)) {
+        setSelectedGarments([garmentToUse]);
       }
       setSelectedInner(result.suggestion.innerId);
       setSelectedBottom(result.suggestion.bottomId);
@@ -413,7 +483,6 @@ export const Studio: React.FC = () => {
   // DỮ LIỆU ĐÃ LỌC THEO GIỚI TÍNH
   const filteredGarments = GARMENTS.filter((item) => {
     const itemGender = item.gender?.toLowerCase() || 'unisex';
-    // Loại bỏ các món có metadata là giày dép truyền thống (v11, v12, v13) khỏi slot Cổ phục trung tâm
     const isFootwear = item.type === 'shoes' || item.category === 'traditional_footwear';
     return !isFootwear && (itemGender === selectedGender || itemGender === 'unisex');
   });
@@ -422,13 +491,20 @@ export const Studio: React.FC = () => {
     const itemGender = item.gender?.toLowerCase() || 'unisex';
     return itemGender === selectedGender || itemGender === 'unisex';
   });
+
+  const traditionalShoes = GARMENTS.filter((item) => {
+    const itemGender = item.gender?.toLowerCase() || 'unisex';
+    const isFootwear = item.type === 'shoes' || item.category === 'traditional_footwear';
+    return isFootwear && (itemGender === selectedGender || itemGender === 'unisex');
+  });
+
   const inners = filteredCasual.filter((item) => item.type === 'inner' || item.category === 'inner');
   const bottoms = filteredCasual.filter(
     (item) => item.type === 'bottom' || (item.category && item.category.toLowerCase().includes('bottom'))
   );
-  const shoes = filteredCasual.filter(
+  const shoes = [...traditionalShoes, ...filteredCasual.filter(
     (item) => item.type === 'shoes' || (item.category && item.category.toLowerCase().includes('shoes'))
-  );
+  )];
 
   const filteredAccessories = ACCESSORIES.filter((item) => {
     const itemGender = item.gender?.toLowerCase() || 'unisex';
@@ -464,15 +540,19 @@ export const Studio: React.FC = () => {
           <OutfitResultView
             selectedGender={selectedGender}
             contextItem={currentContextItem}
-            garmentItem={currentGarmentItem}
-            innerItem={currentInnerItem}
-            bottomItem={currentBottomItem}
-            shoesItem={currentShoesItem}
+            garmentItem={currentGarmentItem as Garment}
+            additionalGarments={additionalGarmentItems as Garment[]}
+            innerItem={currentInnerItem as CasualItem}
+            bottomItem={currentBottomItem as CasualItem}
+            shoesItem={currentShoesItem as CasualItem}
             headwearItem={currentHeadwearItem}
             jewelryItems={currentJewelryItems}
             validationResults={validationResults}
             onBackToStudio={() => setIsShowingResult(false)}
             onResetOutfit={handleResetOutfit}
+            onSaveOutfit={handleSaveOutfit}
+            isSaved={isCurrentOutfitSaved}
+            saveNotice={saveNotice}
           />
         ) : (
           <>
@@ -495,29 +575,27 @@ export const Studio: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => handleGenderChange('female')}
-                    className={`px-3 py-0.5 rounded-full text-xs transition-all cursor-pointer ${
-                      selectedGender === 'female'
+                    className={`px-3 py-0.5 rounded-full text-xs transition-all cursor-pointer ${selectedGender === 'female'
                         ? 'bg-white text-stone-900 shadow-xs font-semibold'
                         : 'text-stone-500 hover:text-stone-800 font-normal'
-                    }`}
+                      }`}
                   >
                     Nữ
                   </button>
                   <button
                     type="button"
                     onClick={() => handleGenderChange('male')}
-                    className={`px-3 py-0.5 rounded-full text-xs transition-all cursor-pointer ${
-                      selectedGender === 'male'
+                    className={`px-3 py-0.5 rounded-full text-xs transition-all cursor-pointer ${selectedGender === 'male'
                         ? 'bg-white text-stone-900 shadow-xs font-semibold'
                         : 'text-stone-500 hover:text-stone-800 font-normal'
-                    }`}
+                      }`}
                   >
                     Nam
                   </button>
                 </div>
 
                 {/* Nút Gợi ý phối nhanh trên Header */}
-                {selectedGarment && (
+                {selectedGarments.length > 0 && (
                   <button
                     type="button"
                     onClick={() => handleQuickMatch()}
@@ -551,7 +629,7 @@ export const Studio: React.FC = () => {
               <div className="flex items-center justify-start sm:justify-center gap-6 sm:gap-10 overflow-x-auto scrollbar-hide">
                 {[
                   { id: 1, label: 'Bối cảnh', completed: Boolean(selectedContext) },
-                  { id: 2, label: 'Cổ phục', completed: Boolean(selectedGarment) },
+                  { id: 2, label: 'Cổ phục', completed: selectedGarments.length > 0 },
                   { id: 3, label: 'Mặc kèm', completed: Boolean(selectedInner || selectedBottom || selectedShoes) },
                   { id: 4, label: 'Phụ kiện', completed: Boolean(selectedHeadwear || selectedJewelries.length > 0) }
                 ].map((tab) => (
@@ -559,11 +637,10 @@ export const Studio: React.FC = () => {
                     key={tab.id}
                     type="button"
                     onClick={() => goToTab(tab.id)}
-                    className={`relative py-1.5 text-xs sm:text-sm tracking-wide transition-colors whitespace-nowrap cursor-pointer flex items-center gap-1.5 select-none ${
-                      activeTab === tab.id
+                    className={`relative py-1.5 text-xs sm:text-sm tracking-wide transition-colors whitespace-nowrap cursor-pointer flex items-center gap-1.5 select-none ${activeTab === tab.id
                         ? 'text-stone-900 font-semibold'
                         : 'text-stone-400 hover:text-stone-700 font-normal'
-                    }`}
+                      }`}
                   >
                     <span>{tab.label}</span>
                     {tab.completed && (
@@ -593,11 +670,10 @@ export const Studio: React.FC = () => {
                         <div
                           key={ctx.id}
                           onClick={() => handleSelectContext(ctx.id)}
-                          className={`p-4 sm:p-5 rounded-2xl border transition-all cursor-pointer text-left space-y-1.5 relative select-none ${
-                            isSelected
+                          className={`p-4 sm:p-5 rounded-2xl border transition-all cursor-pointer text-left space-y-1.5 relative select-none ${isSelected
                               ? 'bg-white border-stone-900 ring-1 ring-stone-900 shadow-xs'
                               : 'bg-stone-50/60 border-stone-200/70 hover:border-stone-400 hover:bg-white'
-                          }`}
+                            }`}
                         >
                           <div className="flex items-center justify-between">
                             <h3 className="text-sm font-serif font-bold text-stone-900 leading-snug">
@@ -623,11 +699,10 @@ export const Studio: React.FC = () => {
                       type="button"
                       disabled={!selectedContext}
                       onClick={() => goToTab(2)}
-                      className={`px-5 py-2.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all ${
-                        selectedContext
+                      className={`px-5 py-2.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all ${selectedContext
                           ? 'bg-stone-900 hover:bg-stone-800 text-white cursor-pointer active:scale-95 shadow-xs'
                           : 'bg-stone-100 text-stone-400 cursor-not-allowed border border-stone-200/60'
-                      }`}
+                        }`}
                     >
                       <span>Tiếp tục: Cổ phục</span>
                       <ChevronRight className="w-4 h-4" />
@@ -644,7 +719,7 @@ export const Studio: React.FC = () => {
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     {filteredGarments.map((garment) => {
                       const resolved = resolveItemByGender(garment, selectedGender);
-                      const isSelected = selectedGarment === garment.id;
+                      const isSelected = selectedGarments.includes(garment.id);
 
                       return (
                         <ItemSelectCard
@@ -661,7 +736,7 @@ export const Studio: React.FC = () => {
                   </div>
 
                   {/* Banner Gợi ý phối nhanh 1-Click (EPIC 04 — QUICK MATCH) */}
-                  {selectedGarment && (
+                  {selectedGarments.length > 0 && (
                     <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-red-50/90 via-[#FAF7F2] to-stone-50 border border-red-200/80 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs animate-in slide-in-from-top-2 duration-300">
                       <div className="flex items-center gap-3 text-left w-full sm:w-auto">
                         <div className="w-9 h-9 rounded-xl bg-red-700 text-white flex items-center justify-center shrink-0 shadow-xs">
@@ -669,8 +744,8 @@ export const Studio: React.FC = () => {
                         </div>
                         <div>
                           <div className="flex items-center gap-1.5">
-                            <span className="text-xs font-bold text-stone-900">
-                              Đã chọn: {currentGarmentItem?.name}
+                            <span className="text-xs font-bold text-stone-900 truncate max-w-[200px]">
+                              Đã chọn: {currentGarmentItems.filter(Boolean).map(i => i.name).join(', ')}
                             </span>
                             <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 bg-red-100 text-red-800 rounded-md font-semibold">
                               Chuẩn văn hóa
@@ -704,7 +779,7 @@ export const Studio: React.FC = () => {
                     </button>
 
                     <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-                      {selectedGarment && (
+                      {selectedGarments.length > 0 && (
                         <button
                           type="button"
                           onClick={() => handleQuickMatch()}
@@ -717,13 +792,12 @@ export const Studio: React.FC = () => {
 
                       <button
                         type="button"
-                        disabled={!selectedGarment}
+                        disabled={selectedGarments.length === 0}
                         onClick={() => goToTab(3)}
-                        className={`px-5 py-2.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all ${
-                          selectedGarment
+                        className={`px-5 py-2.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all ${selectedGarments.length > 0
                             ? 'bg-stone-900 hover:bg-stone-800 text-white cursor-pointer active:scale-95 shadow-xs'
                             : 'bg-stone-100 text-stone-400 cursor-not-allowed border border-stone-200/60'
-                        }`}
+                          }`}
                       >
                         <span>Tự phối: Mặc kèm</span>
                         <ChevronRight className="w-4 h-4" />
@@ -832,7 +906,13 @@ export const Studio: React.FC = () => {
                             item={resolved}
                             isSelected={isSelected}
                             onSelect={() => handleSmartSelectCasual(item)}
-                            onViewDetail={() => setPreviewCasual(item)}
+                            onViewDetail={() => {
+                              if ('origin' in item || 'has_gender_variants' in item) {
+                                setPreviewGarment(item as Garment);
+                              } else {
+                                setPreviewCasual(item as CasualItem);
+                              }
+                            }}
                           />
                         );
                       })}
@@ -950,27 +1030,26 @@ export const Studio: React.FC = () => {
                       type="button"
                       disabled={!isReadyToValidate}
                       onClick={handleValidateOutfit}
-                      className={`px-6 py-2.5 rounded-full text-xs font-semibold flex items-center gap-2 transition-all shadow-xs ${
-                        !isReadyToValidate
+                      className={`px-6 py-2.5 rounded-full text-xs font-semibold flex items-center gap-2 transition-all shadow-xs ${!isReadyToValidate
                           ? 'bg-stone-100 text-stone-400 cursor-not-allowed border border-stone-200/60 shadow-none'
                           : hasRuleViolation
-                          ? 'bg-red-600 hover:bg-red-700 text-white cursor-pointer'
-                          : hasDataError
-                          ? 'bg-rose-600 hover:bg-rose-700 text-white cursor-pointer'
-                          : hasBlockError
-                          ? 'bg-red-600 hover:bg-red-700 text-white cursor-pointer'
-                          : 'bg-stone-900 hover:bg-stone-800 text-white cursor-pointer active:scale-95'
-                      }`}
+                            ? 'bg-red-600 hover:bg-red-700 text-white cursor-pointer'
+                            : hasDataError
+                              ? 'bg-rose-600 hover:bg-rose-700 text-white cursor-pointer'
+                              : hasBlockError
+                                ? 'bg-red-600 hover:bg-red-700 text-white cursor-pointer'
+                                : 'bg-stone-900 hover:bg-stone-800 text-white cursor-pointer active:scale-95'
+                        }`}
                     >
                       <Sparkles className="w-3.5 h-3.5 text-amber-300" />
                       <span>
                         {hasRuleViolation
                           ? 'Xem vi phạm quy chuẩn'
                           : hasDataError
-                          ? 'Xem lỗi dữ liệu'
-                          : hasBlockError
-                          ? 'Xem điều kiện bắt buộc'
-                          : 'Chiêm ngưỡng bản phối ✨'}
+                            ? 'Xem lỗi dữ liệu'
+                            : hasBlockError
+                              ? 'Xem điều kiện bắt buộc'
+                              : 'Chiêm ngưỡng bản phối ✨'}
                       </span>
                     </button>
                   </div>
@@ -989,11 +1068,10 @@ export const Studio: React.FC = () => {
           {/* TRẠNG THÁI 1: BUNG RA ĐẦY ĐỦ KHI NGƯỜI DÙNG BẤM MỞ */}
           {isBottomBarExpanded ? (
             <div
-              className={`w-full pointer-events-auto backdrop-blur-md rounded-2xl border shadow-2xl py-3.5 px-4 sm:px-6 transition-all duration-300 animate-in slide-in-from-bottom-3 ${
-                hasBlockError
+              className={`w-full pointer-events-auto backdrop-blur-md rounded-2xl border shadow-2xl py-3.5 px-4 sm:px-6 transition-all duration-300 animate-in slide-in-from-bottom-3 ${hasBlockError
                   ? 'bg-red-50/95 border-red-200/90 text-red-950'
                   : 'bg-white/95 border-stone-200/80 text-stone-900'
-              }`}
+                }`}
             >
               <div className="flex flex-col sm:flex-row items-center justify-between gap-3 relative">
                 {/* Nút thu nhỏ lại */}
@@ -1009,27 +1087,23 @@ export const Studio: React.FC = () => {
                 <div className="flex items-center gap-3 w-full sm:w-auto">
                   <div className="flex -space-x-1.5 overflow-hidden shrink-0">
                     <span
-                      className={`w-2.5 h-2.5 rounded-full border-2 border-white ${
-                        selectedContext ? 'bg-stone-900' : 'bg-stone-300'
-                      }`}
+                      className={`w-2.5 h-2.5 rounded-full border-2 border-white ${selectedContext ? 'bg-stone-900' : 'bg-stone-300'
+                        }`}
                       title="Bối cảnh"
                     />
                     <span
-                      className={`w-2.5 h-2.5 rounded-full border-2 border-white ${
-                        selectedGarment ? 'bg-stone-900' : 'bg-stone-300'
-                      }`}
+                      className={`w-2.5 h-2.5 rounded-full border-2 border-white ${selectedGarments ? 'bg-stone-900' : 'bg-stone-300'
+                        }`}
                       title="Cổ phục"
                     />
                     <span
-                      className={`w-2.5 h-2.5 rounded-full border-2 border-white ${
-                        selectedInner || selectedBottom || selectedShoes ? 'bg-stone-900' : 'bg-stone-300'
-                      }`}
+                      className={`w-2.5 h-2.5 rounded-full border-2 border-white ${selectedInner || selectedBottom || selectedShoes ? 'bg-stone-900' : 'bg-stone-300'
+                        }`}
                       title="Mặc kèm"
                     />
                     <span
-                      className={`w-2.5 h-2.5 rounded-full border-2 border-white ${
-                        selectedHeadwear || selectedJewelries.length > 0 ? 'bg-stone-900' : 'bg-stone-300'
-                      }`}
+                      className={`w-2.5 h-2.5 rounded-full border-2 border-white ${selectedHeadwear || selectedJewelries.length > 0 ? 'bg-stone-900' : 'bg-stone-300'
+                        }`}
                       title="Phụ kiện"
                     />
                   </div>
@@ -1054,7 +1128,7 @@ export const Studio: React.FC = () => {
                       <span className="text-stone-400">
                         Vui lòng chọn <strong>Bối cảnh</strong> ở Tab 1.
                       </span>
-                    ) : !selectedGarment ? (
+                    ) : selectedGarments.length === 0 ? (
                       <span className="text-stone-500">
                         Vui lòng chọn <strong>Cổ phục</strong> ở Tab 2.
                       </span>
@@ -1071,27 +1145,26 @@ export const Studio: React.FC = () => {
                     type="button"
                     disabled={!isReadyToValidate}
                     onClick={handleValidateOutfit}
-                    className={`w-full sm:w-auto px-7 py-2.5 rounded-full font-semibold text-xs transition-all duration-200 flex items-center justify-center gap-2 select-none ${
-                      !isReadyToValidate
+                    className={`w-full sm:w-auto px-7 py-2.5 rounded-full font-semibold text-xs transition-all duration-200 flex items-center justify-center gap-2 select-none ${!isReadyToValidate
                         ? 'bg-stone-100 text-stone-400 border border-stone-200/60 cursor-not-allowed shadow-none'
                         : hasRuleViolation
-                        ? 'bg-red-600 hover:bg-red-700 text-white shadow-xs cursor-pointer'
-                        : hasDataError
-                        ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-xs cursor-pointer'
-                        : hasBlockError
-                        ? 'bg-red-600 hover:bg-red-700 text-white shadow-xs cursor-pointer'
-                        : 'bg-stone-900 hover:bg-stone-800 text-white shadow-xs cursor-pointer active:scale-95'
-                    }`}
+                          ? 'bg-red-600 hover:bg-red-700 text-white shadow-xs cursor-pointer'
+                          : hasDataError
+                            ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-xs cursor-pointer'
+                            : hasBlockError
+                              ? 'bg-red-600 hover:bg-red-700 text-white shadow-xs cursor-pointer'
+                              : 'bg-stone-900 hover:bg-stone-800 text-white shadow-xs cursor-pointer active:scale-95'
+                      }`}
                   >
                     <ShieldCheck className="w-3.5 h-3.5" />
                     <span>
                       {hasRuleViolation
                         ? 'Xem xung đột quy chuẩn'
                         : hasDataError
-                        ? 'Xem lỗi dữ liệu'
-                        : hasBlockError
-                        ? 'Xem điều kiện bắt buộc'
-                        : 'Kiểm Tra Outfit'}
+                          ? 'Xem lỗi dữ liệu'
+                          : hasBlockError
+                            ? 'Xem điều kiện bắt buộc'
+                            : 'Kiểm Tra Outfit'}
                     </span>
                   </button>
                 </div>
@@ -1174,19 +1247,18 @@ export const Studio: React.FC = () => {
             <button
               type="button"
               onClick={() => setIsBottomBarExpanded(true)}
-              className={`pointer-events-auto px-4 py-2 rounded-full backdrop-blur-md border shadow-md text-xs font-medium flex items-center gap-2 transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer select-none ${
-                hasRuleViolation
+              className={`pointer-events-auto px-4 py-2 rounded-full backdrop-blur-md border shadow-md text-xs font-medium flex items-center gap-2 transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer select-none ${hasRuleViolation
                   ? 'bg-red-600 border-red-700 text-white shadow-red-600/20'
                   : hasDataError
-                  ? 'bg-rose-600 border-rose-700 text-white shadow-rose-600/20'
-                  : hasInputError
-                  ? 'bg-stone-800 border-stone-700 text-white shadow-stone-800/20'
-                  : hasWarnNotice || quickMatchNotice
-                  ? 'bg-amber-600 border-amber-700 text-white shadow-amber-600/20'
-                  : isReadyToValidate
-                  ? 'bg-stone-900 border-stone-800 text-white shadow-stone-900/20'
-                  : 'bg-white/95 border-stone-200 text-stone-700 hover:bg-white shadow-stone-200/50'
-              }`}
+                    ? 'bg-rose-600 border-rose-700 text-white shadow-rose-600/20'
+                    : hasInputError
+                      ? 'bg-stone-800 border-stone-700 text-white shadow-stone-800/20'
+                      : hasWarnNotice || quickMatchNotice
+                        ? 'bg-amber-600 border-amber-700 text-white shadow-amber-600/20'
+                        : isReadyToValidate
+                          ? 'bg-stone-900 border-stone-800 text-white shadow-stone-900/20'
+                          : 'bg-white/95 border-stone-200 text-stone-700 hover:bg-white shadow-stone-200/50'
+                }`}
             >
               {hasRuleViolation ? (
                 <>
