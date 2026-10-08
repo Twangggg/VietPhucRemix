@@ -30,7 +30,7 @@ import { GarmentDetailModal } from '../components/GarmentDetailModal';
 import { CasualDetailModal } from '../components/CasualDetailModal';
 import { AccessoryDetailModal } from '../components/AccessoryDetailModal';
 import { ColorCustomizerModal } from '../components/ColorCustomizerModal';
-import { saveOutfit, getSavedOutfits, isSameOutfit } from '../utils/storage';
+import { saveOutfit, getSavedOutfits, isSameOutfit, areColorsEqual } from '../utils/storage';
 
 export const Studio: React.FC = () => {
   const location = useLocation();
@@ -430,11 +430,11 @@ export const Studio: React.FC = () => {
     }
   };
 
-  // Đồng bộ trạng thái đã lưu khi mở màn hình kết quả
+  // Đồng bộ trạng thái đã lưu khi mở màn hình kết quả hoặc khi đổi màu
   useEffect(() => {
     if (isShowingResult && selectedGarments.length > 0 && selectedContext) {
       const { outfits } = getSavedOutfits();
-      const isAlreadySaved = outfits.some((o) =>
+      const existingMatch = outfits.find((o) =>
         isSameOutfit(o, {
           costumeId: selectedGarments,
           contextId: selectedContext,
@@ -446,7 +446,11 @@ export const Studio: React.FC = () => {
           jewelryIds: selectedJewelries
         })
       );
-      setIsCurrentOutfitSaved(isAlreadySaved);
+      if (existingMatch) {
+        setIsCurrentOutfitSaved(areColorsEqual(existingMatch.itemColors, itemColors));
+      } else {
+        setIsCurrentOutfitSaved(false);
+      }
       setSaveNotice(null);
     }
   }, [
@@ -458,12 +462,14 @@ export const Studio: React.FC = () => {
     selectedBottom,
     selectedShoes,
     selectedHeadwear,
-    selectedJewelries
+    selectedJewelries,
+    itemColors
   ]);
 
   // Xử lý lưu bộ phối vào Bộ sưu tập
   const handleSaveOutfit = (colors?: Record<string, { hex: string | null; intensity: number }>) => {
     if (selectedGarments.length === 0 || !selectedContext) return;
+    const finalColors = colors && Object.keys(colors).length > 0 ? colors : itemColors;
     const res = saveOutfit({
       costumeId: selectedGarments,
       contextId: selectedContext,
@@ -473,14 +479,17 @@ export const Studio: React.FC = () => {
       shoesId: selectedShoes,
       headwearId: selectedHeadwear,
       jewelryIds: selectedJewelries,
-      itemColors: colors
+      itemColors: finalColors
     });
 
     if (res.success) {
+      if (colors) {
+        setItemColors(colors);
+      }
       setIsCurrentOutfitSaved(true);
       setSaveNotice({
         type: 'success',
-        message: 'Đã thêm vào bộ sưu tập.'
+        message: res.isUpdated ? 'Đã cập nhật màu sắc trong bộ sưu tập.' : 'Đã thêm vào bộ sưu tập.'
       });
     } else if (res.isDuplicate) {
       setIsCurrentOutfitSaved(true);

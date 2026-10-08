@@ -16,7 +16,8 @@ import {
   saveOutfit,
   getSavedOutfits,
   deleteSavedOutfit,
-  clearCorruptedStorage
+  clearCorruptedStorage,
+  areColorsEqual
 } from './storage';
 
 // Khởi tạo môi trường localStorage giả lập cho kiểm thử Node.js / tsx
@@ -279,6 +280,64 @@ export function runStorageTests() {
   } finally {
     freshStore.removeItem = originalRemoveItem;
   }
+
+  // -------------------------------------------------------------
+  // TEST GROUP 7: LƯU TRỮ VÀ CẬP NHẬT MÀU SẮC TÙY BIẾN (ITEM COLORS)
+  // -------------------------------------------------------------
+  console.log('\n7. Kiểm thử lưu trữ và cập nhật màu sắc tùy biến:');
+  const colorStore = setupMockStorage();
+
+  const outfitWithColor = {
+    contextId: 'C01',
+    costumeId: 'V01',
+    gender: 'female' as const,
+    innerId: null,
+    bottomId: 'cs_03',
+    shoesId: 'cs_14',
+    headwearId: null,
+    jewelryIds: ['j01'],
+    itemColors: {
+      V01: { hex: '#D97706', intensity: 0.9 },
+      cs_03: { hex: '#1E3A8A', intensity: 0.8 }
+    }
+  };
+
+  // 1. Lưu bản phối có màu sắc tùy biến
+  const savedColorRes = saveOutfit(outfitWithColor);
+  assert(savedColorRes.success === true, 'Lưu thành công bộ phối kèm bảng màu tùy biến');
+
+  // 2. Đọc lại từ storage đảm bảo itemColors được giữ nguyên
+  const readList = getSavedOutfits();
+  assert(readList.outfits.length === 1, 'Đọc thành công bộ phối từ storage');
+  assert(
+    readList.outfits[0].itemColors?.V01?.hex === '#D97706' &&
+    readList.outfits[0].itemColors?.cs_03?.hex === '#1E3A8A',
+    'Bảng màu tùy biến được lưu trữ chính xác trong storage'
+  );
+
+  // 3. Lưu lại bộ phối khi đổi màu mới -> cập nhật bản ghi cũ thay vì từ chối
+  const updatedColorOutfit = {
+    ...outfitWithColor,
+    itemColors: {
+      V01: { hex: '#DC2626', intensity: 0.85 },
+      cs_03: { hex: '#1E3A8A', intensity: 0.8 }
+    }
+  };
+  const updateRes = saveOutfit(updatedColorOutfit);
+  assert(updateRes.success === true && updateRes.isUpdated === true, 'Cập nhật thành công màu sắc cho bộ phối đã có');
+  
+  const postUpdateList = getSavedOutfits();
+  assert(postUpdateList.outfits.length === 1, 'Số lượng bộ phối không bị nhân đôi sau khi cập nhật màu');
+  assert(postUpdateList.outfits[0].itemColors?.V01?.hex === '#DC2626', 'Màu mới được cập nhật chuẩn xác trong storage');
+
+  // 4. Lưu lại với đúng màu sắc đó -> phát hiện trùng lặp
+  const dupColorRes = saveOutfit(updatedColorOutfit);
+  assert(dupColorRes.success === false && dupColorRes.isDuplicate === true, 'Phát hiện trùng lặp khi màu sắc không thay đổi');
+
+  // 5. Kiểm tra hàm areColorsEqual
+  assert(areColorsEqual(outfitWithColor.itemColors, outfitWithColor.itemColors) === true, 'areColorsEqual nhận diện 2 bảng màu giống nhau');
+  assert(areColorsEqual(outfitWithColor.itemColors, updatedColorOutfit.itemColors) === false, 'areColorsEqual nhận diện 2 bảng màu khác nhau');
+  assert(areColorsEqual({}, undefined) === true, 'areColorsEqual xử lý rỗng và undefined chính xác');
 
   console.log(`\n=== TẤT CẢ ${passedTests}/${totalTests} TESTS ĐÃ VƯỢT QUA XUẤT SẮC ===\n`);
   return true;

@@ -560,8 +560,20 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio }) =>
                     {imageUrl ? (
                       <TintedImage
                         src={imageUrl}
-                        colorHex={outfit.itemColors?.[primaryCostumeId]?.hex || null}
-                        intensity={outfit.itemColors?.[primaryCostumeId]?.intensity ?? 0.85}
+                        colorHex={
+                          outfit.itemColors?.[primaryCostumeId]?.hex ||
+                          (resolvedGarment ? outfit.itemColors?.[resolvedGarment.id]?.hex : null) ||
+                          (garment ? outfit.itemColors?.[garment.id]?.hex : null) ||
+                          (baseGarmentId ? outfit.itemColors?.[baseGarmentId]?.hex : null) ||
+                          null
+                        }
+                        intensity={
+                          outfit.itemColors?.[primaryCostumeId]?.intensity ??
+                          (resolvedGarment ? outfit.itemColors?.[resolvedGarment.id]?.intensity : undefined) ??
+                          (garment ? outfit.itemColors?.[garment.id]?.intensity : undefined) ??
+                          (baseGarmentId ? outfit.itemColors?.[baseGarmentId]?.intensity : undefined) ??
+                          0.85
+                        }
                         alt={outfit.name}
                         fallbackText={outfit.name}
                         className="w-full h-full flex items-center justify-center"

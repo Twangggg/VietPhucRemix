@@ -40,6 +40,7 @@ export interface SaveOutfitInput {
 export interface SaveOutfitResult {
   success: boolean;
   isDuplicate?: boolean;
+  isUpdated?: boolean;
   error?: string;
   savedOutfit?: SavedOutfit;
 }
@@ -112,6 +113,27 @@ export function isSameOutfit(
 }
 
 /**
+ * So sánh 2 bảng màu tùy biến xem có đồng nhất hay không.
+ * Bỏ qua các mục có hex null (màu mặc định).
+ */
+export function areColorsEqual(
+  a?: Record<string, { hex: string | null; intensity: number }>,
+  b?: Record<string, { hex: string | null; intensity: number }>
+): boolean {
+  const aKeys = Object.keys(a || {}).filter((k) => a?.[k]?.hex != null);
+  const bKeys = Object.keys(b || {}).filter((k) => b?.[k]?.hex != null);
+  if (aKeys.length !== bKeys.length) return false;
+  for (const k of aKeys) {
+    const aVal = a?.[k];
+    const bVal = b?.[k];
+    if (!bVal) return false;
+    if (aVal?.hex !== bVal?.hex) return false;
+    if ((aVal?.intensity ?? 0.85) !== (bVal?.intensity ?? 0.85)) return false;
+  }
+  return true;
+}
+
+/**
  * Đọc danh sách các bộ phối đã lưu từ localStorage.
  * Có cơ chế try/catch và kiểm tra cấu trúc để phát hiện dữ liệu hỏng.
  */
@@ -155,7 +177,8 @@ export function getSavedOutfits(): GetSavedOutfitsResult {
           bottomId: item.bottomId || null,
           shoesId: item.shoesId || null,
           headwearId: item.headwearId || null,
-          jewelryIds: Array.isArray(item.jewelryIds) ? item.jewelryIds : []
+          jewelryIds: Array.isArray(item.jewelryIds) ? item.jewelryIds : [],
+          itemColors: item.itemColors && typeof item.itemColors === 'object' && !Array.isArray(item.itemColors) ? item.itemColors : {}
         });
       } else {
         return { outfits: [], isCorrupted: true, rawError: 'Tồn tại bản ghi không đúng cấu trúc lưu trữ.' };
@@ -212,7 +235,36 @@ export function saveOutfit(input: SaveOutfitInput): SaveOutfitResult {
   }
 
   // 3. Kiểm tra trùng lặp
-  if (current.outfits.some((existing) => isSameOutfit(existing, input))) {
+  const existingIndex = current.outfits.findIndex((existing) => isSameOutfit(existing, input));
+  if (existingIndex !== -1) {
+    const existing = current.outfits[existingIndex];
+    const colorsIdentical = areColorsEqual(existing.itemColors, input.itemColors);
+
+    if (!colorsIdentical) {
+      // Người dùng lưu lại cùng bộ phối nhưng đã đổi màu sắc -> cập nhật màu mới cho bộ phối này
+      const updatedOutfit: SavedOutfit = {
+        ...existing,
+        name: input.name?.trim() || existing.name,
+        createdAt: new Date().toISOString(),
+        itemColors: input.itemColors || {}
+      };
+      const updatedList = [...current.outfits];
+      updatedList[existingIndex] = updatedOutfit;
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedList));
+        return {
+          success: true,
+          isUpdated: true,
+          savedOutfit: updatedOutfit
+        };
+      } catch (err: any) {
+        return {
+          success: false,
+          error: 'Không thể ghi vào bộ nhớ trình duyệt (có thể do hết dung lượng lưu trữ).'
+        };
+      }
+    }
+
     return {
       success: false,
       isDuplicate: true,
