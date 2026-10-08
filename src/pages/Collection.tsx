@@ -22,6 +22,7 @@ import {
   SavedOutfit
 } from '../utils/storage';
 import { SafeImage } from '../components/SafeImage';
+import { TintedImage } from '../components/TintedImage';
 import { OutfitResultView } from '../components/OutfitResultView';
 
 interface CollectionProps {
@@ -184,6 +185,7 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio }) =>
             backButtonText="Quay lại danh sách"
             isFromCollection={true}
             isOutdatedOrBlocked={isOutdatedOrBlocked}
+            initialItemColors={viewingOutfit.itemColors}
           />
         </div>
       );
@@ -364,12 +366,14 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio }) =>
                   {/* Khung Ảnh đại diện Cổ phục */}
                   <div className="aspect-[4/3] w-full overflow-hidden bg-[#FAF7F2] relative flex items-center justify-center p-3">
                     {imageUrl ? (
-                      <SafeImage
+                      <TintedImage
                         src={imageUrl}
+                        colorHex={outfit.itemColors?.[primaryCostumeId]?.hex || null}
+                        intensity={outfit.itemColors?.[primaryCostumeId]?.intensity ?? 0.85}
                         alt={outfit.name}
                         fallbackText={outfit.name}
-                        expectedPath={imageUrl}
-                        className="w-full h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-500"
+                        className="w-full h-full flex items-center justify-center"
+                        imgClassName="w-full h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-500"
                       />
                     ) : (
                       <Sparkles className="w-10 h-10 text-stone-300" />

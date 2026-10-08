@@ -21,8 +21,11 @@ export interface GarmentDetailModalProps {
   item?: Garment | null;
   garment?: Garment | null; // Hỗ trợ tương thích ngược
   onClose: () => void;
-  onSelectForStudio?: (id: string) => void;
+  onSelectForStudio?: (id: string, forceSelect?: boolean) => void;
   selectedGender?: Gender;
+  isSelected?: boolean;
+  currentColorHex?: string | null;
+  onApplyColor?: (colorHex: string | null) => void;
 }
 
 export const GarmentDetailModal: React.FC<GarmentDetailModalProps> = ({
@@ -30,9 +33,12 @@ export const GarmentDetailModal: React.FC<GarmentDetailModalProps> = ({
   garment,
   onClose,
   onSelectForStudio,
-  selectedGender = 'Female'
+  selectedGender = 'Female',
+  isSelected = false,
+  currentColorHex,
+  onApplyColor
 }) => {
-  const [previewColorHex, setPreviewColorHex] = useState<string | null>(null);
+  const [previewColorHex, setPreviewColorHex] = useState<string | null>(currentColorHex || null);
   const currentGarment = item || garment;
 
   if (!currentGarment) {
@@ -169,7 +175,10 @@ export const GarmentDetailModal: React.FC<GarmentDetailModalProps> = ({
               {previewColorHex && previewColorHex !== 'original' && (
                 <button
                   type="button"
-                  onClick={() => setPreviewColorHex(null)}
+                  onClick={() => {
+                    setPreviewColorHex(null);
+                    onApplyColor?.(null);
+                  }}
                   className="px-2.5 py-1 rounded-md text-[11px] font-medium text-stone-500 hover:text-red-700 hover:bg-red-50 transition-colors flex items-center gap-1 shrink-0 cursor-pointer"
                   title="Khôi phục màu gốc"
                 >
@@ -191,7 +200,11 @@ export const GarmentDetailModal: React.FC<GarmentDetailModalProps> = ({
                   <button
                     key={col.id}
                     type="button"
-                    onClick={() => setPreviewColorHex(col.id === 'original' ? null : col.hex)}
+                    onClick={() => {
+                      const newHex = col.id === 'original' ? null : col.hex;
+                      setPreviewColorHex(newHex);
+                      onApplyColor?.(newHex);
+                    }}
                     className={`relative w-7 h-7 sm:w-8 sm:h-8 rounded-full transition-all duration-200 cursor-pointer flex items-center justify-center shrink-0 ${
                       isSelected
                         ? 'ring-2 ring-red-700 ring-offset-2 scale-110 shadow-md z-10'
@@ -316,23 +329,60 @@ export const GarmentDetailModal: React.FC<GarmentDetailModalProps> = ({
           )}
         </div>
 
-        {/* 3. THANH CÔNG CỤ CHÂN TRANG FOOTER TỐI GIẢN */}
+        {/* 3. THANH CÔNG CỤ CHÂN TRANG FOOTER */}
         <div className="px-6 py-4 border-t border-stone-100 flex items-center justify-between bg-stone-50/50 shrink-0">
-          <span className="text-xs text-stone-400 font-mono tracking-wider uppercase">
-            Tư liệu di sản
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-stone-400 font-mono tracking-wider uppercase">
+              Tư liệu di sản
+            </span>
+            {isSelected && (
+              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+                <Check className="w-3 h-3 stroke-[3]" />
+                Đang trong bản phối
+              </span>
+            )}
+          </div>
           <div className="flex items-center gap-2.5">
             {onSelectForStudio && (
-              <button
-                type="button"
-                onClick={() => {
-                  onSelectForStudio(currentGarment.id);
-                  onClose();
-                }}
-                className="px-8 py-2.5 rounded-full bg-red-700 hover:bg-red-800 text-white text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95"
-              >
-                Chọn Cổ phục
-              </button>
+              <>
+                {isSelected ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onSelectForStudio(currentGarment.id, false);
+                        onClose();
+                      }}
+                      className="px-4 py-2 rounded-full text-xs font-semibold text-stone-600 hover:text-red-700 hover:bg-red-50 border border-stone-200 hover:border-red-200 transition-colors cursor-pointer"
+                      title="Bỏ trang phục này khỏi bản phối"
+                    >
+                      Bỏ chọn
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onSelectForStudio(currentGarment.id, true);
+                        onClose();
+                      }}
+                      className="px-6 py-2.5 rounded-full text-xs font-bold bg-stone-900 hover:bg-stone-800 text-white transition-all shadow-xs cursor-pointer active:scale-95 flex items-center gap-1.5"
+                    >
+                      <Check className="w-3.5 h-3.5" />
+                      <span>Đã chọn • Hoàn tất</span>
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onSelectForStudio(currentGarment.id, true);
+                      onClose();
+                    }}
+                    className="px-8 py-2.5 rounded-full text-xs font-bold bg-red-700 hover:bg-red-800 text-white transition-all shadow-xs cursor-pointer active:scale-95 flex items-center gap-1.5"
+                  >
+                    <span>Chọn Cổ phục</span>
+                  </button>
+                )}
+              </>
             )}
           </div>
         </div>
