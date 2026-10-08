@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Sparkles, Menu, X, Compass, Shirt, SlidersHorizontal, BookOpen } from 'lucide-react';
+import { Sparkles, Menu, X, Compass, Shirt, SlidersHorizontal, BookOpen, Bookmark } from 'lucide-react';
 
-export type NavTab = 'home' | 'explore' | 'studio' | 'lookbook';
+export type NavTab = 'home' | 'explore' | 'studio' | 'lookbook' | 'collection';
 
 interface NavbarProps {
   activeTab: NavTab;
@@ -37,8 +37,13 @@ export const Navbar: React.FC<NavbarProps> = ({
     },
     {
       id: 'lookbook' as NavTab,
-      label: 'Bộ sưu tập',
+      label: 'Bộ phối mẫu',
       icon: Sparkles
+    },
+    {
+      id: 'collection' as NavTab,
+      label: 'Bộ sưu tập',
+      icon: Bookmark
     }
   ];
 
@@ -50,12 +55,12 @@ export const Navbar: React.FC<NavbarProps> = ({
           onClick={() => onSelectTab('home')}
           className="cursor-pointer flex items-center gap-3.5 group"
         >
-          <div className="w-10 h-10 rounded-xl bg-red-700 text-white flex items-center justify-center font-['Playfair_Display',serif] font-bold text-lg shadow-sm group-hover:bg-red-800 transition-colors">
+          <div className="w-10 h-10 rounded-xl bg-red-700 text-white flex items-center justify-center font-bold text-base shadow-sm group-hover:bg-red-800 transition-colors">
             VP
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-xl font-bold tracking-tight text-gray-900 font-['Playfair_Display',serif] group-hover:text-red-700 transition-colors">
+              <span className="text-lg font-bold tracking-tight text-gray-900 group-hover:text-red-700 transition-colors">
                 Việt Phục Remix
               </span>
               <span className="hidden sm:inline-block text-[10px] uppercase font-mono tracking-widest text-red-700 font-semibold px-2 py-0.5 rounded bg-red-50 border border-red-200/60">
