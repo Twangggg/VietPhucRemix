@@ -24,6 +24,7 @@ import { SafeImage } from './SafeImage';
 import { TintedImage } from './TintedImage';
 import {
   getSavedLookbooks,
+  saveLookbook,
   deleteLookbook,
   decodeOutfitFromShareString,
   encodeOutfitToShareUrl
@@ -42,6 +43,8 @@ export function LookbookTab() {
   const [selectedCuratedOutfit, setSelectedCuratedOutfit] = useState<OutfitCombination | null>(null);
   const [selectedSavedLookbook, setSelectedSavedLookbook] = useState<SavedLookbook | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [isSharedTempOutfit, setIsSharedTempOutfit] = useState<boolean>(false);
+  const [saveSuccessNotice, setSaveSuccessNotice] = useState<string | null>(null);
 
   // Modal Nhập mã chia sẻ bộ phối
   const [showImportModal, setShowImportModal] = useState<boolean>(false);
@@ -59,16 +62,24 @@ export function LookbookTab() {
 
   // Kiểm tra nếu có shared string trên URL query params (ví dụ: ?shared=...)
   useEffect(() => {
-    const searchParams = new URLSearchParams(location.search || window.location.hash.split('?')[1]);
-    const sharedParam = searchParams.get('shared');
+    // Trích xuất shared param từ cả query string và hash (đề phòng link dạng /lookbook?shared= hoặc /#/lookbook?shared=)
+    const urlParams = new URLSearchParams(location.search);
+    let sharedParam = urlParams.get('shared');
+    if (!sharedParam && window.location.hash.includes('shared=')) {
+      const hashPart = window.location.hash.split('?')[1];
+      if (hashPart) {
+        sharedParam = new URLSearchParams(hashPart).get('shared');
+      }
+    }
+
     if (sharedParam) {
       const decoded = decodeOutfitFromShareString(sharedParam);
       if (decoded) {
         // Tự động tạo một temporary lookbook và mở chi tiết
         const tempLookbook: SavedLookbook = {
           id: 'shared_outfit',
-          title: decoded.title || 'Bản phối được chia sẻ',
-          notes: decoded.notes || 'Bản phối được bạn bè chia sẻ qua liên kết.',
+          title: decoded.title || 'Bản phối được bạn bè chia sẻ',
+          notes: decoded.notes || 'Bản phối được bạn bè chia sẻ qua liên kết trực tiếp.',
           createdAt: Date.now(),
           gender: decoded.gender === 'male' ? 'Male' : 'Female',
           contextId: decoded.contextId,
@@ -81,10 +92,34 @@ export function LookbookTab() {
           itemColors: decoded.itemColors
         };
         setSelectedSavedLookbook(tempLookbook);
+        setIsSharedTempOutfit(true);
         setActiveSubTab('my_lookbooks');
       }
     }
   }, [location.search]);
+
+  // Xử lý lưu bản phối được bạn bè chia sẻ vào bộ sưu tập của mình
+  const handleSaveSharedLookbook = () => {
+    if (!selectedSavedLookbook) return;
+    saveLookbook({
+      title: selectedSavedLookbook.title,
+      notes: selectedSavedLookbook.notes,
+      authorName: selectedSavedLookbook.authorName,
+      gender: selectedSavedLookbook.gender,
+      contextId: selectedSavedLookbook.contextId,
+      garmentId: selectedSavedLookbook.garmentId,
+      innerId: selectedSavedLookbook.innerId,
+      bottomId: selectedSavedLookbook.bottomId,
+      shoesId: selectedSavedLookbook.shoesId,
+      headwearId: selectedSavedLookbook.headwearId,
+      jewelryIds: selectedSavedLookbook.jewelryIds,
+      itemColors: selectedSavedLookbook.itemColors
+    });
+    refreshSavedLookbooks();
+    setIsSharedTempOutfit(false);
+    setSaveSuccessNotice('Đã lưu bản phối vào Lookbook của bạn thành công!');
+    setTimeout(() => setSaveSuccessNotice(null), 3000);
+  };
 
   // Xử lý nạp mã chia sẻ hoặc link chia sẻ từ bạn bè
   const handleImportOutfit = (e: React.FormEvent) => {
@@ -93,9 +128,9 @@ export function LookbookTab() {
     let code = importCodeInput.trim();
     if (!code) return;
 
-    // Nếu người dùng dán cả URL (ví dụ: http://localhost:3000/#/lookbook?shared=xyz)
+    // Nếu người dùng dán cả URL (ví dụ: https://.../lookbook?shared=xyz)
     if (code.includes('shared=')) {
-      const match = code.match(/shared=([^&#]+)/);
+      const match = code.match(/shared=([^&#\s]+)/);
       if (match && match[1]) {
         code = match[1];
       }
@@ -123,9 +158,28 @@ export function LookbookTab() {
       itemColors: decoded.itemColors
     };
 
+    // Tự động lưu luôn vào lookbook cá nhân
+    saveLookbook({
+      title: importedOutfit.title,
+      notes: importedOutfit.notes,
+      gender: importedOutfit.gender,
+      contextId: importedOutfit.contextId,
+      garmentId: importedOutfit.garmentId,
+      innerId: importedOutfit.innerId,
+      bottomId: importedOutfit.bottomId,
+      shoesId: importedOutfit.shoesId,
+      headwearId: importedOutfit.headwearId,
+      jewelryIds: importedOutfit.jewelryIds,
+      itemColors: importedOutfit.itemColors
+    });
+    refreshSavedLookbooks();
+
     setSelectedSavedLookbook(importedOutfit);
+    setIsSharedTempOutfit(false);
     setShowImportModal(false);
     setImportCodeInput('');
+    setSaveSuccessNotice('Đã nạp và lưu bản phối thành công!');
+    setTimeout(() => setSaveSuccessNotice(null), 3000);
   };
 
   const handleDeleteSaved = (id: string, e: React.MouseEvent) => {
@@ -426,6 +480,16 @@ export function LookbookTab() {
           </button>
 
           <div className="flex items-center gap-2">
+            {isSharedTempOutfit && (
+              <button
+                onClick={handleSaveSharedLookbook}
+                className="px-3.5 py-1.5 rounded-full bg-red-700 hover:bg-red-800 text-xs font-semibold text-white flex items-center gap-1.5 shadow-xs cursor-pointer transition-all active:scale-95"
+              >
+                <Bookmark className="w-3.5 h-3.5" />
+                <span>Lưu vào Lookbook của tôi</span>
+              </button>
+            )}
+
             <button
               onClick={(e) => handleCopyLink(selectedSavedLookbook, e)}
               className="px-3 py-1.5 rounded-full border border-stone-200 hover:border-stone-400 bg-white text-xs font-semibold text-stone-700 flex items-center gap-1.5 shadow-xs cursor-pointer"
@@ -452,6 +516,28 @@ export function LookbookTab() {
             </button>
           </div>
         </div>
+
+        {saveSuccessNotice && (
+          <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl text-xs font-medium flex items-center gap-2 animate-in fade-in">
+            <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>{saveSuccessNotice}</span>
+          </div>
+        )}
+
+        {isSharedTempOutfit && !saveSuccessNotice && (
+          <div className="p-3 bg-amber-50 border border-amber-200 text-amber-900 rounded-2xl text-xs font-medium flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
+              <span>Bạn đang xem bản phối được chia sẻ từ bạn bè qua liên kết trực tiếp.</span>
+            </div>
+            <button
+              onClick={handleSaveSharedLookbook}
+              className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-[11px] shrink-0"
+            >
+              Lưu ngay
+            </button>
+          </div>
+        )}
 
         {/* Thẻ Lookbook Nghệ Thuật */}
         <div className="bg-[#FAF7F2] rounded-3xl p-6 sm:p-10 border border-stone-200/80 shadow-xs space-y-8">
