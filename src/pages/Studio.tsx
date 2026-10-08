@@ -183,6 +183,16 @@ export const Studio: React.FC = () => {
     });
   };
 
+  // Helper cuộn mượt đến section tiếp theo sau khi chọn
+  const smoothScrollToSection = (sectionId: string) => {
+    setTimeout(() => {
+      const el = document.getElementById(sectionId);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 180);
+  };
+
   // 3. SMART ASSIGNMENT cho đồ Mặc kèm (Tab 3)
   const handleSmartSelectCasual = (item: any, forceSelect?: boolean) => {
     setIsBottomBarExpanded(false);
@@ -196,15 +206,35 @@ export const Studio: React.FC = () => {
     };
 
     if (rawCat.includes('inner') || rawCat.includes('top')) {
-      setSelectedInner((prev) => applySingleSlot(prev));
+      setSelectedInner((prev) => {
+        const next = applySingleSlot(prev);
+        if (next && next !== prev) smoothScrollToSection('section-bottom');
+        return next;
+      });
     } else if (rawCat.includes('bottom') || rawCat.includes('pants') || rawCat.includes('skirt')) {
-      setSelectedBottom((prev) => applySingleSlot(prev));
+      setSelectedBottom((prev) => {
+        const next = applySingleSlot(prev);
+        if (next && next !== prev) smoothScrollToSection('section-shoes');
+        return next;
+      });
     } else if (rawCat.includes('shoe') || rawCat.includes('footwear')) {
       setSelectedShoes((prev) => applySingleSlot(prev));
     } else {
-      if (item.type === 'inner') setSelectedInner((prev) => applySingleSlot(prev));
-      else if (item.type === 'bottom') setSelectedBottom((prev) => applySingleSlot(prev));
-      else if (item.type === 'shoes') setSelectedShoes((prev) => applySingleSlot(prev));
+      if (item.type === 'inner') {
+        setSelectedInner((prev) => {
+          const next = applySingleSlot(prev);
+          if (next && next !== prev) smoothScrollToSection('section-bottom');
+          return next;
+        });
+      } else if (item.type === 'bottom') {
+        setSelectedBottom((prev) => {
+          const next = applySingleSlot(prev);
+          if (next && next !== prev) smoothScrollToSection('section-shoes');
+          return next;
+        });
+      } else if (item.type === 'shoes') {
+        setSelectedShoes((prev) => applySingleSlot(prev));
+      }
     }
   };
 
@@ -214,9 +244,9 @@ export const Studio: React.FC = () => {
     setQuickMatchNotice(null);
     if (item.type === 'headwear' || item.category === 'headwear') {
       setSelectedHeadwear((prev) => {
-        if (forceSelect === true) return item.id;
-        if (forceSelect === false) return prev === item.id ? null : prev;
-        return prev === item.id ? null : item.id;
+        const next = forceSelect === true ? item.id : forceSelect === false ? (prev === item.id ? null : prev) : (prev === item.id ? null : item.id);
+        if (next && next !== prev) smoothScrollToSection('section-jewelries');
+        return next;
       });
     } else {
       setSelectedJewelries((prev) => {
@@ -1068,7 +1098,7 @@ export const Studio: React.FC = () => {
                   </div>
 
                   {/* Nhóm 2: Quần / Váy */}
-                  <div className="space-y-2.5 pt-4 border-t border-stone-100">
+                  <div id="section-bottom" className="space-y-2.5 pt-4 border-t border-stone-100 scroll-mt-24">
                     <div className="flex items-center justify-between">
                       <h3 className="text-xs font-semibold text-stone-800 uppercase tracking-wider flex items-center gap-1.5">
                         <Layers className="w-3.5 h-3.5 text-stone-400" />
@@ -1113,7 +1143,7 @@ export const Studio: React.FC = () => {
                   </div>
 
                   {/* Nhóm 3: Giày dép */}
-                  <div className="space-y-2.5 pt-4 border-t border-stone-100">
+                  <div id="section-shoes" className="space-y-2.5 pt-4 border-t border-stone-100 scroll-mt-24">
                     <div className="flex items-center justify-between">
                       <h3 className="text-xs font-semibold text-stone-800 uppercase tracking-wider flex items-center gap-1.5">
                         <Footprints className="w-3.5 h-3.5 text-stone-400" />
@@ -1248,7 +1278,7 @@ export const Studio: React.FC = () => {
                   </div>
 
                   {/* Nhóm 2: Trang sức */}
-                  <div className="space-y-2.5 pt-4 border-t border-stone-100">
+                  <div id="section-jewelries" className="space-y-2.5 pt-4 border-t border-stone-100 scroll-mt-24">
                     <div className="flex items-center justify-between">
                       <h3 className="text-xs font-semibold text-stone-800 uppercase tracking-wider flex items-center gap-1.5">
                         <Sparkles className="w-3.5 h-3.5 text-stone-400" />
@@ -1520,120 +1550,52 @@ export const Studio: React.FC = () => {
               )}
             </div>
           ) : (
-            /* TRẠNG THÁI 2: THANH TRỢ LÝ THÔNG MINH - HƯỚNG DẪN BƯỚC TIẾP THEO */
-            <div className="pointer-events-auto bg-stone-900/95 backdrop-blur-md border border-stone-800 text-white rounded-full shadow-xl px-3.5 py-1.5 sm:px-4 sm:py-2 flex items-center gap-2 sm:gap-3 transition-all duration-200">
-              {/* Nhấn vào để xem chi tiết / kiểm tra quy chuẩn */}
+            /* TRẠNG THÁI 2: THANH TRỢ LÝ THU GỌN GỌN GÀNG */
+            <div className="pointer-events-auto bg-stone-900/95 backdrop-blur-md border border-stone-800 text-white rounded-full shadow-lg px-3 py-1.5 flex items-center gap-2 transition-all duration-200">
+              {/* Nhấn vào để mở rộng chi tiết */}
               <button
                 type="button"
                 onClick={() => setIsBottomBarExpanded(true)}
-                className="flex items-center gap-2 text-xs hover:text-stone-300 transition-colors cursor-pointer select-none"
+                className="flex items-center gap-2 hover:text-stone-300 transition-colors cursor-pointer select-none"
                 title="Bấm để xem chi tiết tình trạng quy chuẩn"
               >
                 {/* Dots hiển thị tiến trình 4 bước */}
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1.5 px-1">
                   <span
-                    className={`w-2 h-2 rounded-full ${selectedContext ? 'bg-emerald-400' : 'bg-stone-600'}`}
+                    className={`w-2 h-2 rounded-full transition-colors ${selectedContext ? 'bg-emerald-400' : 'bg-stone-600'}`}
                     title="Bước 1: Bối cảnh"
                   />
                   <span
-                    className={`w-2 h-2 rounded-full ${selectedGarments.length > 0 ? 'bg-emerald-400' : 'bg-stone-600'}`}
+                    className={`w-2 h-2 rounded-full transition-colors ${selectedGarments.length > 0 ? 'bg-emerald-400' : 'bg-stone-600'}`}
                     title="Bước 2: Cổ phục"
                   />
                   <span
-                    className={`w-2 h-2 rounded-full ${selectedInner || selectedBottom || selectedShoes ? 'bg-emerald-400' : 'bg-stone-600'}`}
+                    className={`w-2 h-2 rounded-full transition-colors ${selectedInner || selectedBottom || selectedShoes ? 'bg-emerald-400' : 'bg-stone-600'}`}
                     title="Bước 3: Đồ mặc kèm"
                   />
                   <span
-                    className={`w-2 h-2 rounded-full ${selectedHeadwear || selectedJewelries.length > 0 ? 'bg-emerald-400' : 'bg-stone-600'}`}
+                    className={`w-2 h-2 rounded-full transition-colors ${selectedHeadwear || selectedJewelries.length > 0 ? 'bg-emerald-400' : 'bg-stone-600'}`}
                     title="Bước 4: Phụ kiện"
                   />
-                </div>
-
-                {/* Trạng thái tóm tắt ngắn gọn */}
-                <div className="hidden xs:flex items-center gap-1.5 font-medium text-[11px] sm:text-xs">
-                  {hasBlockError ? (
-                    <span className="text-red-400 flex items-center gap-1">
-                      <AlertTriangle className="w-3.5 h-3.5 text-red-400" />
-                      Xung đột quy chuẩn
-                    </span>
-                  ) : hasWarnNotice ? (
-                    <span className="text-amber-300 flex items-center gap-1">
-                      <AlertTriangle className="w-3.5 h-3.5 text-amber-300" />
-                      Có lưu ý
-                    </span>
-                  ) : currentGarmentItems.filter(Boolean).length > 0 ? (
-                    <span className="text-stone-300 max-w-[120px] sm:max-w-[160px] truncate">
-                      {currentGarmentItems.filter(Boolean)[0].name}
-                    </span>
-                  ) : selectedContext ? (
-                    <span className="text-stone-300">Đã chọn bối cảnh</span>
-                  ) : (
-                    <span className="text-stone-400">Bước {activeTab}/4</span>
-                  )}
                 </div>
 
                 <ChevronUp className="w-3.5 h-3.5 text-stone-400" />
               </button>
 
-              <div className="h-4 w-px bg-stone-700/80 mx-0.5" />
-
-              {/* Các nút hành động ngữ cảnh tùy theo trạng thái */}
-              <div className="flex items-center gap-1.5">
-                {isReadyToValidate ? (
+              {/* Nút Xem kết quả ngay khi đã sẵn sàng */}
+              {isReadyToValidate && (
+                <>
+                  <div className="h-3.5 w-px bg-stone-700/80" />
                   <button
                     type="button"
                     onClick={handleValidateOutfit}
-                    className="px-3 sm:px-3.5 py-1 rounded-full bg-red-600 hover:bg-red-700 text-white font-semibold text-[11px] sm:text-xs flex items-center gap-1.5 shadow-sm active:scale-95 transition-all"
+                    className="px-3 py-1 rounded-full bg-red-600 hover:bg-red-700 text-white font-semibold text-[11px] sm:text-xs flex items-center gap-1.5 shadow-sm active:scale-95 transition-all"
                   >
                     <Sparkles className="w-3 h-3 text-amber-200" />
-                    <span>Xem kết quả ✦</span>
+                    <span>Xem kết quả</span>
                   </button>
-                ) : null}
-
-                {/* Nút điều hướng nhanh đến bước tiếp theo nếu chưa ở tab cuối */}
-                {activeTab === 1 && (
-                  <button
-                    type="button"
-                    disabled={!selectedContext}
-                    onClick={() => goToTab(2)}
-                    className={`px-3 py-1 rounded-full text-[11px] sm:text-xs font-medium flex items-center gap-1 transition-all ${
-                      selectedContext
-                        ? 'bg-stone-800 hover:bg-stone-700 text-white cursor-pointer active:scale-95'
-                        : 'bg-stone-800/50 text-stone-500 cursor-not-allowed'
-                    }`}
-                  >
-                    <span>Cổ phục</span>
-                    <ChevronRight className="w-3 h-3" />
-                  </button>
-                )}
-
-                {activeTab === 2 && (
-                  <button
-                    type="button"
-                    disabled={selectedGarments.length === 0}
-                    onClick={() => goToTab(3)}
-                    className={`px-3.5 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm ${
-                      selectedGarments.length > 0
-                        ? 'bg-stone-800 hover:bg-stone-700 text-white cursor-pointer active:scale-95'
-                        : 'bg-stone-800/60 text-stone-500 cursor-not-allowed'
-                    }`}
-                  >
-                    <span>Mặc kèm</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </button>
-                )}
-
-                {activeTab === 3 && (
-                  <button
-                    type="button"
-                    onClick={() => goToTab(4)}
-                    className="px-3.5 py-1.5 rounded-full bg-stone-800 hover:bg-stone-700 text-white text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 shadow-sm"
-                  >
-                    <span>Phụ kiện</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </button>
-                )}
-              </div>
+                </>
+              )}
             </div>
           )}
         </div>
