@@ -38,6 +38,7 @@ import { SafeImage } from './components/SafeImage';
 import { Studio } from './pages/Studio';
 import { Collection } from './pages/Collection';
 import { LookbookTab } from './components/LookbookTab';
+import { CompareResultPage } from './pages/CompareResult';
 
 export type CategoryFilterKey =
   | 'all'
@@ -80,15 +81,16 @@ export default function App() {
   const [selectedGender, setSelectedGender] = useState<Gender>('Female');
 
   // Xác định activeTab trực tiếp từ URL pathname (Single Source of Truth)
-  const getTabFromPath = (pathname: string): NavTab => {
+  const getTabFromPath = (pathname: string): NavTab | 'compare' => {
     if (pathname === '/studio') return 'studio';
     if (pathname === '/explore') return 'explore';
     if (pathname === '/lookbook') return 'lookbook';
     if (pathname === '/collection') return 'collection';
+    if (pathname === '/compare') return 'compare';
     return 'home';
   };
 
-  const activeTab: NavTab = getTabFromPath(location.pathname);
+  const activeTab: NavTab | 'compare' = getTabFromPath(location.pathname);
 
   const handleTabChange = (tab: NavTab) => {
     switch (tab) {
@@ -705,6 +707,9 @@ export default function App() {
         {activeTab === 'collection' && (
           <Collection onNavigateToStudio={() => handleTabChange('studio')} />
         )}
+
+        {/* 6. TAB KẾT QUẢ SO SÁNH */}
+        {activeTab === 'compare' && <CompareResultPage />}
       </main>
 
       {/* 5. CÁC HỘP THOẠI CHI TIẾT */}
@@ -740,7 +745,7 @@ export default function App() {
 
       {/* 6. THANH ĐIỀU HƯỚNG DƯỚI CÙNG (MOBILE-FIRST) */}
       <BottomNavbar
-        activeTab={activeTab}
+        activeTab={activeTab as NavTab}
         onSelectTab={handleTabChange}
       />
     </div>
