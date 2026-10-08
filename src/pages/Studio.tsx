@@ -108,6 +108,55 @@ export const Studio: React.FC = () => {
     }, 250);
   };
 
+  // ==========================================
+  // XỬ LÝ NHẬN REMIX TỪ LOOKBOOK
+  // ==========================================
+  useEffect(() => {
+    const remixData = sessionStorage.getItem('remixOutfit');
+    if (remixData) {
+      try {
+        const outfit = JSON.parse(remixData);
+        const comp = outfit.composition;
+        setSelectedGender(outfit.gender.toLowerCase() as 'male' | 'female');
+        setSelectedContext(outfit.applicable_events[0] || 'C01');
+        
+        const getValidId = (id: string | null | undefined, lists: any[][]) => {
+          if (!id) return null;
+          for (const list of lists) {
+            if (list.some((i: any) => i.id === id)) return id;
+          }
+          const baseId = id.replace(/_[12]$/, '');
+          for (const list of lists) {
+            if (list.some((i: any) => i.id === baseId)) return baseId;
+          }
+          return null;
+        };
+
+        const garments = [comp.top, comp.outer_traditional, comp.outer_formal]
+          .map(id => getValidId(id, [GARMENTS]))
+          .filter(Boolean) as string[];
+        setSelectedGarments(garments);
+        
+        setSelectedInner(getValidId(comp.inner, [CASUAL_ITEMS, GARMENTS]));
+        setSelectedBottom(getValidId(comp.bottom_pants || comp.bottom_skirt, [CASUAL_ITEMS, GARMENTS]));
+        setSelectedShoes(getValidId(comp.shoes || comp.traditional_footwear, [CASUAL_ITEMS, GARMENTS]));
+        setSelectedHeadwear(getValidId(comp.headwear, [ACCESSORIES]));
+
+        const jewelries = (comp.jewelry || [])
+          .map((id: string) => getValidId(id, [ACCESSORIES]))
+          .filter(Boolean) as string[];
+        setSelectedJewelries(jewelries);
+        
+        // Mở sẵn kết quả
+        setIsShowingResult(true);
+      } catch (e) {
+        console.error("Failed to parse remix outfit", e);
+      } finally {
+        sessionStorage.removeItem('remixOutfit');
+      }
+    }
+  }, []);
+
   // 2. Chọn Cổ phục (Tab 2)
   const handleSelectGarment = (garmentId: string) => {
     setIsBottomBarExpanded(false);
