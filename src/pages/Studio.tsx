@@ -761,11 +761,11 @@ export const Studio: React.FC = () => {
                       key={tab.id}
                       type="button"
                       onClick={() => goToTab(tab.id)}
-                      className={`relative py-1.5 px-2 text-xs sm:text-sm tracking-wide transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 select-none rounded-lg ${
+                      className={`relative py-1.5 px-2.5 text-xs sm:text-sm tracking-wide transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 select-none rounded-full ${
                         isCurrent
                           ? 'text-stone-900 font-bold'
                           : isNextStep
-                            ? 'text-red-700 font-semibold bg-red-50/80 ring-1 ring-red-200 animate-pulse'
+                            ? 'text-red-700 font-bold bg-red-100/90 ring-2 ring-red-500/50 shadow-sm animate-pulse'
                             : tab.completed
                               ? 'text-stone-700 hover:text-stone-900 font-medium'
                               : 'text-stone-400 hover:text-stone-600 font-normal'
@@ -810,8 +810,8 @@ export const Studio: React.FC = () => {
                         <div
                           key={ctx.id}
                           onClick={() => handleSelectContext(ctx.id)}
-                          className={`p-4 sm:p-5 rounded-2xl border transition-all cursor-pointer text-left space-y-2 relative select-none ${isSelected
-                              ? 'bg-white border-stone-900 ring-2 ring-stone-900 shadow-md'
+                          className={`p-4 sm:p-5 rounded-2xl border transition-all cursor-pointer text-left space-y-1.5 relative select-none ${isSelected
+                              ? 'bg-white border-stone-900 ring-2 ring-stone-900 shadow-xs'
                               : 'bg-stone-50/60 border-stone-200/70 hover:border-stone-400 hover:bg-white'
                             }`}
                         >
@@ -828,27 +828,6 @@ export const Studio: React.FC = () => {
                           <p className="text-xs text-stone-500 leading-relaxed font-normal">
                             {ctx.description}
                           </p>
-
-                          {/* Nút hành động trực tiếp ngay trên thẻ được chọn (tối ưu đặc biệt cho Mobile) */}
-                          {isSelected && (
-                            <div className="pt-2 mt-1 border-t border-stone-100 flex items-center justify-between animate-in fade-in duration-200">
-                              <span className="text-[11px] font-medium text-emerald-700 flex items-center gap-1">
-                                <Check className="w-3 h-3 text-emerald-600 stroke-[2.5]" />
-                                Đã chọn bối cảnh này
-                              </span>
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  goToTab(2);
-                                }}
-                                className="px-3.5 py-1.5 rounded-full bg-stone-900 hover:bg-stone-800 text-white text-xs font-semibold flex items-center gap-1 shadow-sm active:scale-95 transition-all cursor-pointer"
-                              >
-                                <span>Tiếp tục: Cổ phục</span>
-                                <ChevronRight className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          )}
                         </div>
                       );
                     })}
@@ -1617,14 +1596,14 @@ export const Studio: React.FC = () => {
                     type="button"
                     disabled={!selectedContext}
                     onClick={() => goToTab(2)}
-                    className={`px-3.5 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm ${
+                    className={`px-3 py-1 rounded-full text-[11px] sm:text-xs font-medium flex items-center gap-1 transition-all ${
                       selectedContext
-                        ? 'bg-red-700 hover:bg-red-800 text-white cursor-pointer active:scale-95 animate-pulse'
-                        : 'bg-stone-800/60 text-stone-500 cursor-not-allowed'
+                        ? 'bg-stone-800 hover:bg-stone-700 text-white cursor-pointer active:scale-95'
+                        : 'bg-stone-800/50 text-stone-500 cursor-not-allowed'
                     }`}
                   >
                     <span>Cổ phục</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
+                    <ChevronRight className="w-3 h-3" />
                   </button>
                 )}
 
