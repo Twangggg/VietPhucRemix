@@ -927,106 +927,60 @@ export const Studio: React.FC = () => {
                     })}
                   </div>
 
-                  {/* Khối hướng dẫn bước tiếp theo rõ ràng khi đã chọn Cổ phục */}
+                  {/* Khối tóm tắt trạng thái & tùy chọn thông minh khi đã chọn Cổ phục */}
                   {selectedGarments.length > 0 && (
-                    <div className="p-4 sm:p-5 rounded-3xl bg-white border border-stone-200/90 shadow-sm space-y-3.5 animate-in slide-in-from-top-2 duration-300">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-stone-100 pb-3">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0">
-                            <Check className="w-4 h-4 stroke-[2.5]" />
+                    <div className="p-3.5 sm:p-4 rounded-2xl bg-white border border-stone-200/90 shadow-2xs space-y-3 animate-in slide-in-from-top-2 duration-200">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0">
+                            <Check className="w-3.5 h-3.5 stroke-[2.5]" />
                           </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-bold text-stone-900">
-                                Đã chọn: {currentGarmentItems.filter(Boolean).map(i => i.name).join(', ')}
-                              </span>
-                              <span className="text-[10px] font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                                Đủ điều kiện hoàn tất
-                              </span>
-                            </div>
-                            <p className="text-[11px] text-stone-500 font-sans mt-0.5">
-                              Bạn có thể xem ngay kết quả outfit hoặc tiếp tục chọn đồ mặc kèm & phụ kiện.
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* 2 nút hành động lựa chọn bước tiếp theo */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                        <button
-                          type="button"
-                          onClick={() => goToTab(3)}
-                          className="py-2.5 px-4 rounded-xl border border-stone-300 hover:border-stone-400 bg-stone-50 hover:bg-stone-100 text-stone-800 font-semibold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95 shadow-2xs"
-                        >
-                          <span>Tiếp tục phối: Đồ mặc kèm</span>
-                          <ChevronRight className="w-4 h-4 text-stone-500" />
-                        </button>
-
-                        <button
-                          type="button"
-                          disabled={!isReadyToValidate}
-                          onClick={handleValidateOutfit}
-                          className="py-2.5 px-4 rounded-xl bg-red-700 hover:bg-red-800 text-white font-semibold text-xs flex items-center justify-center gap-2 shadow-xs hover:shadow-md transition-all cursor-pointer active:scale-95"
-                        >
-                          <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                          <span>Xem kết quả outfit ngay ✦</span>
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Banner Gợi ý phối nhanh 1-Click (EPIC 04 — QUICK MATCH) */}
-                  {selectedGarments.length > 0 && (
-                    <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-red-50/90 via-[#FAF7F2] to-stone-50 border border-red-200/80 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs animate-in slide-in-from-top-2 duration-300">
-                      <div className="flex items-center gap-3 text-left w-full sm:w-auto">
-                        <div className="w-9 h-9 rounded-xl bg-red-700 text-white flex items-center justify-center shrink-0 shadow-xs">
-                          <Sparkles className="w-4 h-4 text-amber-300 animate-pulse" />
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-xs font-bold text-stone-900 truncate max-w-[200px]">
-                              Tự động phối trọn bộ
-                            </span>
-                            <span className="text-[10px] uppercase px-1.5 py-0.5 bg-red-100 text-red-800 rounded-md font-semibold">
-                              Chuẩn văn hóa
-                            </span>
-                          </div>
-                          <span className="text-[11px] text-stone-500 leading-tight block mt-0.5">
-                            Tự động phối trọn bộ áo trong, quần/váy, giày & phụ kiện chỉ với 1 chạm.
+                          <span className="text-xs font-bold text-stone-900 truncate">
+                            {currentGarmentItems.filter(Boolean).map(i => i.name).join(', ')}
+                          </span>
+                          <span className="text-[10px] font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 shrink-0">
+                            Đủ chuẩn
                           </span>
                         </div>
+
+                        {/* Nút Phối nhanh 1-chạm đặt gọn gàng ở góc */}
+                        <button
+                          type="button"
+                          onClick={() => handleQuickMatch()}
+                          className="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200/80 font-medium text-[11px] flex items-center gap-1 transition-all cursor-pointer shrink-0 active:scale-95"
+                          title="Tự động gợi ý các món mặc kèm và phụ kiện phù hợp"
+                        >
+                          <Sparkles className="w-3 h-3 text-amber-600" />
+                          <span>Gợi ý phối nhanh</span>
+                        </button>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => handleQuickMatch()}
-                        className="w-full sm:w-auto px-5 py-2.5 rounded-full bg-gradient-to-r from-red-700 to-red-800 hover:from-red-800 hover:to-red-900 text-white font-semibold text-xs flex items-center justify-center gap-1.5 shadow-sm hover:shadow-md hover:scale-[1.02] active:scale-95 transition-all cursor-pointer whitespace-nowrap"
-                      >
-                        <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                        <span>Gợi ý phối nhanh</span>
-                      </button>
+
+                      <p className="text-[11px] text-stone-500 font-sans leading-normal">
+                        Bộ phối đã đủ điều kiện. Bạn có thể xem kết quả ngay hoặc tiếp tục phối đồ mặc kèm.
+                      </p>
                     </div>
                   )}
 
-                  {/* Nút Chuyển Tab */}
-                  <div className="pt-2 flex flex-wrap items-center justify-between gap-2.5">
+                  {/* Nút Điều Hướng Chuyển Tab */}
+                  <div className="pt-2 flex items-center justify-between gap-2.5 border-t border-stone-100">
                     <button
                       type="button"
                       onClick={() => goToTab(1)}
-                      className="px-4 py-2 rounded-full text-xs font-medium text-stone-500 hover:text-stone-900 hover:bg-stone-100 flex items-center gap-1 transition-colors cursor-pointer"
+                      className="px-3.5 py-2 rounded-full text-xs font-medium text-stone-500 hover:text-stone-900 hover:bg-stone-100 flex items-center gap-1 transition-colors cursor-pointer"
                     >
                       <ChevronLeft className="w-4 h-4" />
                       <span>Bối cảnh</span>
                     </button>
 
-                    <div className="flex items-center gap-2 w-full sm:w-auto justify-end flex-wrap">
+                    <div className="flex items-center gap-2">
                       {isReadyToValidate && (
                         <button
                           type="button"
                           onClick={handleValidateOutfit}
-                          className="px-4 sm:px-5 py-2.5 rounded-full bg-red-700 hover:bg-red-800 text-white font-semibold text-xs flex items-center gap-1.5 shadow-xs hover:shadow-md transition-all cursor-pointer active:scale-95"
+                          className="px-4 py-2 rounded-full border border-stone-300 hover:border-stone-400 bg-white hover:bg-stone-50 text-stone-800 font-semibold text-xs flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
                         >
-                          <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                          <span>Xem kết quả ✦</span>
+                          <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                          <span>Xem kết quả</span>
                         </button>
                       )}
 
