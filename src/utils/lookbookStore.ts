@@ -102,7 +102,8 @@ export function encodeOutfitToShareCode(payload: {
 }
 
 /**
- * Mã hóa dữ liệu phối đồ thành chuỗi URL hash/param an toàn để chia sẻ
+ * Mã hóa dữ liệu phối đồ thành chuỗi URL an toàn để chia sẻ
+ * Hỗ trợ tự động nhận diện domain đang chạy (Vercel deployment hoặc localhost)
  */
 export function encodeOutfitToShareUrl(payload: {
   g: string; // garment
@@ -120,8 +121,8 @@ export function encodeOutfitToShareUrl(payload: {
   try {
     const base64 = encodeOutfitToShareCode(payload);
     const origin = window.location.origin;
-    const pathname = window.location.pathname;
-    return `${origin}${pathname}#/lookbook?shared=${base64}`;
+    // Tạo link trực tiếp tới /lookbook?shared=... (chuẩn BrowserRouter trên Vercel)
+    return `${origin}/lookbook?shared=${base64}`;
   } catch (err) {
     console.error('Lỗi encode share URL:', err);
     return window.location.href;
