@@ -303,9 +303,9 @@ export default function App() {
       case 'studio':
         return 'Phòng phối đồ & Thử nghiệm';
       case 'lookbook':
-        return 'Bộ phối mẫu tiêu biểu';
+        return 'Bản phối mẫu tiêu biểu';
       case 'collection':
-        return 'Bộ sưu tập cá nhân';
+        return 'Bộ sưu tập đã lưu';
     }
   };
 

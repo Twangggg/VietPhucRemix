@@ -574,10 +574,10 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
                 className="w-full px-3.5 py-2.5 rounded-xl bg-red-700 hover:bg-red-800 text-white font-semibold text-xs flex items-center justify-between shadow-xs transition-all active:scale-95 cursor-pointer"
               >
                 <div className="flex items-center gap-2">
-                  <Bookmark className="w-4 h-4" />
-                  <span>Lưu Lookbook & Chia sẻ</span>
+                  <Share2 className="w-4 h-4" />
+                  <span>Xuất thẻ ảnh & Chia sẻ</span>
                 </div>
-                <Share2 className="w-3.5 h-3.5 opacity-80" />
+                <Sparkles className="w-3.5 h-3.5 opacity-80" />
               </button>
 
               {!isFromCollection && onSaveOutfit && (
@@ -593,12 +593,12 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
                   {isSaved ? (
                     <>
                       <BookmarkCheck className="w-3.5 h-3.5 text-emerald-700" />
-                      <span>Đã có trong bộ sưu tập</span>
+                      <span>Đã lưu vào bộ sưu tập</span>
                     </>
                   ) : (
                     <>
                       <Bookmark className="w-3.5 h-3.5 text-stone-300" />
-                      <span>Thêm vào bộ sưu tập</span>
+                      <span>Lưu vào bộ sưu tập</span>
                     </>
                   )}
                 </button>

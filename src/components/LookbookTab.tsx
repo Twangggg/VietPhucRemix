@@ -119,10 +119,10 @@ export function LookbookTab() {
         <>
           <div className="border-b border-stone-200/80 pb-4">
             <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
-              Bản Phối Mẫu
+              Bản Phối Mẫu Di Sản
             </h2>
             <p className="text-xs sm:text-sm text-stone-500 mt-1 max-w-xl">
-              Những công thức phối đồ mẫu đã được kiểm định thỏa mãn tiêu chuẩn văn hóa và phom dáng đương đại.
+              Các công thức phối đồ mẫu chuẩn mực do chuyên gia biên soạn, thỏa mãn tiêu chuẩn văn hóa và phom dáng đương đại.
             </p>
           </div>
 
