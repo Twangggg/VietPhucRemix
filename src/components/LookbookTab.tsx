@@ -9,6 +9,7 @@ import { CasualDetailModal } from './CasualDetailModal';
 import { AccessoryDetailModal } from './AccessoryDetailModal';
 import { LookbookDetail } from './LookbookDetail';
 import { OutfitResultView } from './OutfitResultView';
+import { SafeImage } from './SafeImage';
 import { getCloudSharedOutfit } from '../services/firebaseStore';
 import { decodeOutfitFromShareString } from '../utils/lookbookStore';
 import { validateOutfit } from '../utils/validationEngine';
@@ -353,12 +354,13 @@ export function LookbookTab() {
                 >
                   <div className="w-full bg-stone-50 border-b border-stone-200/80 p-4 flex flex-wrap gap-3 justify-center items-center min-h-[200px]">
                     {getOutfitItems(outfit).slice(0, 5).map(({ resolvedItem }, idx) => (
-                      <div key={`${resolvedItem.id}-${idx}`} className="w-16 h-16 sm:w-20 sm:h-20 bg-white rounded-xl shadow-sm border border-stone-200 p-1.5 flex items-center justify-center">
+                      <div key={`${resolvedItem.id}-${idx}`} className="w-16 h-16 sm:w-20 sm:h-20 bg-white rounded-xl shadow-sm border border-stone-200 p-1.5 flex items-center justify-center overflow-hidden">
                         {resolvedItem.resolvedImageUrl ? (
-                          <img
+                          <SafeImage
                             src={resolvedItem.resolvedImageUrl}
                             alt={resolvedItem.name}
-                            className="max-w-full max-h-full object-contain mix-blend-multiply"
+                            className="w-full h-full"
+                            imgClassName="max-w-full max-h-full object-contain mix-blend-multiply"
                           />
                         ) : (
                           <Sparkles className="w-6 h-6 text-stone-300" />

@@ -6,6 +6,7 @@ import { resolveItemByGender } from '../utils/helpers';
 import { GarmentDetailModal } from './GarmentDetailModal';
 import { CasualDetailModal } from './CasualDetailModal';
 import { AccessoryDetailModal } from './AccessoryDetailModal';
+import { SafeImage } from './SafeImage';
 
 interface LookbookDetailProps {
   outfit: OutfitCombination;
@@ -195,10 +196,11 @@ export function LookbookDetail({
               >
                 <div className="aspect-square bg-white relative p-2 flex items-center justify-center">
                   {resolvedItem.resolvedImageUrl ? (
-                    <img
+                    <SafeImage
                       src={resolvedItem.resolvedImageUrl}
                       alt={resolvedItem.name}
-                      className="max-w-full max-h-full object-contain mix-blend-multiply"
+                      className="w-full h-full"
+                      imgClassName="max-w-full max-h-full object-contain mix-blend-multiply"
                     />
                   ) : (
                     <Sparkles className="w-8 h-8 text-stone-300" />
