@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   X,
   Sparkles,
@@ -34,7 +34,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     getFriendlyErrorMessage
   } = useAuth();
 
-  const [mode, setMode] = useState<'login' | 'register'>(defaultMode);
+  const [mode, setMode] = useState<'login' | 'register'>(defaultMode || 'login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -43,9 +43,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [syncNotice, setSyncNotice] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (isOpen) {
+      setMode(defaultMode || 'login');
+      setError(null);
+      setSyncNotice(null);
+    }
+  }, [isOpen, defaultMode]);
+
   if (!isOpen) return null;
 
   const resetForm = () => {
+    setMode(defaultMode || 'login');
     setEmail('');
     setPassword('');
     setConfirmPassword('');
@@ -217,7 +226,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 : 'text-stone-500 hover:text-stone-800'
             }`}
           >
-            Đăng ký mới
+            Đăng ký
           </button>
         </div>
 
