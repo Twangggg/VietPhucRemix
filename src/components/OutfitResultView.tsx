@@ -179,6 +179,11 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
 
   // Xử lý lưu Lookbook vào localStorage và Cloud Firestore
   const handleSaveToLookbook = (title: string, notes: string, authorName: string) => {
+    if (!currentUser) {
+      window.dispatchEvent(new CustomEvent('open-auth-modal'));
+      return;
+    }
+
     const finalAuthor = currentUser?.displayName || currentUser?.email?.split('@')[0] || authorName;
     const saved = saveLookbook({
       title,

@@ -15,7 +15,8 @@ import {
   Scale,
   Cloud,
   CloudUpload,
-  Loader2
+  Loader2,
+  LogIn
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import {
@@ -64,7 +65,7 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio, onOp
   const [selectedForCompare, setSelectedForCompare] = useState<SavedOutfit[]>([]);
   const [showLookbookPicker, setShowLookbookPicker] = useState<boolean>(false);
 
-  // Tải danh sách bộ phối: Firebase Cloud Firestore là nguồn dữ liệu chính
+  // Tải danh sách bộ phối: Firebase Cloud Firestore là nguồn dữ liệu duy nhất
   useEffect(() => {
     if (currentUser) {
       setIsLoadingCloud(true);
@@ -82,21 +83,25 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio, onOp
         (error) => {
           console.error('Lỗi kết nối Firebase Firestore:', error);
           setIsLoadingCloud(false);
-          const result = getSavedOutfits();
-          setSavedList(result.outfits);
+          setSavedList([]);
+          setActionError('Không thể kết nối Firebase Cloud. Vui lòng kiểm tra kết nối mạng.');
         }
       );
 
       return () => unsubscribe();
     } else {
-      // Chế độ Khách (Guest Mode)
+      // Khi chưa đăng nhập: Không tải bất kỳ bộ phối nào từ máy khách
       setIsLoadingCloud(false);
-      refreshLocalOutfits();
+      setSavedList([]);
     }
   }, [currentUser]);
 
   // Cập nhật lại danh sách bộ phối lưu trên máy khách
   const refreshLocalOutfits = () => {
+    if (!currentUser) {
+      setSavedList([]);
+      return;
+    }
     const result = getSavedOutfits();
     setIsCorrupted(result.isCorrupted);
     setCorruptedError(result.rawError || '');
@@ -284,7 +289,95 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio, onOp
   };
 
 
-  // 1. MÀN HÌNH XEM CHI TIẾT BỘ PHỐI ĐÃ LƯU
+  // 1. CHƯA ĐĂNG NHẬP: HIỂN THỊ MÀN HÌNH YÊU CẦU ĐĂNG NHẬP (BẢO VỆ DỮ LIỆU CÁ NHÂN)
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen bg-[#FBF9F5] text-stone-900 pb-36">
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 pt-10 sm:pt-16 pb-12">
+          {/* Header */}
+          <div className="text-center space-y-3 mb-8">
+            <div className="w-16 h-16 rounded-3xl bg-red-50 border border-red-200/80 text-red-700 flex items-center justify-center mx-auto shadow-xs">
+              <Bookmark className="w-8 h-8 stroke-[1.75]" />
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-serif font-bold text-stone-900 tracking-tight">
+              Bộ Sưu Tập Cá Nhân
+            </h1>
+            <p className="text-sm text-stone-600 max-w-md mx-auto leading-relaxed">
+              Vui lòng đăng nhập tài khoản để lưu trữ, quản lý và bảo vệ các bộ phối cổ phục độc đáo của bạn trên Đám Mây (Firebase).
+            </p>
+          </div>
+
+          {/* Feature Highlights Card */}
+          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-stone-200/80 shadow-xs space-y-6">
+            <div className="space-y-4">
+              <div className="flex items-start gap-3.5 p-3.5 rounded-2xl bg-stone-50 border border-stone-100">
+                <div className="w-9 h-9 rounded-xl bg-red-100 text-red-700 flex items-center justify-center shrink-0">
+                  <Cloud className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-stone-900">Lưu trữ Đám mây an toàn</h3>
+                  <p className="text-xs text-stone-500 mt-0.5 leading-relaxed">
+                    Dữ liệu bộ sưu tập được gắn riêng với tài khoản Firebase của bạn, không bị mất khi xóa bộ nhớ trình duyệt hoặc chuyển đổi thiết bị.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3.5 p-3.5 rounded-2xl bg-stone-50 border border-stone-100">
+                <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                  <Sparkles className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-stone-900">Chia sẻ bộ phối công khai</h3>
+                  <p className="text-xs text-stone-500 mt-0.5 leading-relaxed">
+                    Tạo liên kết trực tuyến để bạn bè hoặc cộng đồng có thể chiêm ngưỡng tác phẩm phối đồ Việt phục của bạn bất cứ lúc nào.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3.5 p-3.5 rounded-2xl bg-stone-50 border border-stone-100">
+                <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                  <Scale className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-stone-900">So sánh đối chiếu trực quan</h3>
+                  <p className="text-xs text-stone-500 mt-0.5 leading-relaxed">
+                    Đối chiếu 2 bộ phối cạnh nhau để thẩm định quy chuẩn trang phục, gam màu và hoa văn trước khi đưa ra ngoài thực tế.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-2 flex flex-col sm:flex-row items-center gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  if (onOpenAuthModal) {
+                    onOpenAuthModal();
+                  } else {
+                    window.dispatchEvent(new CustomEvent('open-auth-modal'));
+                  }
+                }}
+                className="w-full sm:flex-1 py-3 px-6 rounded-full bg-red-700 hover:bg-red-800 text-white text-xs sm:text-sm font-semibold shadow-sm transition-all duration-200 active:scale-95 cursor-pointer flex items-center justify-center gap-2"
+              >
+                <LogIn className="w-4 h-4" />
+                <span>Đăng nhập hoặc Đăng ký</span>
+              </button>
+              <button
+                type="button"
+                onClick={onNavigateToStudio}
+                className="w-full sm:w-auto py-3 px-6 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs sm:text-sm font-semibold transition-colors duration-200 cursor-pointer flex items-center justify-center gap-2"
+              >
+                <SlidersHorizontal className="w-4 h-4" />
+                <span>Phòng phối đồ</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 2. MÀN HÌNH XEM CHI TIẾT BỘ PHỐI ĐÃ LƯU
   if (viewingOutfitId) {
     const viewingOutfit = savedList.find((o) => o.id === viewingOutfitId);
     if (viewingOutfit) {
@@ -571,32 +664,6 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio, onOp
           </div>
         )}
 
-        {/* BANNER MỜI ĐĂNG NHẬP LƯU TRỮ TRÊN FIREBASE CLOUD */}
-        {!currentUser && (
-          <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-red-50 via-stone-50 to-stone-100 border border-red-200/70 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-red-700 text-white flex items-center justify-center shrink-0 shadow-xs">
-                <Cloud className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="text-sm sm:text-base font-bold text-stone-900 font-serif">
-                  Lưu trữ Bộ sưu tập vĩnh viễn trên Đám Mây (Firebase)
-                </h3>
-                <p className="text-xs text-stone-600 mt-0.5 leading-relaxed">
-                  Đăng nhập tài khoản để đồng bộ và truy cập các bộ phối của bạn trên mọi thiết bị.
-                </p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={onOpenAuthModal}
-              className="self-start sm:self-auto px-4 py-2 rounded-xl bg-red-700 hover:bg-red-800 text-white text-xs font-semibold shadow-xs transition-all cursor-pointer shrink-0 active:scale-95"
-            >
-              Đăng nhập ngay
-            </button>
-          </div>
-        )}
-
         {/* LOADING STATE KHI ĐANG TẢI TỪ FIREBASE */}
         {isLoadingCloud && (
           <div className="py-20 flex flex-col items-center justify-center space-y-3 font-sans">
@@ -616,15 +683,14 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio, onOp
 
             <div className="space-y-1.5">
               <h3 className="text-lg font-bold text-stone-900 font-serif">
-                Bộ sưu tập đang trống
+                Bộ sưu tập của bạn đang trống
               </h3>
               <p className="text-xs text-stone-500 max-w-sm mx-auto leading-relaxed">
-                Bạn chưa lưu bộ phối nào. Hãy vào Phòng phối đồ để sáng tạo, kiểm định và lưu giữ những bản phối ưng ý nhất.
+                Bạn chưa lưu bộ phối nào vào tài khoản này. Hãy vào Phòng phối đồ để sáng tạo, kiểm định và lưu giữ những bản phối ưng ý nhất.
               </p>
-              <p className="text-[11px] text-stone-400 font-sans mt-1">
-                {currentUser
-                  ? 'Được đồng bộ an toàn trên Firebase Cloud Firestore.'
-                  : 'Lưu trên thiết bị này • Đăng nhập để lưu vĩnh viễn trên Đám Mây.'}
+              <p className="text-[11px] text-emerald-700 font-sans mt-1 flex items-center justify-center gap-1.5">
+                <Cloud className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Đồng bộ an toàn trên Firebase Cloud Firestore</span>
               </p>
             </div>
 

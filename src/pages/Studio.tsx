@@ -475,6 +475,11 @@ export const Studio: React.FC = () => {
   // Đồng bộ trạng thái đã lưu khi mở màn hình kết quả hoặc khi đổi màu
   useEffect(() => {
     if (isShowingResult && selectedGarments.length > 0 && selectedContext) {
+      if (!currentUser) {
+        setIsCurrentOutfitSaved(false);
+        setSaveNotice(null);
+        return;
+      }
       const { outfits } = getSavedOutfits();
       const existingMatch = outfits.find((o) =>
         isSameOutfit(o, {
@@ -505,12 +510,23 @@ export const Studio: React.FC = () => {
     selectedShoes,
     selectedHeadwear,
     selectedJewelries,
-    itemColors
+    itemColors,
+    currentUser
   ]);
 
-  // Xử lý lưu bộ phối vào Bộ sưu tập
+  // Xử lý lưu bộ phối vào Bộ sưu tập (Bắt buộc đăng nhập để lưu trữ trên Firebase Cloud)
   const handleSaveOutfit = (colors?: Record<string, { hex: string | null; intensity: number }>, name?: string) => {
     if (selectedGarments.length === 0 || !selectedContext) return;
+
+    if (!currentUser) {
+      window.dispatchEvent(new CustomEvent('open-auth-modal'));
+      setSaveNotice({
+        type: 'warn',
+        message: 'Vui lòng đăng nhập để lưu bộ phối vào Bộ sưu tập của bạn!'
+      });
+      return;
+    }
+
     const finalColors = colors && Object.keys(colors).length > 0 ? colors : itemColors;
     const res = saveOutfit({
       name: name?.trim() || undefined,

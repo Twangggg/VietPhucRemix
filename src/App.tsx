@@ -82,6 +82,12 @@ export default function App() {
   const [selectedGender, setSelectedGender] = useState<Gender>('Female');
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
 
+  useEffect(() => {
+    const handleOpenAuth = () => setIsAuthModalOpen(true);
+    window.addEventListener('open-auth-modal', handleOpenAuth);
+    return () => window.removeEventListener('open-auth-modal', handleOpenAuth);
+  }, []);
+
   // Xác định activeTab trực tiếp từ URL pathname (Single Source of Truth)
   const getTabFromPath = (pathname: string): NavTab | 'compare' => {
     if (pathname === '/studio') return 'studio';
