@@ -14,7 +14,9 @@ import {
   Download,
   Loader2,
   Check,
-  Info
+  Info,
+  SlidersHorizontal,
+  X
 } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import { Garment, CasualItem, AccessoryItem, ContextItem, ValidationResult, Gender } from '../types';
@@ -84,7 +86,7 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
   isOutdatedOrBlocked = false
 }) => {
   const [showCulturalModal, setShowCulturalModal] = useState<boolean>(false);
-  const [isActionsExpanded, setIsActionsExpanded] = useState<boolean>(true);
+  const [isActionsExpanded, setIsActionsExpanded] = useState<boolean>(false);
 
   // State mở Modal chi tiết từng món đồ khi người dùng click vào thẻ
   const [detailGarment, setDetailGarment] = useState<Garment | null>(null);
@@ -293,51 +295,51 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
   }>;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in-50 duration-300 pb-36 px-2 sm:px-4">
+    <div className="max-w-4xl mx-auto space-y-3 animate-in fade-in-50 duration-300 pb-36 px-2 sm:px-4">
       {/* ==========================================
           1. HEADER TỐI GIẢN (EDITORIAL LOOKBOOK HEADER)
          ========================================== */}
-      <div className="text-center space-y-2 pt-1">
+      <div className="text-center space-y-1 pt-0.5">
         {isOutdatedOrBlocked ? (
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-100/90 text-red-900 text-xs font-medium border border-red-200">
-            <AlertTriangle className="w-3.5 h-3.5 text-red-600" />
-            <span>Cần kiểm tra lại quy chuẩn</span>
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-red-100/90 text-red-900 text-[11px] font-medium border border-red-200">
+            <AlertTriangle className="w-3 h-3 text-red-600 shrink-0" />
+            <span>Cần kiểm tra lại</span>
             {contextItem && (
               <>
                 <span className="text-red-300">•</span>
-                <span className="text-red-800">{contextItem.name}</span>
+                <span className="text-red-800 truncate max-w-[150px]">{contextItem.name}</span>
               </>
             )}
           </div>
         ) : warnings.length > 0 ? (
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100/90 text-amber-900 text-xs font-medium border border-amber-200">
-            <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
-            <span>Có lưu ý quy chuẩn / phom dáng</span>
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-100/90 text-amber-900 text-[11px] font-medium border border-amber-200">
+            <AlertTriangle className="w-3 h-3 text-amber-600 shrink-0" />
+            <span>Có lưu ý</span>
             {contextItem && (
               <>
                 <span className="text-amber-300">•</span>
-                <span className="text-amber-800">{contextItem.name}</span>
+                <span className="text-amber-800 truncate max-w-[150px]">{contextItem.name}</span>
               </>
             )}
           </div>
         ) : (
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-stone-100/90 text-stone-700 text-xs font-medium">
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Phù hợp quy chuẩn kiểm tra</span>
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-stone-100/90 text-stone-600 text-[11px] font-medium">
+            <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
+            <span>Đạt chuẩn</span>
             {contextItem && (
               <>
                 <span className="text-stone-300">•</span>
-                <span className="text-stone-600">{contextItem.name}</span>
+                <span className="text-stone-600 truncate max-w-[150px]">{contextItem.name}</span>
               </>
             )}
           </div>
         )}
 
-        <h1 className="text-3xl sm:text-4xl font-bold text-stone-900 tracking-tight">
+        <h1 className="text-xl sm:text-2xl font-bold text-stone-900 tracking-tight leading-tight">
           Bảng Phối Đồ
         </h1>
-        <p className="text-[10px] tracking-[0.2em] uppercase text-stone-400">
-          CHẠM ĐỂ XEM CHI TIẾT TỪNG MÓN
+        <p className="text-[9px] tracking-widest uppercase text-stone-400">
+          Chạm để xem chi tiết
         </p>
       </div>
 
@@ -585,44 +587,45 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
             )}
 
             <div className="flex flex-col gap-1.5">
+              {/* 1. Nút Xuất thẻ ảnh & Chia sẻ */}
               <button
                 type="button"
                 onClick={() => {
                   setIsActionsExpanded(false);
                   setShowSaveModal(true);
                 }}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-red-700 hover:bg-red-800 text-white font-semibold text-xs flex items-center justify-between shadow-xs transition-all active:scale-95 cursor-pointer"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-red-700 hover:bg-red-800 text-white font-medium text-xs flex items-center gap-2.5 shadow-xs transition-all active:scale-95 cursor-pointer text-left"
               >
-                <div className="flex items-center gap-2">
-                  <Share2 className="w-4 h-4" />
-                  <span>Xuất thẻ ảnh & Chia sẻ</span>
-                </div>
-                <Sparkles className="w-3.5 h-3.5 opacity-80" />
+                <Share2 className="w-4 h-4 shrink-0 text-white" />
+                <span>Xuất thẻ ảnh & Chia sẻ</span>
               </button>
 
+              {/* 2. Nút Lưu vào bộ sưu tập */}
               {!isFromCollection && onSaveOutfit && (
                 <button
                   type="button"
                   onClick={() => onSaveOutfit(itemColors, customOutfitName)}
-                  className={`w-full px-3.5 py-2 rounded-xl font-semibold text-xs flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-xs ${
+                  className={`w-full px-3.5 py-2.5 rounded-xl font-medium text-xs flex items-center gap-2.5 transition-all active:scale-95 cursor-pointer shadow-xs text-left ${
                     isSaved
-                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 hover:bg-emerald-200/70'
+                      ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100/70'
                       : 'bg-stone-900 hover:bg-stone-800 text-white'
                   }`}
                 >
                   {isSaved ? (
                     <>
-                      <BookmarkCheck className="w-3.5 h-3.5 text-emerald-700" />
+                      <BookmarkCheck className="w-4 h-4 shrink-0 text-emerald-600" />
                       <span>Đã lưu vào bộ sưu tập</span>
                     </>
                   ) : (
                     <>
-                      <Bookmark className="w-3.5 h-3.5 text-stone-300" />
+                      <Bookmark className="w-4 h-4 shrink-0 text-stone-300" />
                       <span>Lưu vào bộ sưu tập</span>
                     </>
                   )}
                 </button>
               )}
+
+              {/* 3. Nút Đổi sắc màu áo */}
               <button
                 type="button"
                 onClick={() => {
@@ -634,33 +637,35 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
                     imageUrl: garmentImageUrl
                   });
                 }}
-                className="w-full px-3.5 py-2 rounded-xl border border-stone-200 hover:border-stone-300 bg-stone-50 hover:bg-stone-100 text-stone-800 font-medium text-xs flex items-center gap-2 transition-all cursor-pointer active:scale-95"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 hover:border-stone-300 bg-stone-50 hover:bg-stone-100 text-stone-800 font-medium text-xs flex items-center gap-2.5 transition-all cursor-pointer active:scale-95 text-left"
               >
-                <Palette className="w-3.5 h-3.5 text-red-700" />
+                <Palette className="w-4 h-4 shrink-0 text-stone-600" />
                 <span>Đổi sắc màu áo</span>
               </button>
 
+              {/* 4. Nút Câu chuyện di sản */}
               <button
                 type="button"
                 onClick={() => {
                   setIsActionsExpanded(false);
                   setShowCulturalModal(true);
                 }}
-                className="w-full px-3.5 py-2 rounded-xl border border-stone-200 hover:border-stone-300 bg-stone-50 hover:bg-stone-100 text-stone-800 font-medium text-xs flex items-center gap-2 transition-all cursor-pointer active:scale-95"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 hover:border-stone-300 bg-stone-50 hover:bg-stone-100 text-stone-800 font-medium text-xs flex items-center gap-2.5 transition-all cursor-pointer active:scale-95 text-left"
               >
-                <BookOpen className="w-3.5 h-3.5 text-stone-600" />
+                <BookOpen className="w-4 h-4 shrink-0 text-stone-600" />
                 <span>Câu chuyện di sản</span>
               </button>
 
+              {/* 5. Nút Quay lại phối đồ */}
               <button
                 type="button"
                 onClick={() => {
                   setIsActionsExpanded(false);
                   onBackToStudio();
                 }}
-                className="w-full px-3.5 py-2 rounded-xl border border-stone-200 hover:border-stone-300 bg-stone-50 hover:bg-stone-100 text-stone-600 hover:text-stone-900 font-medium text-xs flex items-center gap-2 transition-all cursor-pointer active:scale-95"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 hover:border-stone-300 bg-stone-50 hover:bg-stone-100 text-stone-700 hover:text-stone-900 font-medium text-xs flex items-center gap-2.5 transition-all cursor-pointer active:scale-95 text-left"
               >
-                <ArrowLeft className="w-3.5 h-3.5 text-stone-500" />
+                <ArrowLeft className="w-4 h-4 shrink-0 text-stone-500" />
                 <span>Quay lại phối đồ</span>
               </button>
             </div>
@@ -686,11 +691,9 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
             aria-label="Tùy chọn bản phối"
           >
             {isActionsExpanded ? (
-              <ChevronDown className="w-5 h-5 stroke-[2.5]" />
-            ) : warnings.length > 0 ? (
-              <AlertTriangle className="w-5 h-5 text-amber-100" />
+              <X className="w-5 h-5 stroke-[2.5]" />
             ) : (
-              <Sparkles className="w-5 h-5 text-amber-300" />
+              <SlidersHorizontal className="w-4 h-4 text-white" />
             )}
           </button>
 
