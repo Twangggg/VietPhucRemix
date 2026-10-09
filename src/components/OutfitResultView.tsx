@@ -617,7 +617,7 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
               </button>
 
               {/* 2. Nút Lưu vào bộ sưu tập */}
-              {!isFromCollection && onSaveOutfit && (
+              {onSaveOutfit && (
                 <button
                   type="button"
                   onClick={() => onSaveOutfit(itemColors, customOutfitName)}
@@ -672,7 +672,7 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
                 <span>Câu chuyện di sản</span>
               </button>
 
-              {/* 5. Nút Quay lại phối đồ */}
+              {/* 5. Nút Quay lại */}
               <button
                 type="button"
                 onClick={() => {
@@ -682,7 +682,7 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
                 className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 hover:border-stone-300 bg-stone-50 hover:bg-stone-100 text-stone-700 hover:text-stone-900 font-medium text-xs flex items-center gap-2.5 transition-all cursor-pointer active:scale-95 text-left"
               >
                 <ArrowLeft className="w-4 h-4 shrink-0 text-stone-500" />
-                <span>Quay lại phối đồ</span>
+                <span>{backButtonText || 'Quay lại phối đồ'}</span>
               </button>
             </div>
           </div>

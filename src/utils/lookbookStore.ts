@@ -121,8 +121,8 @@ export function encodeOutfitToShareUrl(payload: {
   try {
     const base64 = encodeOutfitToShareCode(payload);
     const origin = window.location.origin;
-    // Tạo link trực tiếp tới /lookbook?shared=... (chuẩn BrowserRouter trên Vercel)
-    return `${origin}/lookbook?shared=${base64}`;
+    // Tạo link trực tiếp tới /collection?shared=... (chuẩn BrowserRouter trên Vercel)
+    return `${origin}/collection?shared=${base64}`;
   } catch (err) {
     console.error('Lỗi encode share URL:', err);
     return window.location.href;
