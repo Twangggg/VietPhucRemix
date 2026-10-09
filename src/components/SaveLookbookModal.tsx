@@ -66,7 +66,7 @@ export const SaveLookbookModal: React.FC<SaveLookbookModalProps> = ({
           itemColors: sharePayload.col
         });
         if (cloudShareId) {
-          finalUrl = `${window.location.origin}/lookbook?shareId=${cloudShareId}`;
+          finalUrl = `${window.location.origin}/collection?shareId=${cloudShareId}`;
         }
       } catch (err) {
         console.warn('Lỗi tạo cloud share link, dùng base64 link:', err);

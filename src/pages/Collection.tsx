@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Bookmark,
   Sparkles,
@@ -15,21 +15,27 @@ import {
   Scale,
   Cloud,
   Loader2,
-  LogIn
+  LogIn,
+  AlertCircle,
+  ArrowLeft
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import {
   deleteCloudOutfit,
-  subscribeCloudOutfits
+  subscribeCloudOutfits,
+  getCloudSharedOutfit,
+  saveCloudOutfit
 } from '../services/firebaseStore';
+import { decodeOutfitFromShareString } from '../utils/lookbookStore';
 import { GARMENTS, CASUAL_ITEMS, ACCESSORIES, CONTEXTS, OUTFIT_COMBINATIONS } from '../data';
-import { OutfitCombination } from '../types';
+import { OutfitCombination, Garment, CasualItem, AccessoryItem, ContextItem } from '../types';
 import { resolveItemByGender, getSafeImageUrl } from '../utils/helpers';
 import { validateOutfit, resolveGarmentBaseId } from '../utils/validationEngine';
 import {
   getSavedOutfits,
   deleteSavedOutfit,
   clearCorruptedStorage,
+  saveOutfit,
   SavedOutfit
 } from '../utils/storage';
 import { SafeImage } from '../components/SafeImage';
@@ -59,6 +65,186 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio, onOp
   const [isCompareMode, setIsCompareMode] = useState<boolean>(false);
   const [selectedForCompare, setSelectedForCompare] = useState<SavedOutfit[]>([]);
   const [showLookbookPicker, setShowLookbookPicker] = useState<boolean>(false);
+
+  // Trạng thái cho bản phối được chia sẻ qua liên kết URL (?shareId=... hoặc ?shared=...)
+  const [searchParams, setSearchParams] = useSearchParams();
+  const shareId = searchParams.get('shareId');
+  const sharedCode = searchParams.get('shared');
+
+  const [sharedOutfitData, setSharedOutfitData] = useState<{
+    garment: Garment;
+    context: ContextItem | null;
+    inner: CasualItem | null;
+    bottom: CasualItem | null;
+    shoes: CasualItem | Garment | null;
+    headwear: AccessoryItem | null;
+    jewelries: AccessoryItem[];
+    gender: 'male' | 'female';
+    colors?: Record<string, { hex: string | null; intensity: number }>;
+    title?: string;
+    notes?: string;
+    creatorName?: string;
+  } | null>(null);
+  const [isLoadingShared, setIsLoadingShared] = useState<boolean>(Boolean(shareId || sharedCode));
+  const [sharedError, setSharedError] = useState<string | null>(null);
+  const [isSharedSaved, setIsSharedSaved] = useState<boolean>(false);
+  const [sharedSaveNotice, setSharedSaveNotice] = useState<{
+    type: 'success' | 'warn' | 'error' | 'info';
+    message: string;
+  } | null>(null);
+
+  // Tải bản phối được chia sẻ từ liên kết (Cloud Firestore hoặc mã Base64)
+  useEffect(() => {
+    const loadShared = async () => {
+      if (!shareId && !sharedCode) {
+        setSharedOutfitData(null);
+        setIsSharedSaved(false);
+        setIsLoadingShared(false);
+        return;
+      }
+
+      setIsLoadingShared(true);
+      setSharedError(null);
+
+      try {
+        let rawData: {
+          garmentId: string;
+          contextId?: string | null;
+          innerId?: string | null;
+          bottomId?: string | null;
+          shoesId?: string | null;
+          headwearId?: string | null;
+          jewelryIds?: string[];
+          gender: 'male' | 'female';
+          itemColors?: Record<string, { hex: string | null; intensity: number }>;
+          title?: string;
+          notes?: string;
+          creatorName?: string;
+        } | null = null;
+
+        if (shareId) {
+          const cloudData = await getCloudSharedOutfit(shareId);
+          if (cloudData) {
+            rawData = cloudData;
+          } else {
+            setSharedError('Không tìm thấy bản phối được chia sẻ từ liên kết này.');
+          }
+        } else if (sharedCode) {
+          rawData = decodeOutfitFromShareString(sharedCode);
+          if (!rawData) {
+            setSharedError('Mã liên kết chia sẻ không hợp lệ hoặc đã bị lỗi.');
+          }
+        }
+
+        if (rawData) {
+          const g = GARMENTS.find((item) => item.id.toLowerCase() === rawData!.garmentId.toLowerCase());
+          if (!g) {
+            setSharedError('Không tìm thấy Cổ phục chính của bản phối này.');
+            return;
+          }
+          const ctx = rawData.contextId ? CONTEXTS.find((c) => c.id === rawData!.contextId) || null : null;
+          const inn = rawData.innerId ? CASUAL_ITEMS.find((c) => c.id === rawData!.innerId) || null : null;
+          const bot = rawData.bottomId ? CASUAL_ITEMS.find((c) => c.id === rawData!.bottomId) || null : null;
+          const sh = rawData.shoesId
+            ? CASUAL_ITEMS.find((c) => c.id === rawData!.shoesId) ||
+              GARMENTS.find((item) => item.id === rawData!.shoesId) ||
+              null
+            : null;
+          const hw = rawData.headwearId ? ACCESSORIES.find((a) => a.id === rawData!.headwearId) || null : null;
+          const jws = (rawData.jewelryIds || [])
+            .map((id) => ACCESSORIES.find((a) => a.id === id))
+            .filter(Boolean) as AccessoryItem[];
+
+          setSharedOutfitData({
+            garment: g,
+            context: ctx,
+            inner: inn,
+            bottom: bot,
+            shoes: sh,
+            headwear: hw,
+            jewelries: jws,
+            gender: rawData.gender,
+            colors: rawData.itemColors,
+            title: rawData.title,
+            notes: rawData.notes,
+            creatorName: rawData.creatorName
+          });
+        }
+      } catch (e) {
+        console.error('Lỗi tải bản phối chia sẻ:', e);
+        setSharedError('Đã xảy ra lỗi khi tải bản phối chia sẻ.');
+      } finally {
+        setIsLoadingShared(false);
+      }
+    };
+
+    loadShared();
+  }, [shareId, sharedCode]);
+
+  // Xử lý lưu bản phối chia sẻ vào Bộ sưu tập của người dùng
+  const handleSaveSharedOutfit = async (
+    colors?: Record<string, { hex: string | null; intensity: number }>,
+    name?: string
+  ) => {
+    if (!sharedOutfitData) return;
+
+    if (!currentUser) {
+      if (onOpenAuthModal) onOpenAuthModal();
+      else window.dispatchEvent(new CustomEvent('open-auth-modal'));
+      return;
+    }
+
+    const finalColors = colors && Object.keys(colors).length > 0 ? colors : sharedOutfitData.colors;
+    const outfitName = name?.trim() || sharedOutfitData.title || `Bản phối ${sharedOutfitData.garment.name}`;
+
+    const res = saveOutfit({
+      name: outfitName,
+      costumeId: sharedOutfitData.garment.id,
+      contextId: sharedOutfitData.context?.id || 'C01',
+      gender: sharedOutfitData.gender,
+      innerId: sharedOutfitData.inner?.id || null,
+      bottomId: sharedOutfitData.bottom?.id || null,
+      shoesId: sharedOutfitData.shoes?.id || null,
+      headwearId: sharedOutfitData.headwear?.id || null,
+      jewelryIds: sharedOutfitData.jewelries.map((j) => j.id),
+      itemColors: finalColors
+    });
+
+    if (res.savedOutfit) {
+      await saveCloudOutfit(currentUser.uid, res.savedOutfit).catch((err) =>
+        console.warn('Lỗi lưu cloud outfit:', err)
+      );
+    }
+
+    setIsSharedSaved(true);
+    setSharedSaveNotice({
+      type: 'success',
+      message: 'Đã lưu bản phối vào Bộ sưu tập của bạn!'
+    });
+  };
+
+  // Mở bản phối chia sẻ trong Studio để tùy biến / remix
+  const handleRemixSharedOutfit = () => {
+    if (!sharedOutfitData) return;
+    const remixPayload = {
+      id: `shared_remix_${Date.now()}`,
+      name: sharedOutfitData.title || `Bản phối ${sharedOutfitData.garment.name}`,
+      gender: sharedOutfitData.gender === 'male' ? 'Male' : 'Female',
+      style: 'Giao thoa truyền thống hiện đại',
+      formality: 'Lễ hội / Dạo phố',
+      composition: {
+        outer_traditional: sharedOutfitData.garment.id,
+        context: sharedOutfitData.context?.id || 'C01',
+        inner: sharedOutfitData.inner?.id || undefined,
+        bottom_pants: sharedOutfitData.bottom?.id || undefined,
+        shoes: sharedOutfitData.shoes?.id || undefined,
+        headwear: sharedOutfitData.headwear?.id || undefined,
+        jewelry: sharedOutfitData.jewelries.map((j) => j.id)
+      }
+    };
+    sessionStorage.setItem('remixOutfit', JSON.stringify(remixPayload));
+    navigate('/studio');
+  };
 
   // Tải danh sách bộ phối: Firebase Cloud Firestore là nguồn dữ liệu duy nhất
   useEffect(() => {
@@ -265,6 +451,152 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio, onOp
     });
   };
 
+
+  // 0. NẾU CÓ THAM SỐ CHIA SẺ TRÊN URL (?shareId=... HOẶC ?shared=...)
+  if (isLoadingShared) {
+    return (
+      <div className="min-h-screen bg-[#FBF9F5] flex flex-col items-center justify-center p-6 text-stone-900 pb-36">
+        <div className="w-16 h-16 rounded-3xl bg-red-50 border border-red-200/80 flex items-center justify-center text-red-700 mb-4 shadow-xs">
+          <Loader2 className="w-8 h-8 animate-spin" />
+        </div>
+        <h2 className="text-xl font-serif font-bold text-stone-900 tracking-tight">Đang tải bản phối được chia sẻ...</h2>
+        <p className="text-xs text-stone-500 mt-1">Xin vui lòng đợi trong giây lát</p>
+      </div>
+    );
+  }
+
+  if (sharedError) {
+    return (
+      <div className="min-h-screen bg-[#FBF9F5] flex flex-col items-center justify-center p-6 text-stone-900 pb-36">
+        <div className="max-w-md w-full bg-white rounded-3xl p-6 sm:p-8 border border-stone-200/80 shadow-xs text-center space-y-4">
+          <div className="w-14 h-14 rounded-2xl bg-red-50 text-red-700 flex items-center justify-center mx-auto">
+            <AlertCircle className="w-7 h-7" />
+          </div>
+          <h2 className="text-lg font-serif font-bold text-stone-900">Không thể tải bản phối chia sẻ</h2>
+          <p className="text-xs text-stone-600 leading-relaxed">{sharedError}</p>
+          <div className="pt-2 flex flex-col sm:flex-row gap-2 justify-center">
+            <button
+              type="button"
+              onClick={() => setSearchParams({})}
+              className="py-2.5 px-5 rounded-full bg-stone-900 hover:bg-stone-800 text-white text-xs font-semibold transition cursor-pointer"
+            >
+              Về Bộ sưu tập của tôi
+            </button>
+            <button
+              type="button"
+              onClick={onNavigateToStudio}
+              className="py-2.5 px-5 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-semibold transition cursor-pointer"
+            >
+              Phòng phối đồ
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (sharedOutfitData) {
+    const sharedValidation = validateOutfit({
+      costumeId: sharedOutfitData.garment.id,
+      contextId: sharedOutfitData.context?.id || 'C01',
+      gender: sharedOutfitData.gender,
+      innerId: sharedOutfitData.inner?.id || null,
+      bottomId: sharedOutfitData.bottom?.id || null,
+      shoesId: sharedOutfitData.shoes?.id || null,
+      headwearId: sharedOutfitData.headwear?.id || null,
+      jewelryIds: sharedOutfitData.jewelries.map((j) => j.id)
+    });
+
+    return (
+      <div className="min-h-screen bg-[#FBF9F5] text-stone-900 pb-36 pt-4">
+        {/* Banner bản phối được chia sẻ */}
+        <div className="max-w-5xl mx-auto px-3 sm:px-6 mb-4">
+          <div className="bg-gradient-to-r from-red-50 via-amber-50/50 to-red-50 border border-red-200/80 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-xs">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-red-700 text-white shadow-xs">
+                  Bản phối được chia sẻ
+                </span>
+                {sharedOutfitData.creatorName && (
+                  <span className="text-xs text-stone-600">
+                    từ <strong className="text-stone-900 font-semibold">{sharedOutfitData.creatorName}</strong>
+                  </span>
+                )}
+              </div>
+              <h2 className="text-base sm:text-lg font-serif font-bold text-stone-900">
+                {sharedOutfitData.title || `Bản phối ${sharedOutfitData.garment.name}`}
+              </h2>
+              {sharedOutfitData.notes && (
+                <p className="text-xs text-stone-600 italic line-clamp-1 sm:line-clamp-none">
+                  "{sharedOutfitData.notes}"
+                </p>
+              )}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => handleSaveSharedOutfit()}
+                disabled={isSharedSaved}
+                className={`py-2 px-3.5 rounded-full text-xs font-semibold transition active:scale-95 cursor-pointer flex items-center gap-1.5 shadow-xs ${
+                  isSharedSaved
+                    ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 cursor-default'
+                    : 'bg-stone-900 hover:bg-stone-800 text-white'
+                }`}
+              >
+                {isSharedSaved ? (
+                  <>
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Đã lưu vào bộ sưu tập</span>
+                  </>
+                ) : (
+                  <>
+                    <Bookmark className="w-3.5 h-3.5" />
+                    <span>Lưu vào bộ sưu tập</span>
+                  </>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={handleRemixSharedOutfit}
+                className="py-2 px-3.5 rounded-full bg-red-700 hover:bg-red-800 text-white text-xs font-semibold transition active:scale-95 cursor-pointer flex items-center gap-1.5 shadow-xs"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Phối lại trong Studio</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setSearchParams({})}
+                className="py-2 px-3.5 rounded-full bg-white hover:bg-stone-100 text-stone-700 text-xs font-semibold border border-stone-200 transition cursor-pointer flex items-center gap-1.5 shadow-xs"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                <span>Về Bộ sưu tập của tôi</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <OutfitResultView
+          selectedGender={sharedOutfitData.gender}
+          contextItem={sharedOutfitData.context}
+          garmentItem={sharedOutfitData.garment}
+          innerItem={sharedOutfitData.inner}
+          bottomItem={sharedOutfitData.bottom}
+          shoesItem={(sharedOutfitData.shoes as CasualItem) || null}
+          headwearItem={sharedOutfitData.headwear}
+          jewelryItems={sharedOutfitData.jewelries}
+          validationResults={sharedValidation}
+          onBackToStudio={() => setSearchParams({})}
+          backButtonText="Về Bộ sưu tập của tôi"
+          onSaveOutfit={handleSaveSharedOutfit}
+          isSaved={isSharedSaved}
+          saveNotice={sharedSaveNotice}
+          isFromCollection={false}
+          initialItemColors={sharedOutfitData.colors}
+        />
+      </div>
+    );
+  }
 
   // 1. CHƯA ĐĂNG NHẬP: HIỂN THỊ MÀN HÌNH YÊU CẦU ĐĂNG NHẬP (BẢO VỆ DỮ LIỆU CÁ NHÂN)
   if (!currentUser) {
