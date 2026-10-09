@@ -12,8 +12,16 @@ import {
   CheckCircle2,
   Info,
   X,
-  Scale
+  Scale,
+  Cloud,
+  Loader2,
+  LogIn
 } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import {
+  deleteCloudOutfit,
+  subscribeCloudOutfits
+} from '../services/firebaseStore';
 import { GARMENTS, CASUAL_ITEMS, ACCESSORIES, CONTEXTS, OUTFIT_COMBINATIONS } from '../data';
 import { OutfitCombination } from '../types';
 import { resolveItemByGender, getSafeImageUrl } from '../utils/helpers';
@@ -31,9 +39,10 @@ import { CompareResult, compareOutfits } from '../utils/compareEngine';
 
 interface CollectionProps {
   onNavigateToStudio: () => void;
+  onOpenAuthModal?: () => void;
 }
 
-export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio }) => {
+export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio, onOpenAuthModal }) => {
   const [savedList, setSavedList] = useState<SavedOutfit[]>([]);
   const [isCorrupted, setIsCorrupted] = useState<boolean>(false);
   const [corruptedError, setCorruptedError] = useState<string>('');
@@ -42,38 +51,74 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio }) =>
   const [showClearConfirm, setShowClearConfirm] = useState<boolean>(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
+  const { currentUser } = useAuth();
+  const [isLoadingCloud, setIsLoadingCloud] = useState<boolean>(Boolean(currentUser));
+
   const navigate = useNavigate();
   // Compare mode states
   const [isCompareMode, setIsCompareMode] = useState<boolean>(false);
   const [selectedForCompare, setSelectedForCompare] = useState<SavedOutfit[]>([]);
   const [showLookbookPicker, setShowLookbookPicker] = useState<boolean>(false);
 
-  // Tải danh sách bộ phối đã lưu
-  const loadOutfits = () => {
+  // Tải danh sách bộ phối: Firebase Cloud Firestore là nguồn dữ liệu duy nhất
+  useEffect(() => {
+    if (currentUser) {
+      setIsLoadingCloud(true);
+
+      // Lắng nghe dữ liệu thời gian thực (Realtime Subscription) từ Firestore
+      const unsubscribe = subscribeCloudOutfits(
+        currentUser.uid,
+        (cloudOutfits) => {
+          setSavedList(cloudOutfits);
+          setIsLoadingCloud(false);
+          setIsCorrupted(false);
+        },
+        (error) => {
+          console.error('Lỗi kết nối Firebase Firestore:', error);
+          setIsLoadingCloud(false);
+          setSavedList([]);
+          setActionError('Không thể kết nối máy chủ dữ liệu. Vui lòng kiểm tra kết nối mạng.');
+        }
+      );
+
+      return () => unsubscribe();
+    } else {
+      // Khi chưa đăng nhập: Không tải bất kỳ bộ phối nào từ máy khách
+      setIsLoadingCloud(false);
+      setSavedList([]);
+    }
+  }, [currentUser]);
+
+  // Cập nhật lại danh sách bộ phối lưu trên máy khách
+  const refreshLocalOutfits = () => {
+    if (!currentUser) {
+      setSavedList([]);
+      return;
+    }
     const result = getSavedOutfits();
     setIsCorrupted(result.isCorrupted);
     setCorruptedError(result.rawError || '');
-    if (!result.isCorrupted) {
-      setSavedList(result.outfits);
-    } else {
-      setSavedList([]);
-    }
+    setSavedList(result.isCorrupted ? [] : result.outfits);
   };
 
-  useEffect(() => {
-    loadOutfits();
-  }, []);
-
-  // Xóa một bộ phối đã chọn: kiểm tra kết quả và giữ dữ liệu nếu thất bại
-  const handleDelete = (id: string) => {
+  // Xóa một bộ phối: Xóa trực tiếp trên Firebase Cloud Firestore
+  const handleDelete = async (id: string) => {
     setActionError(null);
-    const result = deleteSavedOutfit(id);
-    if (!result.success) {
-      setActionError(result.error || 'Xóa bộ phối thất bại. Dữ liệu đã được giữ nguyên an toàn.');
-      return;
+    deleteSavedOutfit(id); // Dọn dẹp cả bản sao local nếu có
+
+    if (currentUser) {
+      try {
+        await deleteCloudOutfit(currentUser.uid, id);
+      } catch (err) {
+        console.warn('Lỗi khi xóa trên cloud:', err);
+        setActionError('Xóa bộ phối trên Đám mây thất bại. Vui lòng kiểm tra kết nối.');
+      }
+    } else {
+      // Nếu là khách, cập nhật lại state từ local
+      refreshLocalOutfits();
     }
+
     setConfirmDeleteId(null);
-    loadOutfits();
   };
 
   // Đặt lại dữ liệu hỏng khi người dùng xác nhận: kiểm tra kết quả và báo lỗi nếu thất bại
@@ -85,7 +130,7 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio }) =>
       return;
     }
     setShowClearConfirm(false);
-    loadOutfits();
+    refreshLocalOutfits();
   };
 
   // Format ngày giờ dễ đọc
@@ -221,7 +266,95 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio }) =>
   };
 
 
-  // 1. MÀN HÌNH XEM CHI TIẾT BỘ PHỐI ĐÃ LƯU
+  // 1. CHƯA ĐĂNG NHẬP: HIỂN THỊ MÀN HÌNH YÊU CẦU ĐĂNG NHẬP (BẢO VỆ DỮ LIỆU CÁ NHÂN)
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen bg-[#FBF9F5] text-stone-900 pb-36">
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 pt-10 sm:pt-16 pb-12">
+          {/* Header */}
+          <div className="text-center space-y-3 mb-8">
+            <div className="w-16 h-16 rounded-3xl bg-red-50 border border-red-200/80 text-red-700 flex items-center justify-center mx-auto shadow-xs">
+              <Bookmark className="w-8 h-8 stroke-[1.75]" />
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-serif font-bold text-stone-900 tracking-tight">
+              Bộ Sưu Tập Cá Nhân
+            </h1>
+            <p className="text-sm text-stone-600 max-w-md mx-auto leading-relaxed">
+              Vui lòng đăng nhập tài khoản để lưu trữ, quản lý và bảo vệ các bộ phối cổ phục độc đáo của bạn.
+            </p>
+          </div>
+
+          {/* Feature Highlights Card */}
+          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-stone-200/80 shadow-xs space-y-6">
+            <div className="space-y-4">
+              <div className="flex items-start gap-3.5 p-3.5 rounded-2xl bg-stone-50 border border-stone-100">
+                <div className="w-9 h-9 rounded-xl bg-red-100 text-red-700 flex items-center justify-center shrink-0">
+                  <Cloud className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-stone-900">Lưu trữ an toàn, dài lâu</h3>
+                  <p className="text-xs text-stone-500 mt-0.5 leading-relaxed">
+                    Dữ liệu bộ sưu tập được gắn liền với tài khoản của bạn, không lo thất lạc khi đổi thiết bị hay dọn dẹp trình duyệt.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3.5 p-3.5 rounded-2xl bg-stone-50 border border-stone-100">
+                <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                  <Sparkles className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-stone-900">Chia sẻ bộ phối công khai</h3>
+                  <p className="text-xs text-stone-500 mt-0.5 leading-relaxed">
+                    Tạo liên kết trực tuyến để bạn bè hoặc cộng đồng có thể chiêm ngưỡng tác phẩm phối đồ Việt phục của bạn bất cứ lúc nào.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3.5 p-3.5 rounded-2xl bg-stone-50 border border-stone-100">
+                <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                  <Scale className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-stone-900">So sánh đối chiếu trực quan</h3>
+                  <p className="text-xs text-stone-500 mt-0.5 leading-relaxed">
+                    Đối chiếu 2 bộ phối cạnh nhau để thẩm định quy chuẩn trang phục, gam màu và hoa văn trước khi đưa ra ngoài thực tế.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-2 flex flex-col sm:flex-row items-center gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  if (onOpenAuthModal) {
+                    onOpenAuthModal();
+                  } else {
+                    window.dispatchEvent(new CustomEvent('open-auth-modal'));
+                  }
+                }}
+                className="w-full sm:flex-1 py-3 px-6 rounded-full bg-red-700 hover:bg-red-800 text-white text-xs sm:text-sm font-semibold shadow-sm transition-all duration-200 active:scale-95 cursor-pointer flex items-center justify-center gap-2"
+              >
+                <LogIn className="w-4 h-4" />
+                <span>Đăng nhập hoặc Đăng ký</span>
+              </button>
+              <button
+                type="button"
+                onClick={onNavigateToStudio}
+                className="w-full sm:w-auto py-3 px-6 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs sm:text-sm font-semibold transition-colors duration-200 cursor-pointer flex items-center justify-center gap-2"
+              >
+                <SlidersHorizontal className="w-4 h-4" />
+                <span>Phòng phối đồ</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 2. MÀN HÌNH XEM CHI TIẾT BỘ PHỐI ĐÃ LƯU
   if (viewingOutfitId) {
     const viewingOutfit = savedList.find((o) => o.id === viewingOutfitId);
     if (viewingOutfit) {
@@ -337,12 +470,7 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio }) =>
               </p>
             </div>
 
-            <div className="flex flex-col gap-2 self-start sm:self-auto">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-stone-100 border border-stone-200/70 text-[11px] text-stone-500 font-sans">
-                <Info className="w-3.5 h-3.5 text-stone-400 shrink-0" />
-                <span>Lưu trên trình duyệt này, chưa đồng bộ tài khoản.</span>
-              </div>
-
+            <div className="flex items-center gap-2 self-start sm:self-auto">
               {!isCorrupted && (
                 <button
                   onClick={() => {
@@ -395,6 +523,7 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio }) =>
         </div>
 
         {/* CẢNH BÁO LỖI THAO TÁC XÓA HOẶC ĐẶT LẠI */}
+
         {actionError && (
           <div className="p-4 rounded-2xl bg-red-50 border border-red-200 text-red-950 flex items-center justify-between gap-3 animate-in fade-in duration-200">
             <div className="flex items-center gap-2.5 text-xs sm:text-sm">
@@ -467,8 +596,18 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio }) =>
           </div>
         )}
 
+        {/* LOADING STATE KHI ĐANG TẢI TỪ FIREBASE */}
+        {isLoadingCloud && (
+          <div className="py-20 flex flex-col items-center justify-center space-y-3 font-sans">
+            <Loader2 className="w-8 h-8 animate-spin text-red-700" />
+            <p className="text-xs font-medium text-stone-500">
+              Đang tải Bộ sưu tập...
+            </p>
+          </div>
+        )}
+
         {/* TRẠNG THÁI RỖNG */}
-        {!isCorrupted && savedList.length === 0 && (
+        {!isLoadingCloud && !isCorrupted && savedList.length === 0 && (
           <div className="py-16 sm:py-20 px-4 text-center bg-white rounded-3xl border border-dashed border-stone-200 max-w-xl mx-auto space-y-4 shadow-2xs">
             <div className="w-14 h-14 rounded-2xl bg-stone-100 flex items-center justify-center mx-auto text-stone-400">
               <Bookmark className="w-7 h-7 stroke-[1.5]" />
@@ -476,13 +615,10 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio }) =>
 
             <div className="space-y-1.5">
               <h3 className="text-lg font-bold text-stone-900 font-serif">
-                Bộ sưu tập đang trống
+                Bộ sưu tập của bạn đang trống
               </h3>
               <p className="text-xs text-stone-500 max-w-sm mx-auto leading-relaxed">
-                Bạn chưa lưu bộ phối nào. Hãy vào Phòng phối đồ để sáng tạo, kiểm định và lưu giữ những bản phối ưng ý nhất.
-              </p>
-              <p className="text-[11px] text-stone-400 font-mono mt-1">
-                Lưu trên trình duyệt này, chưa đồng bộ tài khoản.
+                Bạn chưa lưu bộ phối nào vào tài khoản này. Hãy vào Phòng phối đồ để sáng tạo, kiểm định và lưu giữ những bản phối ưng ý nhất.
               </p>
             </div>
 

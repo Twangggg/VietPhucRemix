@@ -39,6 +39,7 @@ import { Studio } from './pages/Studio';
 import { Collection } from './pages/Collection';
 import { LookbookTab } from './components/LookbookTab';
 import { CompareResultPage } from './pages/CompareResult';
+import { AuthModal } from './components/AuthModal';
 
 export type CategoryFilterKey =
   | 'all'
@@ -79,6 +80,13 @@ export default function App() {
   const [exploreFilter, setExploreFilter] = useState<CategoryFilterKey>('all');
   const [exploreSearch, setExploreSearch] = useState<string>('');
   const [selectedGender, setSelectedGender] = useState<Gender>('Female');
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
+
+  useEffect(() => {
+    const handleOpenAuth = () => setIsAuthModalOpen(true);
+    window.addEventListener('open-auth-modal', handleOpenAuth);
+    return () => window.removeEventListener('open-auth-modal', handleOpenAuth);
+  }, []);
 
   // Xác định activeTab trực tiếp từ URL pathname (Single Source of Truth)
   const getTabFromPath = (pathname: string): NavTab | 'compare' => {
@@ -315,6 +323,7 @@ export default function App() {
       <TopHeader
         onOpenStudio={() => handleTabChange('studio')}
         activeTabTitle={getTabTitle()}
+        onOpenAuthModal={() => setIsAuthModalOpen(true)}
       />
 
       {/* Vùng nội dung chính: pb-20 giúp cuộn trang gọn gàng */}
@@ -705,7 +714,10 @@ export default function App() {
 
         {/* 5. TAB BỘ SƯU TẬP CÁ NHÂN */}
         {activeTab === 'collection' && (
-          <Collection onNavigateToStudio={() => handleTabChange('studio')} />
+          <Collection
+            onNavigateToStudio={() => handleTabChange('studio')}
+            onOpenAuthModal={() => setIsAuthModalOpen(true)}
+          />
         )}
 
         {/* 6. TAB KẾT QUẢ SO SÁNH */}
@@ -743,7 +755,13 @@ export default function App() {
         />
       )}
 
-      {/* 6. THANH ĐIỀU HƯỚNG DƯỚI CÙNG (MOBILE-FIRST) */}
+      {/* 6. MODAL XÁC THỰC FIREBASE */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+      />
+
+      {/* 7. THANH ĐIỀU HƯỚNG DƯỚI CÙNG (MOBILE-FIRST) */}
       <BottomNavbar
         activeTab={activeTab as NavTab}
         onSelectTab={handleTabChange}
