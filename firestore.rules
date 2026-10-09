@@ -1,0 +1,30 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 1. Dữ liệu cá nhân của người dùng (Bộ sưu tập phối đồ & Lookbook)
+    // Chỉ chủ tài khoản (request.auth.uid == userId) mới có quyền đọc/ghi dữ liệu của mình
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+
+      match /saved_outfits/{outfitId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+
+      match /lookbooks/{lookbookId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+
+    // 2. Bộ phối được chia sẻ công khai (Public Shared Outfits)
+    // - Cho phép bất kỳ ai đọc bản phối (để xem được khi nhấp vào link chia sẻ)
+    // - Cho phép tạo mới bản phối chia sẻ
+    // - Chỉ người tạo mới có quyền cập nhật hoặc xóa (nếu có đăng nhập)
+    match /shared_outfits/{shareId} {
+      allow read: if true;
+      allow create: if true;
+      allow update, delete: if request.auth != null && resource.data.creatorId == request.auth.uid;
+    }
+  }
+}
