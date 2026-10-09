@@ -388,22 +388,22 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
         {/* Binder holes effect (Trang vở đục lỗ) */}
         <div className="absolute left-0.5 sm:left-4 top-0 bottom-0 w-3.5 sm:w-8 border-r sm:border-r-2 border-red-800/20 flex flex-col justify-around py-4 sm:py-8 z-0">
           {[...Array(6)].map((_, i) => (
-            <div key={i} className="w-2 h-2 sm:w-4 sm:h-4 rounded-full bg-stone-200 shadow-inner border border-stone-300/50 -ml-0.5 sm:ml-0" />
+            <div key={i} className="w-2.5 h-2.5 sm:w-4 sm:h-4 rounded-full bg-stone-200 shadow-inner border border-stone-300/50 -ml-0.5 sm:ml-0" />
           ))}
         </div>
 
         {/* Khung Moodboard chính */}
-        <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between sm:justify-center relative z-10 pl-4 sm:pl-8 pt-2 pb-6 gap-y-6 sm:gap-y-4 sm:gap-x-6 w-full">
+        <div className="flex flex-row flex-wrap items-start justify-between sm:justify-center relative z-10 pl-4 sm:pl-8 pt-2 pb-4 gap-x-1.5 sm:gap-x-6 gap-y-4 w-full">
 
           {/* VỊ TRÍ TRUNG TÂM: CỔ PHỤC DI SẢN (KEY PIECE) */}
-          <div className={`flex flex-col items-center shrink-0 w-full max-w-[280px] sm:max-w-[260px] ${companionItems.length >= 4 ? 'sm:w-[48%] md:w-[45%]' : 'sm:w-[55%] md:w-[45%]'}`}>
+          <div className={`flex flex-col items-center shrink-0 w-[44%] ${companionItems.length >= 4 ? 'sm:w-[48%] md:w-[45%]' : 'sm:w-[55%] md:w-[45%]'} max-w-[270px]`}>
             {/* Scrapbook Style cho món đồ chính (Dán trực tiếp lên giấy) */}
             <div className="relative w-full group -rotate-1">
 
               {/* Ảnh */}
               <div
                 onClick={() => setDetailGarment(garmentItem)}
-                className="cursor-pointer w-full max-w-[240px] mx-auto aspect-[3/4] relative flex items-center justify-center"
+                className="cursor-pointer w-full aspect-[3/4] relative flex items-center justify-center"
                 title="Xem chi tiết Cổ phục di sản"
               >
                 <TintedImage
@@ -412,24 +412,24 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
                   intensity={garmentColorSetting.intensity}
                   alt={resolvedGarment.name}
                   fallbackText={resolvedGarment.name}
-                  className="bg-transparent w-full h-full flex items-center justify-center p-1 sm:p-1"
+                  className="bg-transparent w-full h-full flex items-center justify-center p-0.5 sm:p-1"
                   imgClassName="mix-blend-multiply object-contain object-center drop-shadow-xl group-hover:scale-105 transition-transform duration-500"
                 />
               </div>
 
               {/* Thông tin Text dạng ghi chú tay */}
-              <div className="text-center space-y-1 sm:space-y-1.5 mt-2 px-1 relative z-10 flex flex-col items-center">
-                <span className="text-[9px] sm:text-[10px] uppercase tracking-[0.1em] text-red-800 font-bold block bg-stone-100/60 backdrop-blur-sm py-0.5 rounded-sm w-max mx-auto px-2 border border-red-800/10 shadow-2xs">
+              <div className="text-center space-y-0.5 sm:space-y-1.5 mt-1 sm:mt-2 px-0.5 sm:px-1 relative z-10 flex flex-col items-center">
+                <span className="text-[8px] sm:text-[9px] uppercase tracking-[0.1em] text-red-800 font-bold block bg-stone-100/60 backdrop-blur-sm py-0.5 rounded-sm w-max mx-auto px-1.5 sm:px-2 border border-red-800/10 shadow-2xs">
                   Key Piece
                 </span>
                 <h2
                   onClick={() => setDetailGarment(garmentItem)}
-                  className="text-lg sm:text-2xl font-bold text-stone-800 tracking-tight hover:text-red-900 transition-colors cursor-pointer leading-tight line-clamp-2"
+                  className="text-base sm:text-2xl font-bold text-stone-800 tracking-tight hover:text-red-900 transition-colors cursor-pointer leading-tight line-clamp-2"
                 >
                   {resolvedGarment.name}
                 </h2>
 
-                <div className="pt-1 flex items-center justify-center">
+                <div className="pt-0.5 sm:pt-1 flex items-center justify-center">
                   <button
                     type="button"
                     onClick={(e) => {
@@ -441,13 +441,13 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
                         imageUrl: garmentImageUrl
                       });
                     }}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-stone-900/90 backdrop-blur hover:bg-stone-800 text-white text-xs sm:text-[11px] font-semibold transition-all shadow-md cursor-pointer active:scale-95"
+                    className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-md bg-stone-900/90 backdrop-blur hover:bg-stone-800 text-white text-[9px] sm:text-[11px] font-semibold transition-all shadow-md cursor-pointer active:scale-95"
                   >
-                    <Palette className="w-3.5 h-3.5" />
+                    <Palette className="w-3 h-3 sm:w-3 sm:h-3" />
                     <span>Sắc màu</span>
                     {garmentColorSetting.hex && (
                       <span
-                        className="w-2.5 h-2.5 rounded-full border border-white/50 shadow-inner inline-block ml-0.5"
+                        className="w-2.5 h-2.5 sm:w-2.5 sm:h-2.5 rounded-full border border-white/50 shadow-inner inline-block ml-0.5"
                         style={{ backgroundColor: garmentColorSetting.hex }}
                       />
                     )}
@@ -455,7 +455,7 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
                 </div>
 
                 {resolvedGarment.origin && (
-                  <p className="text-xs sm:text-[10px] text-stone-600 font-medium leading-relaxed pt-1 px-2 italic line-clamp-3 sm:line-clamp-2">
+                  <p className="text-[8px] sm:text-[10px] text-stone-600 font-medium leading-tight pt-0.5 sm:pt-1 px-0.5 sm:px-1 italic line-clamp-2">
                     "{resolvedGarment.origin}"
                   </p>
                 )}
@@ -465,23 +465,23 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
 
           {/* DÀN TRANG CÁC MÓN PHỐI KÈM (MIX & MATCH CLUSTER) */}
           {companionItems.length > 0 && (
-            <div className={`w-full ${companionItems.length >= 4 ? 'sm:w-[48%] md:w-[50%]' : 'sm:w-[40%] md:w-[45%]'} max-w-md sm:max-w-[320px] pt-3 sm:pt-2 border-t sm:border-t-0 border-stone-300/60 sm:border-none`}>
-              <div className="w-full text-center mb-2 sm:mb-1">
-                <span className="text-[9px] sm:text-[10px] uppercase tracking-[0.15em] text-red-900/80 font-bold bg-stone-100/60 backdrop-blur-sm px-2.5 py-0.5 rounded border border-red-800/10 shadow-2xs">
+            <div className={`shrink-0 w-[54%] ${companionItems.length >= 4 ? 'sm:w-[48%] md:w-[50%]' : 'sm:w-[40%] md:w-[45%]'} max-w-[330px] pt-1 sm:pt-2`}>
+              <div className="w-full text-center mb-1">
+                <span className="text-[8px] sm:text-[9px] uppercase tracking-[0.15em] text-red-900/80 font-bold bg-stone-100/60 backdrop-blur-sm px-2 py-0.5 rounded border border-red-800/10 shadow-2xs">
                   Mix & Match
                 </span>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 sm:gap-x-2 sm:gap-y-4">
+              <div className="grid grid-cols-2 sm:flex sm:flex-row sm:flex-wrap sm:items-start sm:justify-center gap-2 sm:gap-x-2 sm:gap-y-4">
                 {companionItems.map((c) => (
                   <div
                     key={c.id}
-                    className={`relative flex flex-col items-center group transition-all duration-300 ${c.rotation} hover:z-20 w-full sm:max-w-[130px] mx-auto`}
+                    className={`relative flex flex-col items-center group transition-all duration-300 ${c.rotation} hover:z-20 w-full sm:w-[45%] sm:min-w-[65px] sm:max-w-[110px]`}
                   >
                     {/* Image Area */}
                     <div
                       onClick={c.onClick}
-                      className="w-full aspect-[3/4] flex items-center justify-center cursor-pointer relative max-w-[130px]"
+                      className="w-full aspect-[3/4] flex items-center justify-center cursor-pointer relative"
                     >
                       <TintedImage
                         src={c.imageUrl}
@@ -489,19 +489,19 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
                         intensity={c.colorSetting.intensity}
                         alt={c.name}
                         fallbackText={c.name}
-                        className="bg-transparent w-full h-full flex items-center justify-center p-1"
+                        className="bg-transparent w-full h-full flex items-center justify-center p-0.5 sm:p-1"
                         imgClassName="mix-blend-multiply object-contain object-center drop-shadow-md group-hover:scale-105 transition-transform duration-300"
                       />
                     </div>
 
                     {/* Info Area */}
-                    <div className="flex flex-col items-center justify-center gap-0.5 mt-1 text-center w-full px-1">
-                      <span className="text-[9px] sm:text-[8px] uppercase tracking-wider text-red-800 font-bold bg-stone-100/70 backdrop-blur-sm px-1.5 py-0.5 rounded shadow-2xs max-w-[95%] truncate">
+                    <div className="flex flex-col items-center justify-center gap-0.5 mt-0.5 sm:mt-1 text-center w-full px-0.5">
+                      <span className="text-[7px] sm:text-[8px] uppercase tracking-wider text-red-800 font-bold bg-stone-100/70 backdrop-blur-sm px-1 py-0.5 rounded shadow-2xs max-w-[95%] truncate">
                         {c.categoryName}
                       </span>
                       <span
                         onClick={c.onClick}
-                        className="text-xs sm:text-[11px] font-bold text-stone-800 leading-tight group-hover:text-red-700 transition-colors cursor-pointer line-clamp-2 w-full pt-0.5"
+                        className="text-[9px] sm:text-[10px] font-bold text-stone-800 leading-tight group-hover:text-red-700 transition-colors cursor-pointer line-clamp-2 w-full pt-0.5"
                         title={c.name}
                       >
                         {c.name}
@@ -518,16 +518,16 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
                             imageUrl: c.imageUrl
                           });
                         }}
-                        className="mt-1 p-1 sm:p-1 rounded-full bg-stone-100/80 backdrop-blur hover:bg-stone-200 text-stone-600 hover:text-red-700 transition-colors cursor-pointer shadow-xs border border-stone-300/60"
+                        className="mt-0.5 p-1 rounded-full bg-stone-100/80 backdrop-blur hover:bg-stone-200 text-stone-600 hover:text-red-700 transition-colors cursor-pointer shadow-xs border border-stone-300/60"
                         title={`Đổi màu ${c.name}`}
                       >
                         {c.colorSetting.hex ? (
                           <span
-                            className="w-3 h-3 sm:w-2.5 sm:h-2.5 rounded-full border border-stone-300 block shadow-inner"
+                            className="w-2.5 h-2.5 sm:w-2.5 sm:h-2.5 rounded-full border border-stone-300 block shadow-inner"
                             style={{ backgroundColor: c.colorSetting.hex }}
                           />
                         ) : (
-                          <Palette className="w-3 h-3 sm:w-2.5 sm:h-2.5" />
+                          <Palette className="w-2.5 h-2.5 sm:w-2.5 sm:h-2.5" />
                         )}
                       </button>
                     </div>
