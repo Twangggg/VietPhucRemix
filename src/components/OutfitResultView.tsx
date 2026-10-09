@@ -587,44 +587,45 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
             )}
 
             <div className="flex flex-col gap-1.5">
+              {/* 1. Nút Xuất thẻ ảnh & Chia sẻ */}
               <button
                 type="button"
                 onClick={() => {
                   setIsActionsExpanded(false);
                   setShowSaveModal(true);
                 }}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-red-700 hover:bg-red-800 text-white font-semibold text-xs flex items-center justify-between shadow-xs transition-all active:scale-95 cursor-pointer"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-red-700 hover:bg-red-800 text-white font-medium text-xs flex items-center gap-2.5 shadow-xs transition-all active:scale-95 cursor-pointer text-left"
               >
-                <div className="flex items-center gap-2">
-                  <Share2 className="w-4 h-4" />
-                  <span>Xuất thẻ ảnh & Chia sẻ</span>
-                </div>
-                <Sparkles className="w-3.5 h-3.5 opacity-80" />
+                <Share2 className="w-4 h-4 shrink-0 text-white" />
+                <span>Xuất thẻ ảnh & Chia sẻ</span>
               </button>
 
+              {/* 2. Nút Lưu vào bộ sưu tập */}
               {!isFromCollection && onSaveOutfit && (
                 <button
                   type="button"
                   onClick={() => onSaveOutfit(itemColors, customOutfitName)}
-                  className={`w-full px-3.5 py-2 rounded-xl font-semibold text-xs flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-xs ${
+                  className={`w-full px-3.5 py-2.5 rounded-xl font-medium text-xs flex items-center gap-2.5 transition-all active:scale-95 cursor-pointer shadow-xs text-left ${
                     isSaved
-                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 hover:bg-emerald-200/70'
+                      ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100/70'
                       : 'bg-stone-900 hover:bg-stone-800 text-white'
                   }`}
                 >
                   {isSaved ? (
                     <>
-                      <BookmarkCheck className="w-3.5 h-3.5 text-emerald-700" />
+                      <BookmarkCheck className="w-4 h-4 shrink-0 text-emerald-600" />
                       <span>Đã lưu vào bộ sưu tập</span>
                     </>
                   ) : (
                     <>
-                      <Bookmark className="w-3.5 h-3.5 text-stone-300" />
+                      <Bookmark className="w-4 h-4 shrink-0 text-stone-300" />
                       <span>Lưu vào bộ sưu tập</span>
                     </>
                   )}
                 </button>
               )}
+
+              {/* 3. Nút Đổi sắc màu áo */}
               <button
                 type="button"
                 onClick={() => {
@@ -636,33 +637,35 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
                     imageUrl: garmentImageUrl
                   });
                 }}
-                className="w-full px-3.5 py-2 rounded-xl border border-stone-200 hover:border-stone-300 bg-stone-50 hover:bg-stone-100 text-stone-800 font-medium text-xs flex items-center gap-2 transition-all cursor-pointer active:scale-95"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 hover:border-stone-300 bg-stone-50 hover:bg-stone-100 text-stone-800 font-medium text-xs flex items-center gap-2.5 transition-all cursor-pointer active:scale-95 text-left"
               >
-                <Palette className="w-3.5 h-3.5 text-red-700" />
+                <Palette className="w-4 h-4 shrink-0 text-stone-600" />
                 <span>Đổi sắc màu áo</span>
               </button>
 
+              {/* 4. Nút Câu chuyện di sản */}
               <button
                 type="button"
                 onClick={() => {
                   setIsActionsExpanded(false);
                   setShowCulturalModal(true);
                 }}
-                className="w-full px-3.5 py-2 rounded-xl border border-stone-200 hover:border-stone-300 bg-stone-50 hover:bg-stone-100 text-stone-800 font-medium text-xs flex items-center gap-2 transition-all cursor-pointer active:scale-95"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 hover:border-stone-300 bg-stone-50 hover:bg-stone-100 text-stone-800 font-medium text-xs flex items-center gap-2.5 transition-all cursor-pointer active:scale-95 text-left"
               >
-                <BookOpen className="w-3.5 h-3.5 text-stone-600" />
+                <BookOpen className="w-4 h-4 shrink-0 text-stone-600" />
                 <span>Câu chuyện di sản</span>
               </button>
 
+              {/* 5. Nút Quay lại phối đồ */}
               <button
                 type="button"
                 onClick={() => {
                   setIsActionsExpanded(false);
                   onBackToStudio();
                 }}
-                className="w-full px-3.5 py-2 rounded-xl border border-stone-200 hover:border-stone-300 bg-stone-50 hover:bg-stone-100 text-stone-600 hover:text-stone-900 font-medium text-xs flex items-center gap-2 transition-all cursor-pointer active:scale-95"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 hover:border-stone-300 bg-stone-50 hover:bg-stone-100 text-stone-700 hover:text-stone-900 font-medium text-xs flex items-center gap-2.5 transition-all cursor-pointer active:scale-95 text-left"
               >
-                <ArrowLeft className="w-3.5 h-3.5 text-stone-500" />
+                <ArrowLeft className="w-4 h-4 shrink-0 text-stone-500" />
                 <span>Quay lại phối đồ</span>
               </button>
             </div>
