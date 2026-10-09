@@ -21,7 +21,8 @@ import { useAuth } from '../contexts/AuthContext';
 import {
   getCloudOutfits,
   deleteCloudOutfit,
-  syncLocalDataToCloud
+  syncLocalDataToCloud,
+  subscribeCloudOutfits
 } from '../services/firebaseStore';
 import { GARMENTS, CASUAL_ITEMS, ACCESSORIES, CONTEXTS, OUTFIT_COMBINATIONS } from '../data';
 import { OutfitCombination } from '../types';
@@ -40,9 +41,10 @@ import { CompareResult, compareOutfits } from '../utils/compareEngine';
 
 interface CollectionProps {
   onNavigateToStudio: () => void;
+  onOpenAuthModal?: () => void;
 }
 
-export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio }) => {
+export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio, onOpenAuthModal }) => {
   const [savedList, setSavedList] = useState<SavedOutfit[]>([]);
   const [isCorrupted, setIsCorrupted] = useState<boolean>(false);
   const [corruptedError, setCorruptedError] = useState<string>('');
@@ -52,6 +54,7 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio }) =>
   const [actionError, setActionError] = useState<string | null>(null);
 
   const { currentUser } = useAuth();
+  const [isLoadingCloud, setIsLoadingCloud] = useState<boolean>(Boolean(currentUser));
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [syncSuccessMsg, setSyncSuccessMsg] = useState<string | null>(null);
 
@@ -61,51 +64,63 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio }) =>
   const [selectedForCompare, setSelectedForCompare] = useState<SavedOutfit[]>([]);
   const [showLookbookPicker, setShowLookbookPicker] = useState<boolean>(false);
 
-  // Tải danh sách bộ phối đã lưu (kết hợp LocalStorage và Cloud Firestore)
-  const loadOutfits = async () => {
+  // Tải danh sách bộ phối: Firebase Cloud Firestore là nguồn dữ liệu chính
+  useEffect(() => {
+    if (currentUser) {
+      setIsLoadingCloud(true);
+      // Tự động sao lưu dữ liệu cục bộ lên đám mây ngay khi đăng nhập
+      syncLocalDataToCloud(currentUser.uid).catch((err) => console.warn(err));
+
+      // Lắng nghe dữ liệu thời gian thực (Realtime Subscription) từ Firestore
+      const unsubscribe = subscribeCloudOutfits(
+        currentUser.uid,
+        (cloudOutfits) => {
+          setSavedList(cloudOutfits);
+          setIsLoadingCloud(false);
+          setIsCorrupted(false);
+        },
+        (error) => {
+          console.error('Lỗi kết nối Firebase Firestore:', error);
+          setIsLoadingCloud(false);
+          const result = getSavedOutfits();
+          setSavedList(result.outfits);
+        }
+      );
+
+      return () => unsubscribe();
+    } else {
+      // Chế độ Khách (Guest Mode)
+      setIsLoadingCloud(false);
+      refreshLocalOutfits();
+    }
+  }, [currentUser]);
+
+  // Cập nhật lại danh sách bộ phối lưu trên máy khách
+  const refreshLocalOutfits = () => {
     const result = getSavedOutfits();
     setIsCorrupted(result.isCorrupted);
     setCorruptedError(result.rawError || '');
-
-    let combined = !result.isCorrupted ? result.outfits : [];
-
-    if (currentUser) {
-      try {
-        const cloudOutfits = await getCloudOutfits(currentUser.uid);
-        if (cloudOutfits.length > 0) {
-          const ids = new Set(combined.map((o) => o.id));
-          const newFromCloud = cloudOutfits.filter((o) => !ids.has(o.id));
-          combined = [...combined, ...newFromCloud];
-        }
-      } catch (e) {
-        console.warn('Lỗi tải bộ phối từ đám mây:', e);
-      }
-    }
-
-    setSavedList(combined);
+    setSavedList(result.isCorrupted ? [] : result.outfits);
   };
 
-  useEffect(() => {
-    loadOutfits();
-  }, [currentUser]);
-
-  // Xóa một bộ phối đã chọn: xóa cả LocalStorage lẫn Cloud Firestore nếu đã đăng nhập
+  // Xóa một bộ phối: Xóa trực tiếp trên Firebase Cloud Firestore
   const handleDelete = async (id: string) => {
     setActionError(null);
-    const result = deleteSavedOutfit(id);
-    if (!result.success) {
-      setActionError(result.error || 'Xóa bộ phối thất bại. Dữ liệu đã được giữ nguyên an toàn.');
-      return;
-    }
+    deleteSavedOutfit(id); // Dọn dẹp cả bản sao local nếu có
+
     if (currentUser) {
       try {
         await deleteCloudOutfit(currentUser.uid, id);
       } catch (err) {
         console.warn('Lỗi khi xóa trên cloud:', err);
+        setActionError('Xóa bộ phối trên Đám mây thất bại. Vui lòng kiểm tra kết nối.');
       }
+    } else {
+      // Nếu là khách, cập nhật lại state từ local
+      refreshLocalOutfits();
     }
+
     setConfirmDeleteId(null);
-    await loadOutfits();
   };
 
   // Đồng bộ thủ công dữ liệu Local lên Cloud
@@ -116,7 +131,6 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio }) =>
     try {
       const res = await syncLocalDataToCloud(currentUser.uid);
       setSyncSuccessMsg(`Đã đồng bộ ${res.syncedOutfitsCount} bộ phối lên Đám mây thành công!`);
-      await loadOutfits();
       setTimeout(() => setSyncSuccessMsg(null), 3500);
     } catch {
       setActionError('Đồng bộ lên đám mây thất bại. Vui lòng kiểm tra kết nối.');
@@ -134,7 +148,7 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio }) =>
       return;
     }
     setShowClearConfirm(false);
-    loadOutfits();
+    refreshLocalOutfits();
   };
 
   // Format ngày giờ dễ đọc
@@ -557,8 +571,44 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio }) =>
           </div>
         )}
 
+        {/* BANNER MỜI ĐĂNG NHẬP LƯU TRỮ TRÊN FIREBASE CLOUD */}
+        {!currentUser && (
+          <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-red-50 via-stone-50 to-stone-100 border border-red-200/70 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-red-700 text-white flex items-center justify-center shrink-0 shadow-xs">
+                <Cloud className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm sm:text-base font-bold text-stone-900 font-serif">
+                  Lưu trữ Bộ sưu tập vĩnh viễn trên Đám Mây (Firebase)
+                </h3>
+                <p className="text-xs text-stone-600 mt-0.5 leading-relaxed">
+                  Đăng nhập tài khoản để đồng bộ và truy cập các bộ phối của bạn trên mọi thiết bị.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={onOpenAuthModal}
+              className="self-start sm:self-auto px-4 py-2 rounded-xl bg-red-700 hover:bg-red-800 text-white text-xs font-semibold shadow-xs transition-all cursor-pointer shrink-0 active:scale-95"
+            >
+              Đăng nhập ngay
+            </button>
+          </div>
+        )}
+
+        {/* LOADING STATE KHI ĐANG TẢI TỪ FIREBASE */}
+        {isLoadingCloud && (
+          <div className="py-20 flex flex-col items-center justify-center space-y-3 font-sans">
+            <Loader2 className="w-8 h-8 animate-spin text-red-700" />
+            <p className="text-xs font-medium text-stone-500">
+              Đang tải Bộ sưu tập từ Firebase Cloud...
+            </p>
+          </div>
+        )}
+
         {/* TRẠNG THÁI RỖNG */}
-        {!isCorrupted && savedList.length === 0 && (
+        {!isLoadingCloud && !isCorrupted && savedList.length === 0 && (
           <div className="py-16 sm:py-20 px-4 text-center bg-white rounded-3xl border border-dashed border-stone-200 max-w-xl mx-auto space-y-4 shadow-2xs">
             <div className="w-14 h-14 rounded-2xl bg-stone-100 flex items-center justify-center mx-auto text-stone-400">
               <Bookmark className="w-7 h-7 stroke-[1.5]" />
@@ -571,8 +621,10 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio }) =>
               <p className="text-xs text-stone-500 max-w-sm mx-auto leading-relaxed">
                 Bạn chưa lưu bộ phối nào. Hãy vào Phòng phối đồ để sáng tạo, kiểm định và lưu giữ những bản phối ưng ý nhất.
               </p>
-              <p className="text-[11px] text-stone-400 font-mono mt-1">
-                Lưu trên trình duyệt này, chưa đồng bộ tài khoản.
+              <p className="text-[11px] text-stone-400 font-sans mt-1">
+                {currentUser
+                  ? 'Được đồng bộ an toàn trên Firebase Cloud Firestore.'
+                  : 'Lưu trên thiết bị này • Đăng nhập để lưu vĩnh viễn trên Đám Mây.'}
               </p>
             </div>
 

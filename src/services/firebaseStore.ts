@@ -7,7 +7,9 @@ import {
   deleteDoc,
   query,
   orderBy,
-  serverTimestamp
+  serverTimestamp,
+  onSnapshot,
+  type Unsubscribe
 } from 'firebase/firestore';
 import { db, isFirebaseConfigured } from '../firebase/config';
 import { type SavedOutfit, getSavedOutfits } from '../utils/storage';
@@ -83,6 +85,33 @@ export async function deleteCloudOutfit(userId: string, outfitId: string): Promi
   }
 }
 
+export function subscribeCloudOutfits(
+  userId: string,
+  onUpdate: (outfits: SavedOutfit[]) => void,
+  onError?: (err: Error) => void
+): Unsubscribe {
+  if (!db || !isFirebaseConfigured) {
+    onUpdate([]);
+    return () => {};
+  }
+  const colRef = collection(db, 'users', userId, 'saved_outfits');
+  const q = query(colRef, orderBy('createdAt', 'desc'));
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const results: SavedOutfit[] = [];
+      snapshot.forEach((d) => {
+        results.push(d.data() as SavedOutfit);
+      });
+      onUpdate(results);
+    },
+    (error) => {
+      console.error('Lỗi lắng nghe Firestore Outfits realtime:', error);
+      onError?.(error);
+    }
+  );
+}
+
 /**
  * 2. CLOUD LOOKBOOKS (Lookbook cá nhân)
  */
@@ -132,6 +161,33 @@ export async function deleteCloudLookbook(userId: string, lookbookId: string): P
     console.error('Lỗi khi xóa Lookbook trên Cloud Firestore:', err);
     return false;
   }
+}
+
+export function subscribeCloudLookbooks(
+  userId: string,
+  onUpdate: (lookbooks: SavedLookbook[]) => void,
+  onError?: (err: Error) => void
+): Unsubscribe {
+  if (!db || !isFirebaseConfigured) {
+    onUpdate([]);
+    return () => {};
+  }
+  const colRef = collection(db, 'users', userId, 'lookbooks');
+  const q = query(colRef, orderBy('createdAt', 'desc'));
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const results: SavedLookbook[] = [];
+      snapshot.forEach((d) => {
+        results.push(d.data() as SavedLookbook);
+      });
+      onUpdate(results);
+    },
+    (error) => {
+      console.error('Lỗi lắng nghe Firestore Lookbooks realtime:', error);
+      onError?.(error);
+    }
+  );
 }
 
 /**

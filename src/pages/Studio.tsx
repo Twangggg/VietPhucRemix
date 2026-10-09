@@ -537,7 +537,9 @@ export const Studio: React.FC = () => {
       setIsCurrentOutfitSaved(true);
       setSaveNotice({
         type: 'success',
-        message: res.isUpdated ? 'Đã cập nhật bộ phối trong bộ sưu tập.' : 'Đã thêm vào bộ sưu tập.'
+        message: currentUser
+          ? (res.isUpdated ? 'Đã cập nhật bộ phối trên Firebase Cloud!' : 'Đã lưu bộ phối vào Firebase Cloud!')
+          : (res.isUpdated ? 'Đã cập nhật bộ phối trong bộ sưu tập.' : 'Đã thêm vào bộ sưu tập thiết bị.')
       });
     } else if (res.isDuplicate) {
       setIsCurrentOutfitSaved(true);

@@ -708,7 +708,10 @@ export default function App() {
 
         {/* 5. TAB BỘ SƯU TẬP CÁ NHÂN */}
         {activeTab === 'collection' && (
-          <Collection onNavigateToStudio={() => handleTabChange('studio')} />
+          <Collection
+            onNavigateToStudio={() => handleTabChange('studio')}
+            onOpenAuthModal={() => setIsAuthModalOpen(true)}
+          />
         )}
 
         {/* 6. TAB KẾT QUẢ SO SÁNH */}
