@@ -84,7 +84,7 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio, onOp
           console.error('Lỗi kết nối Firebase Firestore:', error);
           setIsLoadingCloud(false);
           setSavedList([]);
-          setActionError('Không thể kết nối Firebase Cloud. Vui lòng kiểm tra kết nối mạng.');
+          setActionError('Không thể kết nối máy chủ dữ liệu. Vui lòng kiểm tra kết nối mạng.');
         }
       );
 
@@ -303,7 +303,7 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio, onOp
               Bộ Sưu Tập Cá Nhân
             </h1>
             <p className="text-sm text-stone-600 max-w-md mx-auto leading-relaxed">
-              Vui lòng đăng nhập tài khoản để lưu trữ, quản lý và bảo vệ các bộ phối cổ phục độc đáo của bạn trên Đám Mây (Firebase).
+              Vui lòng đăng nhập tài khoản để lưu trữ, quản lý và bảo vệ các bộ phối cổ phục độc đáo của bạn.
             </p>
           </div>
 
@@ -315,9 +315,9 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio, onOp
                   <Cloud className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-stone-900">Lưu trữ Đám mây an toàn</h3>
+                  <h3 className="text-sm font-bold text-stone-900">Lưu trữ an toàn, dài lâu</h3>
                   <p className="text-xs text-stone-500 mt-0.5 leading-relaxed">
-                    Dữ liệu bộ sưu tập được gắn riêng với tài khoản Firebase của bạn, không bị mất khi xóa bộ nhớ trình duyệt hoặc chuyển đổi thiết bị.
+                    Dữ liệu bộ sưu tập được gắn liền với tài khoản của bạn, không lo thất lạc khi đổi thiết bị hay dọn dẹp trình duyệt.
                   </p>
                 </div>
               </div>
@@ -669,7 +669,7 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio, onOp
           <div className="py-20 flex flex-col items-center justify-center space-y-3 font-sans">
             <Loader2 className="w-8 h-8 animate-spin text-red-700" />
             <p className="text-xs font-medium text-stone-500">
-              Đang tải Bộ sưu tập từ Firebase Cloud...
+              Đang tải Bộ sưu tập...
             </p>
           </div>
         )}
@@ -690,7 +690,7 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio, onOp
               </p>
               <p className="text-[11px] text-emerald-700 font-sans mt-1 flex items-center justify-center gap-1.5">
                 <Cloud className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Đồng bộ an toàn trên Firebase Cloud Firestore</span>
+                <span>Đồng bộ an toàn trên tài khoản cá nhân</span>
               </p>
             </div>
 
