@@ -35,20 +35,6 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenAuthModal }) => {
     }
   };
 
-  const getInitials = (name?: string | null, email?: string | null): string => {
-    if (name) {
-      const parts = name.trim().split(' ');
-      if (parts.length >= 2) {
-        return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
-      }
-      return name.slice(0, 2).toUpperCase();
-    }
-    if (email) {
-      return email.slice(0, 2).toUpperCase();
-    }
-    return 'VP';
-  };
-
   return (
     <header className="sticky top-0 left-0 w-full z-50 bg-white/95 backdrop-blur-md border-b border-stone-200/90 shadow-2xs transition-all font-sans">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-12 sm:h-14 flex items-center justify-between">
@@ -78,23 +64,12 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenAuthModal }) => {
               <button
                 type="button"
                 onClick={() => setDropdownOpen(!dropdownOpen)}
-                className="flex items-center gap-2 py-1 px-2 rounded-xl border border-stone-200/80 hover:bg-stone-50 transition-all cursor-pointer"
+                className="flex items-center gap-1.5 py-1 px-3 rounded-xl border border-stone-200/80 hover:bg-stone-50 bg-white transition-all cursor-pointer shadow-2xs"
               >
-                {currentUser.photoURL ? (
-                  <img
-                    src={currentUser.photoURL}
-                    alt={currentUser.displayName || 'Avatar'}
-                    className="w-6 h-6 sm:w-7 sm:h-7 rounded-full object-cover border border-stone-200"
-                  />
-                ) : (
-                  <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-red-100 text-red-800 font-bold text-[10px] flex items-center justify-center border border-red-200">
-                    {getInitials(currentUser.displayName, currentUser.email)}
-                  </div>
-                )}
-                <span className="text-xs font-semibold text-stone-800 max-w-[100px] sm:max-w-[140px] truncate hidden xs:inline">
+                <span className="text-xs font-semibold text-stone-800 max-w-[120px] sm:max-w-[160px] truncate">
                   {currentUser.displayName || currentUser.email?.split('@')[0]}
                 </span>
-                <ChevronDown className="w-3.5 h-3.5 text-stone-400" />
+                <ChevronDown className="w-3.5 h-3.5 text-stone-400 shrink-0" />
               </button>
 
               {/* DROPDOWN MENU */}

@@ -11,7 +11,6 @@ import {
   Info
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { syncLocalDataToCloud } from '../services/firebaseStore';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -68,19 +67,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     onClose();
   };
 
-  const handlePostLogin = async (userId: string) => {
-    try {
-      const syncResult = await syncLocalDataToCloud(userId);
-      const total = syncResult.syncedOutfitsCount + syncResult.syncedLookbooksCount;
-      if (total > 0) {
-        setSyncNotice(
-          `Đã tự động đồng bộ ${total} bộ phối từ thiết bị này lên tài khoản đám mây của bạn!`
-        );
-      }
-    } catch (e) {
-      console.warn('Lỗi đồng bộ ngầm:', e);
-    }
-
+  const handlePostLogin = async (_userId: string) => {
     setTimeout(() => {
       onSuccess?.();
       handleClose();

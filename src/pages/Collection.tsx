@@ -14,15 +14,12 @@ import {
   X,
   Scale,
   Cloud,
-  CloudUpload,
   Loader2,
   LogIn
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import {
-  getCloudOutfits,
   deleteCloudOutfit,
-  syncLocalDataToCloud,
   subscribeCloudOutfits
 } from '../services/firebaseStore';
 import { GARMENTS, CASUAL_ITEMS, ACCESSORIES, CONTEXTS, OUTFIT_COMBINATIONS } from '../data';
@@ -56,8 +53,6 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio, onOp
 
   const { currentUser } = useAuth();
   const [isLoadingCloud, setIsLoadingCloud] = useState<boolean>(Boolean(currentUser));
-  const [isSyncing, setIsSyncing] = useState<boolean>(false);
-  const [syncSuccessMsg, setSyncSuccessMsg] = useState<string | null>(null);
 
   const navigate = useNavigate();
   // Compare mode states
@@ -69,8 +64,6 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio, onOp
   useEffect(() => {
     if (currentUser) {
       setIsLoadingCloud(true);
-      // Tự động sao lưu dữ liệu cục bộ lên đám mây ngay khi đăng nhập
-      syncLocalDataToCloud(currentUser.uid).catch((err) => console.warn(err));
 
       // Lắng nghe dữ liệu thời gian thực (Realtime Subscription) từ Firestore
       const unsubscribe = subscribeCloudOutfits(
@@ -126,22 +119,6 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio, onOp
     }
 
     setConfirmDeleteId(null);
-  };
-
-  // Đồng bộ thủ công dữ liệu Local lên Cloud
-  const handleManualSync = async () => {
-    if (!currentUser) return;
-    setIsSyncing(true);
-    setSyncSuccessMsg(null);
-    try {
-      const res = await syncLocalDataToCloud(currentUser.uid);
-      setSyncSuccessMsg(`Đã đồng bộ ${res.syncedOutfitsCount} bộ phối lên Đám mây thành công!`);
-      setTimeout(() => setSyncSuccessMsg(null), 3500);
-    } catch {
-      setActionError('Đồng bộ lên đám mây thất bại. Vui lòng kiểm tra kết nối.');
-    } finally {
-      setIsSyncing(false);
-    }
   };
 
   // Đặt lại dữ liệu hỏng khi người dùng xác nhận: kiểm tra kết quả và báo lỗi nếu thất bại
@@ -493,34 +470,11 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio, onOp
               </p>
             </div>
 
-            <div className="flex flex-col gap-2 self-start sm:self-auto">
-              {currentUser ? (
-                <div className="flex items-center gap-2">
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200/80 text-[11px] text-emerald-800 font-sans font-medium">
-                    <Cloud className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                    <span>Đồng bộ Đám mây ({currentUser.displayName || currentUser.email?.split('@')[0]})</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleManualSync}
-                    disabled={isSyncing}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white hover:bg-stone-50 border border-stone-200/80 text-[11px] text-stone-700 font-medium transition-colors cursor-pointer disabled:opacity-60 shadow-2xs"
-                    title="Đồng bộ lại dữ liệu lên Đám mây"
-                  >
-                    {isSyncing ? (
-                      <Loader2 className="w-3 h-3 animate-spin text-stone-500" />
-                    ) : (
-                      <CloudUpload className="w-3 h-3 text-stone-500" />
-                    )}
-                    <span>Đồng bộ</span>
-                  </button>
-                </div>
-              ) : (
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-stone-100 border border-stone-200/70 text-[11px] text-stone-500 font-sans">
-                  <Info className="w-3.5 h-3.5 text-stone-400 shrink-0" />
-                  <span>Lưu trên trình duyệt này • Đăng nhập để lưu vĩnh viễn trên Cloud</span>
-                </div>
-              )}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 self-start sm:self-auto">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200/80 text-[11px] text-emerald-800 font-sans font-medium">
+                <Cloud className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                <span>Đã đồng bộ tài khoản</span>
+              </div>
 
               {!isCorrupted && (
                 <button
@@ -574,23 +528,6 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio, onOp
         </div>
 
         {/* CẢNH BÁO LỖI THAO TÁC XÓA HOẶC ĐẶT LẠI */}
-        {/* THÔNG BÁO ĐỒNG BỘ ĐÁM MÂY THÀNH CÔNG */}
-        {syncSuccessMsg && (
-          <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-950 flex items-center justify-between gap-3 animate-in fade-in duration-200">
-            <div className="flex items-center gap-2.5 text-xs sm:text-sm">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span className="font-medium leading-relaxed">{syncSuccessMsg}</span>
-            </div>
-            <button
-              type="button"
-              onClick={() => setSyncSuccessMsg(null)}
-              className="p-1 rounded-lg text-emerald-400 hover:text-emerald-700 hover:bg-emerald-100 transition-colors cursor-pointer shrink-0"
-              title="Đóng thông báo"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        )}
 
         {actionError && (
           <div className="p-4 rounded-2xl bg-red-50 border border-red-200 text-red-950 flex items-center justify-between gap-3 animate-in fade-in duration-200">
