@@ -31,9 +31,12 @@ import { CasualDetailModal } from '../components/CasualDetailModal';
 import { AccessoryDetailModal } from '../components/AccessoryDetailModal';
 import { ColorCustomizerModal } from '../components/ColorCustomizerModal';
 import { saveOutfit, getSavedOutfits, isSameOutfit, areColorsEqual } from '../utils/storage';
+import { useAuth } from '../contexts/AuthContext';
+import { saveCloudOutfit } from '../services/firebaseStore';
 
 export const Studio: React.FC = () => {
   const location = useLocation();
+  const { currentUser } = useAuth();
 
   // ==========================================
   // STATE MANAGEMENT CHO STUDIO
@@ -525,6 +528,11 @@ export const Studio: React.FC = () => {
     if (res.success) {
       if (colors) {
         setItemColors(colors);
+      }
+      if (currentUser && res.savedOutfit) {
+        saveCloudOutfit(currentUser.uid, res.savedOutfit).catch((err) =>
+          console.warn('Lỗi lưu cloud outfit:', err)
+        );
       }
       setIsCurrentOutfitSaved(true);
       setSaveNotice({

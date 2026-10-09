@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { Check, Copy, Download, Loader2, Sparkles, X } from 'lucide-react';
+import { Check, Copy, Download, Loader2, Sparkles, X, Cloud } from 'lucide-react';
 import { encodeOutfitToShareUrl } from '../utils/lookbookStore';
+import { createCloudShare } from '../services/firebaseStore';
+import { useAuth } from '../contexts/AuthContext';
 
 interface SaveLookbookModalProps {
   isOpen: boolean;
@@ -31,8 +33,10 @@ export const SaveLookbookModal: React.FC<SaveLookbookModalProps> = ({
   defaultTitle,
   sharePayload
 }) => {
+  const { currentUser, isFirebaseConfigured } = useAuth();
   const [title, setTitle] = useState(defaultTitle);
   const [copied, setCopied] = useState(false);
+  const [isCreatingLink, setIsCreatingLink] = useState(false);
 
   if (!isOpen) return null;
 
@@ -42,20 +46,49 @@ export const SaveLookbookModal: React.FC<SaveLookbookModalProps> = ({
   });
 
   const handleCopyLink = async () => {
+    setIsCreatingLink(true);
+    let finalUrl = shareUrl;
+
+    if (isFirebaseConfigured) {
+      try {
+        const cloudShareId = await createCloudShare({
+          creatorId: currentUser?.uid,
+          creatorName: currentUser?.displayName || currentUser?.email?.split('@')[0] || 'Khách',
+          title,
+          gender: sharePayload.gen === 'male' ? 'male' : 'female',
+          contextId: sharePayload.ctx,
+          garmentId: sharePayload.g,
+          innerId: sharePayload.inn,
+          bottomId: sharePayload.bot,
+          shoesId: sharePayload.sh,
+          headwearId: sharePayload.hw,
+          jewelryIds: sharePayload.jw || [],
+          itemColors: sharePayload.col
+        });
+        if (cloudShareId) {
+          finalUrl = `${window.location.origin}/lookbook?shareId=${cloudShareId}`;
+        }
+      } catch (err) {
+        console.warn('Lỗi tạo cloud share link, dùng base64 link:', err);
+      }
+    }
+
     try {
-      await navigator.clipboard.writeText(shareUrl);
+      await navigator.clipboard.writeText(finalUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
     } catch {
       // Fallback nếu clipboard API bị block
       const input = document.createElement('input');
-      input.value = shareUrl;
+      input.value = finalUrl;
       document.body.appendChild(input);
       input.select();
       document.execCommand('copy');
       document.body.removeChild(input);
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
+    } finally {
+      setIsCreatingLink(false);
     }
   };
 
@@ -140,13 +173,19 @@ export const SaveLookbookModal: React.FC<SaveLookbookModalProps> = ({
           <button
             type="button"
             onClick={handleCopyLink}
+            disabled={isCreatingLink}
             className={`py-2.5 px-3 rounded-xl font-semibold text-xs flex items-center justify-center gap-1.5 shadow-xs transition-all cursor-pointer active:scale-95 border ${
               copied
                 ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
                 : 'bg-stone-900 hover:bg-stone-800 text-white border-transparent'
             }`}
           >
-            {copied ? (
+            {isCreatingLink ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin text-white" />
+                <span>Đang tạo link...</span>
+              </>
+            ) : copied ? (
               <>
                 <Check className="w-4 h-4 text-emerald-600" />
                 <span>Đã chép link!</span>

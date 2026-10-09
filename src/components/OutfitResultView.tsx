@@ -30,6 +30,8 @@ import { AccessoryDetailModal } from './AccessoryDetailModal';
 import { ColorCustomizerModal } from './ColorCustomizerModal';
 import { SaveLookbookModal } from './SaveLookbookModal';
 import { saveLookbook, encodeOutfitToShareUrl } from '../utils/lookbookStore';
+import { useAuth } from '../contexts/AuthContext';
+import { saveCloudLookbook } from '../services/firebaseStore';
 
 export interface SaveNotice {
   type: 'success' | 'warn' | 'error' | 'info';
@@ -85,6 +87,7 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
   backButtonText,
   isOutdatedOrBlocked = false
 }) => {
+  const { currentUser } = useAuth();
   const [showCulturalModal, setShowCulturalModal] = useState<boolean>(false);
   const [isActionsExpanded, setIsActionsExpanded] = useState<boolean>(false);
 
@@ -174,12 +177,13 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
     }
   };
 
-  // Xử lý lưu Lookbook vào localStorage
+  // Xử lý lưu Lookbook vào localStorage và Cloud Firestore
   const handleSaveToLookbook = (title: string, notes: string, authorName: string) => {
-    saveLookbook({
+    const finalAuthor = currentUser?.displayName || currentUser?.email?.split('@')[0] || authorName;
+    const saved = saveLookbook({
       title,
       notes,
-      authorName,
+      authorName: finalAuthor,
       gender: selectedGender === 'male' ? 'Male' : 'Female',
       contextId: contextItem?.id || null,
       garmentId: garmentItem.id,
@@ -190,6 +194,13 @@ export const OutfitResultView: React.FC<OutfitResultViewProps> = ({
       jewelryIds: jewelryItems?.map((j) => j.id) || [],
       itemColors: itemColors
     });
+
+    if (currentUser) {
+      saveCloudLookbook(currentUser.uid, saved).catch((err) =>
+        console.warn('Lỗi lưu cloud lookbook:', err)
+      );
+    }
+
     // Đồng thời lưu vào Bộ sưu tập cá nhân nếu có callback
     if (onSaveOutfit) {
       onSaveOutfit(itemColors);
