@@ -470,12 +470,7 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio, onOp
               </p>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 self-start sm:self-auto">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200/80 text-[11px] text-emerald-800 font-sans font-medium">
-                <Cloud className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                <span>Đã đồng bộ tài khoản</span>
-              </div>
-
+            <div className="flex items-center gap-2 self-start sm:self-auto">
               {!isCorrupted && (
                 <button
                   onClick={() => {
@@ -624,10 +619,6 @@ export const Collection: React.FC<CollectionProps> = ({ onNavigateToStudio, onOp
               </h3>
               <p className="text-xs text-stone-500 max-w-sm mx-auto leading-relaxed">
                 Bạn chưa lưu bộ phối nào vào tài khoản này. Hãy vào Phòng phối đồ để sáng tạo, kiểm định và lưu giữ những bản phối ưng ý nhất.
-              </p>
-              <p className="text-[11px] text-emerald-700 font-sans mt-1 flex items-center justify-center gap-1.5">
-                <Cloud className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Đồng bộ an toàn trên tài khoản cá nhân</span>
               </p>
             </div>
 

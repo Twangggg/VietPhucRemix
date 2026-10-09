@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User as UserIcon, LogOut, Bookmark, Cloud, ChevronDown } from 'lucide-react';
+import { User as UserIcon, LogOut, Bookmark, ChevronDown } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 interface TopHeaderProps {
@@ -82,10 +82,6 @@ export const TopHeader: React.FC<TopHeaderProps> = ({ onOpenAuthModal }) => {
                     <p className="text-[11px] text-stone-500 truncate">
                       {currentUser.email}
                     </p>
-                    <div className="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-medium border border-emerald-200/60">
-                      <Cloud className="w-2.5 h-2.5" />
-                      <span>Đồng bộ Đám mây</span>
-                    </div>
                   </div>
 
                   <div className="py-1">
