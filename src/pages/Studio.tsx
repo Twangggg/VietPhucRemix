@@ -100,11 +100,19 @@ export const Studio: React.FC = () => {
   // State ẩn/hiện thanh validation dưới cùng (mặc định ẩn gọn, chỉ mở khi bấm, tự ẩn khi chọn món khác)
   const [isBottomBarExpanded, setIsBottomBarExpanded] = useState<boolean>(false);
 
-  // Chuyển Tab mượt mà lên đầu danh sách
+  // Chuyển Tab mượt mà lên đầu danh sách và căn giữa tab trên mobile
   const goToTab = (tabNumber: number) => {
     setIsBottomBarExpanded(false);
     setActiveTab(tabNumber);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    // Cuộn tab đang chọn vào vùng nhìn thấy trên mobile
+    setTimeout(() => {
+      const tabEl = document.getElementById(`studio-tab-btn-${tabNumber}`);
+      if (tabEl) {
+        tabEl.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      }
+    }, 50);
   };
 
   // 1. Chọn Bối cảnh (Tab 1)
@@ -773,57 +781,75 @@ export const Studio: React.FC = () => {
                 THANH NAVIGATION TỐI GIẢN (STICKY TOP KHI CUỘN)
                ========================================== */}
             <div className="sticky top-0 z-30 bg-[#FBF9F5]/95 backdrop-blur-md pt-2 pb-1 border-b border-stone-200/80">
-              <div className="flex items-center justify-between sm:justify-center gap-1 sm:gap-6 px-1 sm:px-2 max-w-lg mx-auto">
-                {[
-                  { id: 1, label: 'Bối cảnh', completed: Boolean(selectedContext) },
-                  { id: 2, label: 'Cổ phục', completed: selectedGarments.length > 0 },
-                  { id: 3, label: 'Mặc kèm', completed: Boolean(selectedInner || selectedBottom || selectedShoes) },
-                  { id: 4, label: 'Phụ kiện', completed: Boolean(selectedHeadwear || selectedJewelries.length > 0) }
-                ].map((tab) => {
-                  const isCurrent = activeTab === tab.id;
-                  
-                  // Tab 2 là bước bắt buộc quan trọng nhất: khi đã chọn bối cảnh mà chưa chọn Cổ phục,
-                  // Tab 2 LUÔN LUÔN được highlight để nhắc nhở người dùng dù họ đang ở bất kỳ tab nào.
-                  const isNextStep =
-                    (tab.id === 2 && Boolean(selectedContext) && selectedGarments.length === 0) ||
-                    (tab.id === 3 && activeTab === 2 && selectedGarments.length > 0) ||
-                    (tab.id === 4 && activeTab === 3 && Boolean(selectedInner || selectedBottom || selectedShoes));
+              <div className="relative max-w-xl mx-auto">
+                <div
+                  id="studio-tabs-scroll-container"
+                  className="flex items-center justify-start sm:justify-center gap-2 sm:gap-6 overflow-x-auto scrollbar-hide px-3 sm:px-4 scroll-smooth"
+                >
+                  {[
+                    { id: 1, label: 'Bối cảnh', completed: Boolean(selectedContext) },
+                    { id: 2, label: 'Cổ phục', completed: selectedGarments.length > 0 },
+                    { id: 3, label: 'Mặc kèm', completed: Boolean(selectedInner || selectedBottom || selectedShoes) },
+                    { id: 4, label: 'Phụ kiện', completed: Boolean(selectedHeadwear || selectedJewelries.length > 0) }
+                  ].map((tab) => {
+                    const isCurrent = activeTab === tab.id;
+                    
+                    // Tab 2 là bước bắt buộc quan trọng nhất: khi đã chọn bối cảnh mà chưa chọn Cổ phục,
+                    // Tab 2 LUÔN LUÔN được highlight để nhắc nhở người dùng dù họ đang ở bất kỳ tab nào.
+                    const isNextStep =
+                      (tab.id === 2 && Boolean(selectedContext) && selectedGarments.length === 0) ||
+                      (tab.id === 3 && activeTab === 2 && selectedGarments.length > 0) ||
+                      (tab.id === 4 && activeTab === 3 && Boolean(selectedInner || selectedBottom || selectedShoes));
 
-                  return (
-                    <button
-                      key={tab.id}
-                      type="button"
-                      onClick={() => goToTab(tab.id)}
-                      className={`relative py-1.5 px-1.5 sm:px-2.5 text-[11px] sm:text-sm tracking-tight sm:tracking-wide transition-all whitespace-nowrap cursor-pointer flex items-center gap-1 sm:gap-1.5 select-none rounded-lg flex-1 sm:flex-none justify-center ${
-                        isCurrent
-                          ? 'text-stone-900 font-bold'
-                          : isNextStep
-                            ? 'text-red-700 font-bold bg-red-100/90 ring-1.5 ring-red-500/60 shadow-xs animate-pulse'
-                            : tab.completed
-                              ? 'text-stone-700 hover:text-stone-900 font-medium'
-                              : 'text-stone-400 hover:text-stone-600 font-normal'
-                      }`}
-                    >
-                      <span
-                        className={`w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center text-[9px] sm:text-[10px] font-mono font-bold transition-colors shrink-0 ${
+                    return (
+                      <button
+                        key={tab.id}
+                        id={`studio-tab-btn-${tab.id}`}
+                        type="button"
+                        onClick={() => goToTab(tab.id)}
+                        className={`relative py-1.5 px-3 sm:px-3 text-xs sm:text-sm tracking-wide transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 select-none rounded-lg shrink-0 ${
                           isCurrent
-                            ? 'bg-stone-800 text-white'
+                            ? 'text-stone-900 font-bold'
                             : isNextStep
-                              ? 'bg-red-700 text-white shadow-xs'
+                              ? 'text-red-700 font-bold bg-red-100/90 ring-1.5 ring-red-500/60 shadow-xs animate-pulse'
                               : tab.completed
-                                ? 'bg-emerald-600 text-white'
-                                : 'bg-stone-200 text-stone-500'
+                                ? 'text-stone-700 hover:text-stone-900 font-medium'
+                                : 'text-stone-400 hover:text-stone-600 font-normal'
                         }`}
                       >
-                        {tab.completed ? <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3 stroke-[3]" /> : tab.id}
-                      </span>
-                      <span className="truncate">{tab.label}</span>
-                      {isCurrent && (
-                        <span className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-red-700 rounded-full" />
-                      )}
-                    </button>
-                  );
-                })}
+                        <span
+                          className={`w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center text-[9px] sm:text-[10px] font-mono font-bold transition-colors shrink-0 ${
+                            isCurrent
+                              ? 'bg-stone-800 text-white'
+                              : isNextStep
+                                ? 'bg-red-700 text-white shadow-xs'
+                                : tab.completed
+                                  ? 'bg-emerald-600 text-white'
+                                  : 'bg-stone-200 text-stone-500'
+                          }`}
+                        >
+                          {tab.completed ? <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3 stroke-[3]" /> : tab.id}
+                        </span>
+                        <span>{tab.label}</span>
+                        {isCurrent && (
+                          <span className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-red-700 rounded-full" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Ký hiệu mờ mờ mép phải (Fade & Hint) trên Mobile báo hiệu vẫn còn tab phía sau */}
+                <div
+                  onClick={() => {
+                    const el = document.getElementById('studio-tabs-scroll-container');
+                    if (el) el.scrollBy({ left: 120, behavior: 'smooth' });
+                  }}
+                  className="sm:hidden absolute right-0 top-0 bottom-0 w-9 bg-gradient-to-l from-[#FBF9F5] via-[#FBF9F5]/80 to-transparent flex items-center justify-end pr-1 pointer-events-auto cursor-pointer"
+                  title="Vuốt sang để xem thêm tab"
+                >
+                  <ChevronRight className="w-4 h-4 text-stone-400/80 animate-pulse" />
+                </div>
               </div>
             </div>
 
